@@ -1,0 +1,28 @@
+meta {
+  name: create
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://{{server_ip}}:{{server_port}}/calendar
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "title here",
+    "description": "description here",
+    "color": "#FF00FF"
+  }
+}
+
+vars:post-response {
+  calendar_id: res.body.id
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,58 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "Self Calendar api"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.128.8",
+    "sqlmodel>=0.0.33",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+]
+
+[tool.ruff]
+line-length = 80
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+]
+show-fixes = true
+
+[tool.ruff.format]
+# Style de guillemets
+quote-style = "double"
+# Indentation
+indent-style = "space"
+# Virgule trailing dans les listes/dicts
+skip-magic-trailing-comma = false
+# Fin de ligne
+line-ending = "auto"
+# Gestion doc
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+# Configuration isort (tri des imports)
+combine-as-imports = true
+force-wrap-aliases = true
+
+[tool.mypy]
+strict = true
+exclude = [
+    ".venv",
+    ".git",
+    ".ruff_cache",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.1",
+]
