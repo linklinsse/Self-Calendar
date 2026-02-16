@@ -1,7 +1,8 @@
 from fastapi import Depends, FastAPI
 
 from app.common.decorators.db_session_injector import db_session_injector
-from app.common.dependencies.verif_loged_user_middleware import verify_token
+from app.common.dependencies.fill_loged_user_context_dependency import fill_loged_user_context_dependency
+from app.common.dependencies.verify_loged_user_dependency import verify_loged_user_dependency
 from app.models.obj_user_model import ObjUserModel
 from app.routing import calendar_routing
 from app.routing import user_calendar_routing
@@ -11,14 +12,14 @@ from app.common.db_connection import SessionDep, create_db_and_tables
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
 
 app = FastAPI(
-    title="Self Calendar Api", 
+    title="Self Calendar Api",
     version="0.0.1",
-    dependencies=[Depends(verify_token)]
+    dependencies=[]
 )
 
-app.include_router(calendar_routing.router)
-app.include_router(user_calendar_routing.router)
-app.include_router(user_routing.router)
+app.include_router(calendar_routing.router, dependencies=[Depends(verify_loged_user_dependency), Depends(fill_loged_user_context_dependency)])
+app.include_router(user_calendar_routing.router, dependencies=[Depends(verify_loged_user_dependency), Depends(fill_loged_user_context_dependency)])
+app.include_router(user_routing.router, dependencies=[Depends(verify_loged_user_dependency), Depends(fill_loged_user_context_dependency)])
 app.include_router(auth_routing.router)
 
 create_db_and_tables()
