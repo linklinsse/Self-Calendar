@@ -9,7 +9,7 @@ from app.services.obj_user_service import get_user
 async def fill_loged_user_context_dependency(
     token: Annotated[str, Depends(security.oauth2_scheme)],
 ):
-    if token != 'undefined':
+    if token != "undefined":
         set_loged_user_context(get_user(token))
     else:
         set_loged_user_context(None)

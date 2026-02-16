@@ -8,7 +8,7 @@ from app.schemas.obj_calendar_schema import (
     ObjCalendarSchemaEdit,
 )
 
-#TODO only loged user
+# TODO only loged user
 router = APIRouter(prefix="/calendar")
 
 

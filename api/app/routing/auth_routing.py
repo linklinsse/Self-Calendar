@@ -5,6 +5,7 @@ from app.services import auth_service
 
 router = APIRouter(prefix="/auth")
 
+
 # TODO ofc
 @router.get("/login")
 async def login():

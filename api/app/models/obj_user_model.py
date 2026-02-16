@@ -1,6 +1,7 @@
 from uuid import uuid4
 from sqlmodel import Field, SQLModel
 
+
 class ObjUserModel(SQLModel, table=True):
     __tablename__ = "obj_user"
 

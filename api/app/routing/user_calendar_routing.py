@@ -8,7 +8,7 @@ from app.schemas.lnk_user_calendar_schema import (
     LnkUserCalendarSchemaEdit,
 )
 
-#TODO only loged user
+# TODO only loged user
 router = APIRouter(prefix="/user_calendar")
 
 
@@ -21,19 +21,25 @@ async def create(
     )
 
 
-@router.get("/all/{calendar_id}", response_model=List[LnkUserCalendarSchemaComplete])
+@router.get(
+    "/all/{calendar_id}", response_model=List[LnkUserCalendarSchemaComplete]
+)
 async def get_all(calendar_id: str) -> List[LnkUserCalendarSchemaComplete]:
     return lnk_user_calendar_service.get_all_lnk_user_calendar(calendar_id)
 
 
-@router.get("/{lnk_user_calendar_id}", response_model=LnkUserCalendarSchemaComplete)
+@router.get(
+    "/{lnk_user_calendar_id}", response_model=LnkUserCalendarSchemaComplete
+)
 async def get(lnk_user_calendar_id: str) -> LnkUserCalendarSchemaComplete:
     return lnk_user_calendar_service.get_calendar(
         lnk_user_calendar_id,
     )
 
 
-@router.patch("/{lnk_user_calendar_id}", response_model=LnkUserCalendarSchemaComplete)
+@router.patch(
+    "/{lnk_user_calendar_id}", response_model=LnkUserCalendarSchemaComplete
+)
 async def patch(
     lnk_user_calendar_id: str, edited_calendar: LnkUserCalendarSchemaEdit
 ) -> LnkUserCalendarSchemaComplete:

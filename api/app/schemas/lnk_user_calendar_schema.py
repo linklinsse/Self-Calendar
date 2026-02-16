@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class LnkUserCalendarSchemaComplete(BaseModel):
@@ -7,10 +7,12 @@ class LnkUserCalendarSchemaComplete(BaseModel):
     calendar_id: str
     right: str  # TODO Enum
 
+
 class LnkUserCalendarSchemaCreate(BaseModel):
     user_id: str
     calendar_id: str
     right: str  # TODO Enum
+
 
 class LnkUserCalendarSchemaEdit(BaseModel):
     right: str  # TODO Enum

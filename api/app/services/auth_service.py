@@ -1,4 +1,2 @@
 def login():
-    return {
-        'token': 'test'
-    }
+    return {"token": "test"}
