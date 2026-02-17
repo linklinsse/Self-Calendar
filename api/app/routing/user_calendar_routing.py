@@ -8,7 +8,6 @@ from app.schemas.lnk_user_calendar_schema import (
     LnkUserCalendarSchemaEdit,
 )
 
-# TODO only loged user
 router = APIRouter(prefix="/user_calendar")
 
 

@@ -1,8 +1,11 @@
 from typing import List
-from sqlmodel import select
+from sqlmodel import exists, select
 from fastapi import HTTPException
 
+from app.common.contexts.loged_user_context import get_loged_user_context
 from app.common.decorators.db_session_injector import db_session_injector
+from app.common.utils.verif_user_right_calendar import verif_user_right_calendar
+from app.models.lnk_user_calendar_model import LnkUserCalendarModel
 from app.schemas.obj_calendar_schema import (
     ObjCalendarSchemaComplete,
     ObjCalendarSchemaCreate,
@@ -42,12 +45,30 @@ def get_calendar(
     db_calendar = db_session.get(ObjCalendarModel, {"id": calendar_id})
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
-    return db_calendar
 
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'C')
+
+    if not has_right:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+
+    return db_calendar
 
 @db_session_injector
 def get_all_calendar(db_session: SessionDep) -> List[ObjCalendarSchemaComplete]:
-    return db_session.exec(select(ObjCalendarModel)).all()
+    loged_user = get_loged_user_context()
+
+    return db_session.exec(
+        select(ObjCalendarModel)
+        .where(
+            exists(LnkUserCalendarModel.id)
+            .where(
+                LnkUserCalendarModel.calendar_id == ObjCalendarModel.id
+            )
+            .where(
+                LnkUserCalendarModel.user_id == loged_user.id
+            )
+        )
+    ).all()
 
 
 @db_session_injector
@@ -59,6 +80,11 @@ def edit_calendar(
     db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
+
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'O')
+
+    if not has_right:
+        raise HTTPException(status_code=403, detail="No rihgt on Calendar")
 
     update_data = edited_calendar.model_dump(exclude_unset=True)
 
@@ -74,6 +100,14 @@ def edit_calendar(
 
 @db_session_injector
 def delete_calendar(calendar_id: str, db_session: SessionDep):
-    calendar = db_session.get(ObjCalendarModel, calendar_id)
-    db_session.delete(calendar)
+    db_calendar = db_session.get(ObjCalendarModel, calendar_id)
+    if not db_calendar:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'O')
+
+    if not has_right:
+        raise HTTPException(status_code=403, detail="No rihgt on Calendar")
+
+    db_session.delete(db_calendar)
     db_session.commit()

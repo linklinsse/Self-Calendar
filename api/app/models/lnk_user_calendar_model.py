@@ -1,5 +1,7 @@
 from uuid import uuid4
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+from app.models.obj_calendar_model import ObjCalendarModel
 
 
 class LnkUserCalendarModel(SQLModel, table=True):
@@ -11,3 +13,5 @@ class LnkUserCalendarModel(SQLModel, table=True):
         nullable=False, index=True, foreign_key="obj_calendar.id"
     )
     right: str = Field(nullable=False, min_length=1, max_length=1)
+
+    calendar: ObjCalendarModel = Relationship(back_populates="lnk_users")

@@ -5,3 +5,7 @@ auth {
 auth:bearer {
   token: {{BearerToken}}
 }
+
+vars:pre-request {
+  BearerToken: test
+}

@@ -4,7 +4,6 @@ from app.common.contexts.loged_user_context import get_loged_user_context
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
 
 
-# TODO only loged user
 router = APIRouter(prefix="/user")
 
 
