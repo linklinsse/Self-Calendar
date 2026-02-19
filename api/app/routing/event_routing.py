@@ -17,9 +17,13 @@ async def create(
     )
 
 
-@router.get("/", response_model=List[ObjEventSchemaComplete])
-async def get_all() -> List[ObjEventSchemaComplete]:
-    return obj_event_service.get_all_event()
+@router.get("/range/{calendar_id}", response_model=List[ObjEventSchemaComplete])
+async def get_all(
+    calendar_id: str,
+    from_date: str,
+    to_date: str,
+) -> List[ObjEventSchemaComplete]:
+    return obj_event_service.get_all_event(calendar_id,from_date,to_date)
 
 
 @router.get("/{event_id}", response_model=ObjEventSchemaComplete)

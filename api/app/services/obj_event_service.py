@@ -1,18 +1,92 @@
 from typing import List
+
+from fastapi import HTTPException
+
+from app.common.contexts.loged_user_context import get_loged_user_context
+from app.common.db_connection import SessionDep
+from app.common.decorators.db_session_injector import db_session_injector
+from app.common.utils import verif_user_right_calendar
+from app.models.obj_calendar_model import ObjCalendarModel
+from app.models.obj_event_model import ObjEventModel
 from app.schemas.obj_event_schema import ObjEventSchemaComplete, ObjEventSchemaCreate, ObjEventSchemaEdit
 
-#TODO
-def create_event(new_event: ObjEventSchemaCreate) -> ObjEventSchemaComplete:
-    return None
+@db_session_injector
+def create_event(new_event: ObjEventSchemaCreate, db_session: SessionDep) -> ObjEventSchemaComplete:
+    db_calendar = db_session.get(ObjCalendarModel, {"id": new_event.calendar_id})
+    if not db_calendar:
+        raise HTTPException(status_code=404, detail="Calendar not found")
 
-def get_all_event_between() -> List[ObjEventSchemaComplete]:
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'U')
+    if not has_right:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+
+    db_event = ObjEventModel.model_validate(new_event)
+
+    db_session.add(db_event)
+    db_session.commit()
+    db_session.refresh(db_event)
+
+    return db_event
+
+@db_session_injector
+def get_all_event_between(
+    calendar_id: str,
+    from_date: str,
+    to_date: str,
+    db_session: SessionDep
+) -> List[ObjEventSchemaComplete]:
+    db_calendar = db_session.get(ObjCalendarModel, {"id": calendar_id})
+    if not db_calendar:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'C')
+    if not has_right:
+        raise HTTPException(status_code=404, detail="Calendar not found")
+
+    #TODO
     return []
 
-def get_event(event_id: str) -> ObjEventSchemaComplete:
-    return None
+@db_session_injector
+def get_event(event_id: str, db_session: SessionDep) -> ObjEventSchemaComplete:
+    db_event = db_session.get(ObjEventModel, {"id": event_id})
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
 
-def edit_event(event_id: str, edited_event: ObjEventSchemaEdit) -> ObjEventSchemaComplete:
-    return None
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_event.obj_calendar, 'C')
+    if not has_right:
+        raise HTTPException(status_code=404, detail="Event not found")
 
-def delete_event(event_id: str):
-    return None
+    return db_event
+
+@db_session_injector
+def edit_event(event_id: str, edited_event: ObjEventSchemaEdit, db_session: SessionDep) -> ObjEventSchemaComplete:
+    db_event = db_session.get(ObjEventModel, {"id": event_id})
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_event.obj_calendar, 'P')
+    if not has_right:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    update_data = edited_event.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_event, key, value)
+
+    db_session.add(db_event)
+    db_session.commit()
+    db_session.refresh(db_event)
+
+    return db_event
+
+@db_session_injector
+def delete_event(event_id: str, db_session: SessionDep):
+    db_event = db_session.get(ObjEventModel, {"id": event_id})
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_event.obj_calendar, 'P')
+    if not has_right:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    db_session.delete(db_event)
+    db_session.commit()

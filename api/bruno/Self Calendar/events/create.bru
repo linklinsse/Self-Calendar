@@ -1,0 +1,30 @@
+meta {
+  name: create
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://{{server_ip}}:{{server_port}}/event
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "calendar_id": "{{calendar_id}}",
+    "title": "Mon Titre",
+    "description": "Ma description",
+    "date_start": 0,
+    "date_end": 1,
+    "category_id": null,
+    "adresse": null,
+    "reminder": null,
+    "recurrence_id": null
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

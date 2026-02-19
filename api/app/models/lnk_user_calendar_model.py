@@ -14,4 +14,4 @@ class LnkUserCalendarModel(SQLModel, table=True):
     )
     right: str = Field(nullable=False, min_length=1, max_length=1)
 
-    calendar: ObjCalendarModel = Relationship(back_populates="lnk_users")
+    obj_calendar: ObjCalendarModel = Relationship(back_populates="lnk_users")

@@ -1,0 +1,16 @@
+meta {
+  name: edit
+  type: http
+  seq: 4
+}
+
+patch {
+  url: http://{{server_ip}}:{{server_port}}/event/{{event_id}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

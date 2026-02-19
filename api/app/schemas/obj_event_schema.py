@@ -29,7 +29,6 @@ class ObjEventSchemaCreate(BaseModel):
 
 class ObjEventSchemaEdit(BaseModel):
     title: CommonFieldTitle
-    title: CommonFieldTitle
     description: str | None = Field(default=None)
     date_start: int
     date_end: int

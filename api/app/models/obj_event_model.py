@@ -1,5 +1,7 @@
 from uuid import uuid4
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+from app.models.obj_calendar_model import ObjCalendarModel
 
 
 class ObjEventModel(SQLModel, table=True):
@@ -17,3 +19,5 @@ class ObjEventModel(SQLModel, table=True):
     adresse: str | None = Field(nullable=True, max_length=255)
     reminder: str | None = Field(nullable=True, max_length=255)
     recurrence_id: str | None = Field(default=None) # TODO
+
+    obj_calendar: ObjCalendarModel = Relationship(back_populates="events")

@@ -11,4 +11,5 @@ class ObjCalendarModel(SQLModel, table=True):
     description: str | None = Field(nullable=True, default="")
     color: str = Field(nullable=True, min_length=7, max_length=7)
 
-    lnk_users: List["LnkUserCalendarModel"] = Relationship(back_populates="calendar")
+    lnk_users: List["LnkUserCalendarModel"] = Relationship(back_populates="obj_calendar")
+    obj_events: List["ObjEventModel"] = Relationship(back_populates="obj_calendar")

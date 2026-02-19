@@ -1,0 +1,16 @@
+meta {
+  name: get
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{server_ip}}:{{server_port}}/event/{{event_id}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

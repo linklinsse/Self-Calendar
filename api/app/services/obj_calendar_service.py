@@ -47,7 +47,6 @@ def get_calendar(
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'C')
-
     if not has_right:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
@@ -82,7 +81,6 @@ def edit_calendar(
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'O')
-
     if not has_right:
         raise HTTPException(status_code=403, detail="No rihgt on Calendar")
 
@@ -105,7 +103,6 @@ def delete_calendar(calendar_id: str, db_session: SessionDep):
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'O')
-
     if not has_right:
         raise HTTPException(status_code=403, detail="No rihgt on Calendar")
 
