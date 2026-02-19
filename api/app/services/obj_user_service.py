@@ -3,6 +3,7 @@ from app.common.db_connection import SessionDep
 from app.common.decorators.db_session_injector import db_session_injector
 from app.models.obj_user_model import ObjUserModel
 
+
 @db_session_injector
 def get_user(user_id: str, db_session: SessionDep) -> ObjUserModel:
     db_user = db_session.get(ObjUserModel, {"id": user_id})

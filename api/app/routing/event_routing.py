@@ -1,7 +1,11 @@
 from typing import List
 from fastapi import APIRouter
 
-from app.schemas.obj_event_schema import ObjEventSchemaComplete, ObjEventSchemaCreate, ObjEventSchemaEdit
+from app.schemas.obj_event_schema import (
+    ObjEventSchemaComplete,
+    ObjEventSchemaCreate,
+    ObjEventSchemaEdit,
+)
 from app.services import obj_event_service
 
 
@@ -20,10 +24,13 @@ async def create(
 @router.get("/range/{calendar_id}", response_model=List[ObjEventSchemaComplete])
 async def get_all(
     calendar_id: str,
-    from_date: str,
-    to_date: str,
+    from_date: int,
+    to_date: int,
+    category_id: str | None = None,
 ) -> List[ObjEventSchemaComplete]:
-    return obj_event_service.get_all_event(calendar_id,from_date,to_date)
+    return obj_event_service.get_all_event_between(
+        calendar_id, from_date, to_date, category_id
+    )
 
 
 @router.get("/{event_id}", response_model=ObjEventSchemaComplete)

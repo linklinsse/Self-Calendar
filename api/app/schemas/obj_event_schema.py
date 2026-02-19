@@ -15,6 +15,7 @@ class ObjEventSchemaComplete(BaseModel):
     reminder: str | None = Field(default=None)
     recurrence_id: str | None = Field(default=None)
 
+
 class ObjEventSchemaCreate(BaseModel):
     calendar_id: str
     title: CommonFieldTitle

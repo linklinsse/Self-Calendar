@@ -72,11 +72,11 @@ test:
 
 lint:
 	@echo "$(GREEN)→ Vérification avec Ruff...$(NC)"
-	uv run ruff check && uv run ruff format
+	uv run ruff check ; uv run ruff format
 
 lint-fix:
 	@echo "$(GREEN)→ Correction automatique...$(NC)"
-	uv run ruff check . --fix && uv run ruff format
+	uv run ruff check --fix ; uv run ruff format
 
 # ============================================================================
 # DOCKER

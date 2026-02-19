@@ -33,7 +33,6 @@ def create_calendar(
     lnk_user_calendar = LnkUserCalendarSchemaCreate(
         user_id="test", calendar_id=db_calendar.id, right="O"
     )
-    print(lnk_user_calendar)
     lnk_user_calendar_service.create_lnk_user_calendar(lnk_user_calendar)
     return db_calendar
 
@@ -46,26 +45,24 @@ def get_calendar(
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
-    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'C')
+    has_right = verif_user_right_calendar(
+        get_loged_user_context(), db_calendar, "C"
+    )
     if not has_right:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     return db_calendar
+
 
 @db_session_injector
 def get_all_calendar(db_session: SessionDep) -> List[ObjCalendarSchemaComplete]:
     loged_user = get_loged_user_context()
 
     return db_session.exec(
-        select(ObjCalendarModel)
-        .where(
+        select(ObjCalendarModel).where(
             exists(LnkUserCalendarModel.id)
-            .where(
-                LnkUserCalendarModel.calendar_id == ObjCalendarModel.id
-            )
-            .where(
-                LnkUserCalendarModel.user_id == loged_user.id
-            )
+            .where(LnkUserCalendarModel.calendar_id == ObjCalendarModel.id)
+            .where(LnkUserCalendarModel.user_id == loged_user.id)
         )
     ).all()
 
@@ -80,7 +77,9 @@ def edit_calendar(
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
-    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'O')
+    has_right = verif_user_right_calendar(
+        get_loged_user_context(), db_calendar, "O"
+    )
     if not has_right:
         raise HTTPException(status_code=403, detail="No rihgt on Calendar")
 
@@ -102,7 +101,9 @@ def delete_calendar(calendar_id: str, db_session: SessionDep):
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
-    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'O')
+    has_right = verif_user_right_calendar(
+        get_loged_user_context(), db_calendar, "O"
+    )
     if not has_right:
         raise HTTPException(status_code=403, detail="No rihgt on Calendar")
 

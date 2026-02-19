@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: http://{{server_ip}}:{{server_port}}/event/range/{{calendar_id}}?from_date=00&from_date=111
+  url: http://{{server_ip}}:{{server_port}}/event/range/{{calendar_id}}?from_date=00&to_date=111
   body: none
   auth: inherit
 }
 
 params:query {
   from_date: 00
-  from_date: 111
+  to_date: 111
 }
 
 settings {

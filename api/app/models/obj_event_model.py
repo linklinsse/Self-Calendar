@@ -15,9 +15,9 @@ class ObjEventModel(SQLModel, table=True):
     description: str | None = Field(default=None)
     date_start: int = Field(nullable=False, index=True)
     date_end: int = Field(nullable=False, index=True)
-    category_id: str | None = Field(default=None) # TODO
+    category_id: str | None = Field(default=None)  # TODO
     adresse: str | None = Field(nullable=True, max_length=255)
     reminder: str | None = Field(nullable=True, max_length=255)
-    recurrence_id: str | None = Field(default=None) # TODO
+    recurrence_id: str | None = Field(default=None)  # TODO
 
     obj_calendar: ObjCalendarModel = Relationship(back_populates="obj_events")
