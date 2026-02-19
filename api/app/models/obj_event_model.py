@@ -20,4 +20,4 @@ class ObjEventModel(SQLModel, table=True):
     reminder: str | None = Field(nullable=True, max_length=255)
     recurrence_id: str | None = Field(default=None) # TODO
 
-    obj_calendar: ObjCalendarModel = Relationship(back_populates="events")
+    obj_calendar: ObjCalendarModel = Relationship(back_populates="obj_events")

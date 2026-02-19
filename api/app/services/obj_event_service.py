@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from app.common.contexts.loged_user_context import get_loged_user_context
 from app.common.db_connection import SessionDep
 from app.common.decorators.db_session_injector import db_session_injector
-from app.common.utils import verif_user_right_calendar
+from app.common.utils.verif_user_right_calendar import verif_user_right_calendar
 from app.models.obj_calendar_model import ObjCalendarModel
 from app.models.obj_event_model import ObjEventModel
 from app.schemas.obj_event_schema import ObjEventSchemaComplete, ObjEventSchemaCreate, ObjEventSchemaEdit
@@ -16,7 +16,7 @@ def create_event(new_event: ObjEventSchemaCreate, db_session: SessionDep) -> Obj
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
-    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'U')
+    has_right = verif_user_right_calendar(get_loged_user_context(), db_calendar, 'P')
     if not has_right:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
