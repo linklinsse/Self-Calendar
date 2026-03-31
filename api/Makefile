@@ -1,4 +1,4 @@
-.PHONY: help dev test lint docker-build lint-fix
+.PHONY: help dev test lint docker-build lint-fix init
 
 # Couleurs
 GREEN  := \033[0;32m
@@ -9,8 +9,6 @@ NC     := \033[0m
 
 # Variables
 DOCKER_IMAGE := fastapi-app
-DOCKER_CONTAINER := fastapi-container
-PORT := 8000
 
 # ============================================================================
 # AIDE
@@ -43,7 +41,7 @@ help:
 # ============================================================================
 
 init:
-	@echo "$(GREEN)→ Initialisation du projet...$(NC)"
+	@echo "$(GREEN)→ Initialisation du projet en Dev...$(NC)"
 	@echo ""
 	uv venv $(VENV)
 	uv sync --dev
@@ -56,7 +54,7 @@ init:
 
 dev:
 	@echo "$(GREEN)→ Lancement en mode développement...$(NC)"
-	uv run fastapi dev
+	uv run fastapi dev app/app.py
 
 # ============================================================================
 # TESTS
@@ -84,6 +82,5 @@ lint-fix:
 
 docker-build:
 	@echo "$(GREEN)→ Construction Docker...$(NC)"
-	@echo "$(RED) TODOOO "
-# 	docker build -t $(DOCKER_IMAGE) .
+	docker build -t $(DOCKER_IMAGE) .
 	@echo "$(GREEN)✓ Image: $(DOCKER_IMAGE)$(NC)"
