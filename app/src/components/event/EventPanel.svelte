@@ -1,0 +1,527 @@
+<script>
+  /**
+   * EventPanel.svelte — Add / Edit event panel.
+   *
+   * Fixes in this revision:
+   * [1] EDIT BUG: form is only re-initialised when the panel opens with a
+   *     DIFFERENT event (by id+startDate key). Typing in a field no longer
+   *     gets wiped when the calendars/categories stores update.
+   * [2] RECURRENCE moved immediately below the date/time fields.
+   * [3] Category→color sync via dedicated reactive var (mobile-safe).
+   * [4] Calendar custom picker with colour dot.
+   */
+
+  import { fly, fade } from 'svelte/transition';
+  import {
+    panelEvent, closePanel, saveEvent,
+    calendars, categories,
+  } from '../../lib/stores/index.js';
+  import {
+    toInputDate, parseInputDate,
+    timeToMinutes, minutesToTime,
+    describeRecurrence,
+  } from '../../lib/utils.js';
+
+  // ── Form state ──────────────────────────────────────────────
+  let form          = {};
+  let titleError    = false;
+  let formCategory  = '';
+  let lastSyncedCat = '';
+  let showRecur     = false;
+
+  // FIX [1]: Guard init with a "panel key" so we only reset form
+  // when a genuinely different event is opened, not on every store update.
+  let _prevPanelKey = null;
+
+  $: {
+    const p = $panelEvent;
+    if (!p) {
+      _prevPanelKey = null;
+    } else {
+      const key = `${p.id}-${(p.startDate ?? p.date ?? '').toString()}`;
+      if (key !== _prevPanelKey) {
+        _prevPanelKey = key;
+        form = {
+          ...p,
+          startDateStr: toInputDate(p.startDate ?? p.date ?? new Date()),
+          endDateStr:   toInputDate(p.endDate   ?? p.startDate ?? p.date ?? new Date()),
+          recurrence:   p.recurrence ?? null,
+        };
+        formCategory  = p.category ?? '';
+        lastSyncedCat = formCategory;
+        titleError    = false;
+        showRecur     = !!p.recurrence;
+      }
+    }
+  }
+
+  $: isEdit = !!form.id && form.id !== -1;
+
+  // FIX [3]: Reactive category→color sync — guaranteed to fire on all platforms
+  $: form.category = formCategory;
+  $: {
+    if (formCategory && formCategory !== lastSyncedCat) {
+      const cat = $categories.find(c => c.id === formCategory);
+      if (cat) form.color = cat.color;
+      lastSyncedCat = formCategory;
+    }
+  }
+
+  $: defaultColor    = $categories.find(c => c.id === formCategory)?.color ?? null;
+  $: colorOverridden = defaultColor !== null && form.color !== defaultColor;
+  function resetColor() { form.color = defaultColor; }
+
+  // FIX [4]: Calendar picker with colour dot
+  $: selectedCal = $calendars.find(c => c.id === form.calendar) ?? null;
+  let showCalPicker = false;
+  function pickCalendar(id) { form.calendar = id; showCalPicker = false; }
+  function onOutsideClick(e) {
+    if (!e.target.closest?.('.cal-picker-wrap')) showCalPicker = false;
+  }
+
+  // Time auto-advance
+  function onStartTimeChange() {
+    const s = timeToMinutes(form.start ?? '09:00');
+    const e = timeToMinutes(form.end   ?? '10:00');
+    if (e <= s) form.end = minutesToTime(s + 60);
+  }
+  function onStartDateChange() {
+    if (form.endDateStr < form.startDateStr) form.endDateStr = form.startDateStr;
+  }
+
+  // Recurrence helpers
+  const DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  function initRecurrence() {
+    form.recurrence = { type:'daily', interval:1, days:[], endType:'never', count:5, until: toInputDate(new Date()) };
+  }
+  function clearRecurrence() { form.recurrence = null; }
+  function toggleDay(d) {
+    if (!form.recurrence) return;
+    const days = form.recurrence.days ?? [];
+    form.recurrence = { ...form.recurrence, days: days.includes(d) ? days.filter(x => x !== d) : [...days, d] };
+  }
+  $: recurSummary = describeRecurrence(form.recurrence);
+
+  // Save
+  function handleSave() {
+    if (!form.title?.trim()) { titleError = true; return; }
+    saveEvent({
+      ...form,
+      title:     form.title.trim(),
+      startDate: parseInputDate(form.startDateStr),
+      endDate:   parseInputDate(form.endDateStr),
+      recurrence: form.recurrence ?? null,
+    });
+  }
+
+  // Swatches
+  const EXTRAS = ['#e8c4e8','#c4e8e8','#e8e4c4','#b0b0c8'];
+  $: catColors   = $categories.map(c => c.color);
+  $: allSwatches = [...new Set([...catColors, ...EXTRAS])];
+</script>
+
+<svelte:window on:click={onOutsideClick} />
+
+{#if $panelEvent}
+
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div class="overlay" on:click={closePanel}
+    in:fade={{ duration: 180 }} out:fade={{ duration: 180 }} aria-hidden="true"></div>
+
+  <div
+    class="panel"
+    role="dialog" aria-modal="true"
+    aria-label="{isEdit ? 'Edit event' : 'New event'}"
+    in:fly={{ x: 430, duration: 340, easing: t => 1 - Math.pow(1-t,3) }}
+    out:fly={{ x: 430, duration: 260 }}
+  >
+    <!-- Header -->
+    <div class="panel-hdr">
+      <div class="hdr-accent" style="background:{form.color ?? 'var(--acc)'}"></div>
+      <div class="hdr-inner">
+        <h2 class="panel-title">{isEdit ? 'Edit event' : 'New event'}</h2>
+        <button class="icon-btn" on:click={closePanel} aria-label="Close">✕</button>
+      </div>
+    </div>
+
+    <div class="panel-body">
+
+      <!-- Title -->
+      <div class="field" class:has-error={titleError}>
+        <label for="f-title">Title</label>
+        <input id="f-title" type="text" bind:value={form.title}
+          on:input={() => titleError = false} placeholder="What's happening?" autocomplete="off" />
+        {#if titleError}<span class="err-msg" role="alert">Please enter a title.</span>{/if}
+      </div>
+
+      <!-- All-day toggle -->
+      <label class="toggle-row">
+        <input type="checkbox" bind:checked={form.allDay} />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span class="toggle-lbl">All day</span>
+      </label>
+
+      <!-- Dates -->
+      <div class="row-2">
+        <div class="field">
+          <label for="f-sdate">Start date</label>
+          <input id="f-sdate" type="date" bind:value={form.startDateStr} on:change={onStartDateChange} />
+        </div>
+        <div class="field">
+          <label for="f-edate">End date</label>
+          <input id="f-edate" type="date" bind:value={form.endDateStr} min={form.startDateStr} />
+        </div>
+      </div>
+
+      <!-- Times (hidden when all-day) -->
+      {#if !form.allDay}
+        <div class="row-2">
+          <div class="field">
+            <label for="f-start">Start time</label>
+            <input id="f-start" type="time" bind:value={form.start} on:change={onStartTimeChange} />
+          </div>
+          <div class="field">
+            <label for="f-end">End time</label>
+            <input id="f-end" type="time" bind:value={form.end} />
+          </div>
+        </div>
+      {/if}
+
+      <!-- FIX [2]: RECURRENCE immediately below dates -->
+      <div class="recur-section">
+        <button
+          class="recur-toggle"
+          type="button"
+          aria-expanded={showRecur}
+          on:click={() => {
+            showRecur = !showRecur;
+            if (!showRecur) clearRecurrence();
+            else if (!form.recurrence) initRecurrence();
+          }}
+        >
+          <span class="recur-icon" aria-hidden="true">🔁</span>
+          <span class="recur-label">{showRecur ? recurSummary : 'Does not repeat'}</span>
+          <span class="recur-chevron" class:open={showRecur} aria-hidden="true">▾</span>
+        </button>
+
+        {#if showRecur && form.recurrence}
+          <div class="recur-body" in:fly={{ y: -8, duration: 180 }}>
+            <div class="field">
+              <label for="r-type">Repeat</label>
+              <select id="r-type" bind:value={form.recurrence.type}>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div class="field row-2">
+              <div>
+                <label for="r-interval">Every</label>
+                <input id="r-interval" type="number" bind:value={form.recurrence.interval} min="1" max="99" />
+              </div>
+              <div style="padding-top:22px; color:var(--t2); font-size:var(--fs-sm)">
+                {form.recurrence.type === 'daily' ? 'days' : form.recurrence.type === 'weekly' ? 'weeks' : form.recurrence.type === 'monthly' ? 'months' : 'years'}
+              </div>
+            </div>
+            {#if form.recurrence.type === 'weekly'}
+              <div class="field">
+                <label>On days</label>
+                <div class="dow-row">
+                  {#each DOW_LABELS as lbl, idx}
+                    <button type="button" class="dow-btn"
+                      class:on={form.recurrence.days?.includes(idx)}
+                      on:click={() => toggleDay(idx)}
+                      aria-pressed={form.recurrence.days?.includes(idx)}>{lbl}</button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+            <div class="field">
+              <label for="r-end">Ends</label>
+              <select id="r-end" bind:value={form.recurrence.endType}>
+                <option value="never">Never</option>
+                <option value="count">After N occurrences</option>
+                <option value="until">On date</option>
+              </select>
+            </div>
+            {#if form.recurrence.endType === 'count'}
+              <div class="field">
+                <label for="r-count">Occurrences</label>
+                <input id="r-count" type="number" bind:value={form.recurrence.count} min="1" max="999" />
+              </div>
+            {/if}
+            {#if form.recurrence.endType === 'until'}
+              <div class="field">
+                <label for="r-until">Until</label>
+                <input id="r-until" type="date" bind:value={form.recurrence.until} min={form.startDateStr} />
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Calendar picker -->
+      <div class="field">
+        <label>Calendar</label>
+        <div class="cal-picker-wrap">
+          <button class="cal-trigger" type="button"
+            on:click|stopPropagation={() => showCalPicker = !showCalPicker}
+            aria-haspopup="listbox" aria-expanded={showCalPicker}>
+            {#if selectedCal}
+              <span class="cal-dot" style="background:{selectedCal.color}"></span>
+              <span class="cal-name">{selectedCal.name}</span>
+            {:else}
+              <span class="cal-name placeholder">Select calendar…</span>
+            {/if}
+            <span class="cal-chevron" class:open={showCalPicker}>▾</span>
+          </button>
+          {#if showCalPicker}
+            <ul class="cal-dropdown" role="listbox" in:fly={{ y: -6, duration: 150 }}>
+              {#each $calendars as cal (cal.id)}
+                <li>
+                  <button class="cal-option" class:selected={form.calendar === cal.id}
+                    role="option" aria-selected={form.calendar === cal.id}
+                    type="button" on:click|stopPropagation={() => pickCalendar(cal.id)}>
+                    <span class="cal-dot" style="background:{cal.color}"></span>
+                    <span>{cal.name}</span>
+                    {#if form.calendar === cal.id}<span class="cal-check">✓</span>{/if}
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="field">
+        <label for="f-cat">Category</label>
+        <select id="f-cat" bind:value={formCategory}>
+          {#each $categories as cat (cat.id)}
+            <option value={cat.id}>{cat.icon}  {cat.label}</option>
+          {/each}
+        </select>
+      </div>
+
+      <!-- Location -->
+      <div class="field">
+        <label for="f-loc">Location</label>
+        <input id="f-loc" type="text" bind:value={form.location} placeholder="Add a location" autocomplete="off" />
+      </div>
+
+      <!-- Notes -->
+      <div class="field">
+        <label for="f-notes">Notes</label>
+        <textarea id="f-notes" bind:value={form.desc} placeholder="Add notes…"></textarea>
+      </div>
+
+      <!-- Colour picker -->
+      <div class="field">
+        <div class="color-header">
+          <label>Colour</label>
+          {#if colorOverridden}
+            <button class="reset-color" type="button" on:click={resetColor}>↺ Reset to category</button>
+          {:else}
+            <span class="color-hint">Matches category</span>
+          {/if}
+        </div>
+        <div class="swatches" role="group" aria-label="Event colour">
+          {#each allSwatches as hex (hex)}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <div class="swatch" class:selected={form.color === hex} class:is-default={hex === defaultColor}
+              style="background:{hex}" role="radio" aria-checked={form.color === hex} tabindex="0"
+              on:click={() => form.color = hex}
+              on:keydown={e => e.key === 'Enter' && (form.color = hex)}>
+              {#if hex === defaultColor}<span class="def-marker" aria-hidden="true"></span>{/if}
+            </div>
+          {/each}
+          <label class="custom-swatch" title="Custom colour">
+            <input type="color" value={form.color} on:input={e => form.color = e.target.value} />
+            <span aria-hidden="true">🎨</span>
+          </label>
+        </div>
+        <div class="color-preview">
+          <span class="preview-dot" style="background:{form.color}"></span>
+          <span class="preview-hex">{form.color}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="panel-ftr">
+      <button class="btn-cancel" type="button" on:click={closePanel}>Cancel</button>
+      <button class="btn-save"   type="button" on:click={handleSave}>
+        {isEdit ? 'Update' : 'Save event'}
+      </button>
+    </div>
+
+  </div>
+
+{/if}
+
+<style>
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.52); backdrop-filter:blur(4px); z-index:49; }
+
+  .panel {
+    position:fixed; top:0; right:0; bottom:0; width:min(440px,100vw);
+    background:var(--bg-surf); border-left:1px solid var(--bdr);
+    z-index:50; display:flex; flex-direction:column;
+    box-shadow:-6px 0 40px rgba(0,0,0,.45); overflow:hidden;
+  }
+  @media (max-width:768px) {
+    .panel { top:auto; left:0; right:0; bottom:0; width:100%; height:94dvh;
+      border-left:none; border-top:1px solid var(--bdr);
+      border-radius:22px 22px 0 0; transform:translateX(0)!important; }
+  }
+
+  .panel-hdr { flex-shrink:0; border-bottom:1px solid var(--bdr-soft); overflow:hidden; }
+  .hdr-accent { height:4px; transition:background .3s; }
+  .hdr-inner  { padding:14px 22px 12px; display:flex; align-items:center; justify-content:space-between; }
+  .panel-title { font-family:var(--f-display); font-size:var(--fs-xl,24px); font-weight:400; letter-spacing:.02em; }
+
+  .icon-btn {
+    width:32px; height:32px; border-radius:var(--r-s);
+    color:var(--t3); font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+    transition:color .13s, background .13s;
+  }
+  .icon-btn:hover { color:var(--acc); background:var(--acc-bg); }
+
+  .panel-body { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px; }
+
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field.has-error input { border-color:#f47070; }
+  label { font-size:11px; font-weight:500; color:var(--t2); text-transform:uppercase; letter-spacing:.07em; }
+  .err-msg { font-size:var(--fs-xs,13px); color:#f47070; }
+  .row-2   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* All-day toggle */
+  .toggle-row { display:flex; align-items:center; gap:10px; cursor:pointer; }
+  .toggle-row input[type="checkbox"] { display:none; }
+  .toggle-track {
+    width:36px; height:20px; border-radius:10px;
+    background:var(--bg-raised); border:1px solid var(--bdr); position:relative;
+    transition:background .18s, border-color .18s; flex-shrink:0;
+  }
+  .toggle-row input:checked ~ .toggle-track { background:var(--acc-dim); border-color:var(--acc-dim); }
+  .toggle-thumb {
+    position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%;
+    background:var(--t3); transition:transform .18s, background .18s;
+  }
+  .toggle-row input:checked ~ .toggle-track .toggle-thumb { transform:translateX(16px); background:#1a0812; }
+  .toggle-lbl { font-size:var(--fs-sm,15px); color:var(--t2); }
+
+  /* Recurrence — no overflow:hidden so expanded body is never clipped */
+  .recur-section {
+    border: 1px solid var(--bdr-soft);
+    border-radius: var(--r-m);
+    /* NOTE: overflow:hidden was removed — it was clipping the expanded recur-body
+       during the fly() animation and cutting off content on small screens. */
+  }
+  .recur-toggle {
+    width:100%; padding:11px 14px; display:flex; align-items:center; gap:10px;
+    background:var(--bg-card); text-align:left; transition:background .12s;
+    border-radius: var(--r-m); /* always round all corners */
+  }
+  /* When expanded, only round the top; the body will round the bottom */
+  .recur-section:has(.recur-body) .recur-toggle {
+    border-radius: var(--r-m) var(--r-m) 0 0;
+  }
+  .recur-toggle:hover { background:var(--bg-raised); }
+  .recur-icon  { font-size:14px; flex-shrink:0; }
+  .recur-label { flex:1; font-size:var(--fs-sm,15px); color:var(--t2); }
+  .recur-chevron      { font-size:11px; color:var(--t3); transition:transform .14s; }
+  .recur-chevron.open { transform:rotate(180deg); }
+  .recur-body {
+    padding:14px; border-top:1px solid var(--bdr-soft);
+    display:flex; flex-direction:column; gap:12px; background:var(--bg-surf);
+    border-radius: 0 0 var(--r-m) var(--r-m);
+    border: 1px solid var(--bdr-soft);
+    border-top: none;
+    /* Ensure all options are visible without clipping */
+    overflow: visible;
+  }
+  .dow-row { display:flex; gap:5px; flex-wrap:wrap; }
+  .dow-btn {
+    width:32px; height:32px; border-radius:50%;
+    font-size:var(--fs-xs,13px); font-weight:500; color:var(--t2);
+    border:1.5px solid var(--bdr);
+    display:flex; align-items:center; justify-content:center; transition:all .12s;
+  }
+  .dow-btn.on { background:var(--acc); border-color:var(--acc); color:#1a0812; font-weight:700; }
+
+  /* Calendar picker */
+  .cal-picker-wrap { position:relative; }
+  .cal-trigger {
+    width:100%; padding:10px 14px;
+    background:var(--bg-raised); border:1px solid var(--bdr); border-radius:var(--r-s);
+    color:var(--t1); font-size:var(--fs-sm,15px);
+    display:flex; align-items:center; gap:10px; cursor:pointer; text-align:left;
+    transition:border-color .16s, box-shadow .16s;
+  }
+  .cal-trigger:hover { border-color:var(--acc-dim); }
+  .cal-trigger:focus { border-color:var(--acc-dim); box-shadow:0 0 0 3px rgba(244,184,200,.07); outline:none; }
+  .cal-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .cal-name { flex:1; }
+  .cal-name.placeholder { color:var(--t3); }
+  .cal-chevron { font-size:11px; color:var(--t3); transition:transform .14s; }
+  .cal-chevron.open { transform:rotate(180deg); }
+  .cal-dropdown {
+    position:absolute; top:calc(100% + 4px); left:0; right:0;
+    background:var(--bg-card); border:1px solid var(--bdr); border-radius:var(--r-s);
+    z-index:10; list-style:none; box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden;
+  }
+  .cal-option {
+    width:100%; padding:10px 14px; display:flex; align-items:center; gap:10px;
+    font-size:var(--fs-sm,15px); color:var(--t2); cursor:pointer; transition:background .12s; text-align:left;
+  }
+  .cal-option:hover    { background:var(--acc-bg); color:var(--t1); }
+  .cal-option.selected { color:var(--t1); }
+  .cal-check { margin-left:auto; font-size:11px; color:var(--acc); }
+
+  /* Colour picker */
+  .color-header { display:flex; align-items:center; justify-content:space-between; }
+  .reset-color  { font-size:var(--fs-xs,13px); color:var(--acc-dim); text-decoration:underline; text-underline-offset:2px; }
+  .reset-color:hover { color:var(--acc); }
+  .color-hint   { font-size:var(--fs-xs,13px); color:var(--t3); font-style:italic; }
+  .swatches { display:flex; gap:8px; flex-wrap:wrap; padding:2px 0; align-items:center; }
+  .swatch {
+    width:28px; height:28px; border-radius:50%; cursor:pointer;
+    border:2.5px solid transparent; position:relative;
+    transition:transform .13s, border-color .13s, box-shadow .13s;
+  }
+  .swatch:hover    { transform:scale(1.14); }
+  .swatch.selected { border-color:var(--t1); box-shadow:0 0 0 3px rgba(240,234,240,.15); transform:scale(1.06); }
+  .swatch.is-default .def-marker {
+    position:absolute; bottom:-1px; right:-1px; width:7px; height:7px;
+    background:var(--t1); border-radius:1px; transform:rotate(45deg);
+  }
+  .custom-swatch {
+    width:28px; height:28px; border-radius:50%; cursor:pointer; overflow:hidden;
+    border:1.5px dashed var(--bdr); display:flex; align-items:center; justify-content:center;
+    transition:border-color .13s; position:relative;
+  }
+  .custom-swatch:hover { border-color:var(--acc-dim); }
+  .custom-swatch input[type="color"] { position:absolute; opacity:0; width:0; height:0; }
+  .color-preview { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .preview-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; transition:background .2s; }
+  .preview-hex { font-family:var(--f-mono); font-size:var(--fs-xs,13px); color:var(--t3); letter-spacing:.04em; }
+
+  /* Footer */
+  .panel-ftr { padding:14px 20px; border-top:1px solid var(--bdr-soft); display:flex; gap:10px; flex-shrink:0; }
+  .btn-cancel {
+    flex:1; padding:12px; border-radius:var(--r-s);
+    border:1px solid var(--bdr); color:var(--t2); font-size:var(--fs-sm,15px); transition:all .16s;
+  }
+  .btn-cancel:hover { border-color:var(--acc-dim); color:var(--acc); }
+  .btn-save {
+    flex:2; padding:12px; border-radius:var(--r-s);
+    background:linear-gradient(135deg, var(--acc), var(--acc-dim));
+    color:#1a0812; font-weight:600; font-size:var(--fs-sm,15px);
+    box-shadow:0 2px 12px var(--acc-glow); transition:opacity .16s, transform .13s;
+  }
+  .btn-save:hover  { opacity:.9; transform:translateY(-1px); }
+  .btn-save:active { transform:translateY(0); }
+</style>
