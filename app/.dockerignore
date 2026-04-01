@@ -1,0 +1,22 @@
+# .dockerignore
+node_modules
+dist
+.svelte-kit
+.git
+.gitignore
+*.md
+.env
+.env.*
+.vscode
+.idea
+coverage
+tests
+__tests__
+e2e
+playwright-report
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+.eslintrc*
+.prettierrc*
+vite.config.ts.timestamp*

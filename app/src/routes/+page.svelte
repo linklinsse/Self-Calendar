@@ -5,22 +5,22 @@
    * routes between LoginScreen and AppShell.
    */
   import { onMount }        from 'svelte';
-  import { activeThemeId, applyTheme, resolveTheme } from './lib/themes/index.js';
-  import { currentView }    from './lib/stores/ui.js';
-  import { DEFAULT_VIEW }   from './lib/config.js';
+  import { activeThemeId, applyTheme, resolveTheme } from '../lib/themes/index.js';
+  import { currentView }    from '../lib/stores/ui.js';
+  import { DEFAULT_VIEW }   from '../lib/config.js';
   import {
     isLoggedIn, panelEvent, modalEventId,
     filterDrawerOpen, sidebarOpen, calSettingsId,
     catEditorId, calCreatorOpen, closePanel,
-  } from './lib/stores/index.js';
+  } from '../lib/stores/index.js';
 
-  import LoginScreen from './components/LoginScreen.svelte';
-  import AppShell    from './components/AppShell.svelte';
-  import Toast       from './components/ui/Toast.svelte';
+  import LoginScreen from '../components/LoginScreen.svelte';
+  import AppShell    from '../components/AppShell.svelte';
+  import Toast       from '../components/ui/Toast.svelte';
 
   // Apply the persisted theme on first render
   onMount(() => {
-    applyTheme(resolveTheme($activeThemeId));
+    // applyTheme(resolveTheme($activeThemeId));
     currentView.set(DEFAULT_VIEW);
   });
 
