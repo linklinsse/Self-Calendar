@@ -20,9 +20,13 @@ from app.schemas.obj_event_schema import (
 def create_event(
     new_event: ObjEventSchemaCreate, db_session: SessionDep
 ) -> ObjEventSchemaComplete:
-    db_calendar = db_session.get(
-        ObjCalendarModel, {"id": new_event.calendar_id}
-    )
+    """Create a new event inside an existing calendar.
+
+    Requires at least "P" (Participer) permission on the target calendar.
+    Returns 404 instead of 403 if the calendar is inaccessible, to avoid
+    leaking its existence.
+    """
+    db_calendar = db_session.get(ObjCalendarModel, new_event.calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
@@ -49,7 +53,22 @@ def get_all_event_between(
     category_id: str | None,
     db_session: SessionDep,
 ) -> List[ObjEventSchemaComplete]:
-    db_calendar = db_session.get(ObjCalendarModel, {"id": calendar_id})
+    """Return all events in a calendar that overlap a given time range.
+
+    The range check uses an overlap condition:
+        event.date_end >= from_date  AND  event.date_start <= to_date
+    This correctly includes events that start before or end after the range
+    boundaries (partial overlaps are included).
+
+    Args:
+        calendar_id:  The calendar to query.
+        from_date:    Range start as a Unix timestamp (inclusive).
+        to_date:      Range end as a Unix timestamp (inclusive).
+        category_id:  Optional filter — only return events of this category.
+
+    Requires at least "C" (Consulter / read) permission.
+    """
+    db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
@@ -65,17 +84,22 @@ def get_all_event_between(
         ObjEventModel.date_start <= to_date,
     )
 
+    # Optionally narrow results to a specific category
     if category_id is not None:
         statement = statement.where(ObjEventModel.category_id == category_id)
 
     results = db_session.exec(statement)
-    list = results.all()
-    return list
+    return results.all()
 
 
 @db_session_injector
 def get_event(event_id: str, db_session: SessionDep) -> ObjEventSchemaComplete:
-    db_event = db_session.get(ObjEventModel, {"id": event_id})
+    """Fetch a single event by ID.
+
+    Requires at least "C" (Consulter / read) permission on the parent calendar.
+    Returns 404 if the event does not exist or the user has no access.
+    """
+    db_event = db_session.get(ObjEventModel, event_id)
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -92,7 +116,11 @@ def get_event(event_id: str, db_session: SessionDep) -> ObjEventSchemaComplete:
 def edit_event(
     event_id: str, edited_event: ObjEventSchemaEdit, db_session: SessionDep
 ) -> ObjEventSchemaComplete:
-    db_event = db_session.get(ObjEventModel, {"id": event_id})
+    """Update an event's fields (PATCH semantics — only provided fields are updated).
+
+    Requires at least "P" (Participer) permission on the parent calendar.
+    """
+    db_event = db_session.get(ObjEventModel, event_id)
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -102,6 +130,7 @@ def edit_event(
     if not has_right:
         raise HTTPException(status_code=404, detail="Event not found")
 
+    # Apply only the fields that were explicitly provided in the request body
     update_data = edited_event.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_event, key, value)
@@ -115,7 +144,11 @@ def edit_event(
 
 @db_session_injector
 def delete_event(event_id: str, db_session: SessionDep):
-    db_event = db_session.get(ObjEventModel, {"id": event_id})
+    """Permanently delete an event.
+
+    Requires at least "P" (Participer) permission on the parent calendar.
+    """
+    db_event = db_session.get(ObjEventModel, event_id)
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
 

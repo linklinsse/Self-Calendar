@@ -16,8 +16,18 @@ from app.routing import event_routing
 from app.common.db_connection import SessionDep, create_db_and_tables
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
 
+# ---------------------------------------------------------------------------
+# FastAPI application instance
+# ---------------------------------------------------------------------------
 app = FastAPI(title="Self Calendar Api", version="0.0.1", dependencies=[])
 
+# ---------------------------------------------------------------------------
+# Protected routers
+# Every route included here requires:
+#   1. verify_loged_user_dependency  — rejects requests without a valid token
+#   2. fill_loged_user_context_dependency — populates the request-scoped
+#      user context so downstream code can call get_loged_user_context()
+# ---------------------------------------------------------------------------
 app.include_router(
     calendar_routing.router,
     dependencies=[
@@ -46,14 +56,20 @@ app.include_router(
         Depends(fill_loged_user_context_dependency),
     ],
 )
+
+# Public router — no authentication required
 app.include_router(auth_routing.router)
 
+# Create all SQLModel tables on startup if they do not already exist
 create_db_and_tables()
 
 
-# TODO debug
+# ---------------------------------------------------------------------------
+# Debug helper — kept for local development, NOT called in production
+# ---------------------------------------------------------------------------
 @db_session_injector
 def create_user(db_session: SessionDep):
+    """Insert a hard-coded test user into the database."""
     user = ObjUserSchemaComplete(
         id="test", login="test", hashed_password="test"
     )
@@ -63,4 +79,5 @@ def create_user(db_session: SessionDep):
     db_session.refresh(db_calendar)
 
 
+# Uncomment the line below to seed the test user on first run:
 # create_user()

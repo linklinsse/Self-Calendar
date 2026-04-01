@@ -3,6 +3,8 @@ from sqlmodel import Field, SQLModel
 
 
 class ObjUserModel(SQLModel, table=True):
+    """Database model for an application user."""
+
     __tablename__ = "obj_user"
 
     id: str = Field(primary_key=True, default_factory=lambda: str(uuid4()))

@@ -24,14 +24,20 @@ import app.services.lnk_user_calendar_service as lnk_user_calendar_service
 def create_calendar(
     new_calendar: ObjCalendarSchemaCreate, db_session: SessionDep
 ) -> ObjCalendarSchemaComplete:
+    """Create a new calendar and assign the current user as its Owner.
+
+    The creator is automatically linked to the calendar with right "O" (Owner),
+    which grants full control (edit, delete, manage members).
+    """
     db_calendar = ObjCalendarModel.model_validate(new_calendar)
 
     db_session.add(db_calendar)
     db_session.commit()
     db_session.refresh(db_calendar)
 
+    loged_user = get_loged_user_context()
     lnk_user_calendar = LnkUserCalendarSchemaCreate(
-        user_id="test", calendar_id=db_calendar.id, right="O"
+        user_id=loged_user.id, calendar_id=db_calendar.id, right="O"
     )
     lnk_user_calendar_service.create_lnk_user_calendar(lnk_user_calendar)
     return db_calendar
@@ -41,7 +47,13 @@ def create_calendar(
 def get_calendar(
     calendar_id: str, db_session: SessionDep
 ) -> ObjCalendarSchemaComplete:
-    db_calendar = db_session.get(ObjCalendarModel, {"id": calendar_id})
+    """Fetch a single calendar by ID.
+
+    Returns 404 if the calendar does not exist OR if the current user has
+    no access — this intentional ambiguity prevents calendar enumeration.
+    Requires at least "C" (Consulter / read) permission.
+    """
+    db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
@@ -49,6 +61,7 @@ def get_calendar(
         get_loged_user_context(), db_calendar, "C"
     )
     if not has_right:
+        # Return 404 (not 403) to avoid leaking the calendar's existence
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     return db_calendar
@@ -56,8 +69,11 @@ def get_calendar(
 
 @db_session_injector
 def get_all_calendar(db_session: SessionDep) -> List[ObjCalendarSchemaComplete]:
+    """Return all calendars the current user is linked to (any permission level)."""
     loged_user = get_loged_user_context()
 
+    # Use an EXISTS subquery to filter calendars that have a matching
+    # lnk_user_calendar row for the current user
     return db_session.exec(
         select(ObjCalendarModel).where(
             exists(LnkUserCalendarModel.id)
@@ -73,6 +89,11 @@ def edit_calendar(
     edited_calendar: ObjCalendarSchemaEdit,
     db_session: SessionDep,
 ) -> ObjCalendarSchemaComplete:
+    """Update a calendar's fields.
+
+    Requires "O" (Owner) permission.
+    Only fields present in the request body are updated (PATCH semantics).
+    """
     db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
@@ -81,10 +102,10 @@ def edit_calendar(
         get_loged_user_context(), db_calendar, "O"
     )
     if not has_right:
-        raise HTTPException(status_code=403, detail="No rihgt on Calendar")
+        raise HTTPException(status_code=403, detail="No right on Calendar")
 
+    # Apply only the fields that were explicitly provided in the request body
     update_data = edited_calendar.model_dump(exclude_unset=True)
-
     for key, value in update_data.items():
         setattr(db_calendar, key, value)
 
@@ -97,6 +118,11 @@ def edit_calendar(
 
 @db_session_injector
 def delete_calendar(calendar_id: str, db_session: SessionDep):
+    """Permanently delete a calendar.
+
+    Requires "O" (Owner) permission.
+    TODO: Cascade-delete linked events and user links, or rely on DB cascade.
+    """
     db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
@@ -105,7 +131,7 @@ def delete_calendar(calendar_id: str, db_session: SessionDep):
         get_loged_user_context(), db_calendar, "O"
     )
     if not has_right:
-        raise HTTPException(status_code=403, detail="No rihgt on Calendar")
+        raise HTTPException(status_code=403, detail="No right on Calendar")
 
     db_session.delete(db_calendar)
     db_session.commit()
