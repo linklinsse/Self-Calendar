@@ -4,16 +4,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Stage 2: Build the application
+# Stage 2: Build the static assets (adapter-static → dist/)
 COPY . .
-
-# Build the application with the Node.js adapter
 RUN npm run build
 
-# Prune dev dependencies after build
-RUN npm prune --omit=dev
-
-# Stage 3: Production runtime
+# Stage 3: Serve with nginx
 FROM nginx:alpine
-
 COPY --from=builder /app/dist /usr/share/nginx/html

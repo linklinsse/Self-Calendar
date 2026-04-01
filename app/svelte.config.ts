@@ -1,23 +1,17 @@
 import adapter from '@sveltejs/adapter-static';
-import { relative, sep } from 'node:path';
+import type { Config } from '@sveltejs/kit';
 
-/** @type {import('@sveltejs/kit').Config} */
-const config = {
+const config: Config = {
 	compilerOptions: {
-		// defaults to rune mode for the project, except for `node_modules`. Can be removed in svelte 6.
-		runes: ({ filename }) => {
-			const relativePath = relative(import.meta.dirname, filename);
-			const pathSegments = relativePath.toLowerCase().split(sep);
-			const isExternalLibrary = pathSegments.includes('node_modules');
-
-			return isExternalLibrary ? undefined : true;
-		}
+		// Enable Svelte 5 runes mode for the whole project.
+		runes: true
 	},
 	kit: {
-		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-		adapter: adapter()
+		adapter: adapter({
+			// SPA fallback required for Capacitor and client-side routing.
+			// Every route is served from index.html; the router handles the rest.
+			fallback: 'index.html'
+		})
 	}
 };
 

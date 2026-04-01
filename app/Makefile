@@ -16,7 +16,6 @@
 # ── Configuration ────────────────────────────────────────────
 NODE    := node
 NPM     := npm
-VITE    := npx vite
 CAP     := npx cap
 
 DIST    := dist
@@ -75,17 +74,17 @@ init:
 
 # ── dev ──────────────────────────────────────────────────────
 dev:
-	$(VITE)
+	$(NPM) run dev
 
 # ── build ────────────────────────────────────────────────────
 build:
 	@echo "→ Building production web assets…"
-	$(VITE) build
+	$(NPM) run build
 	@echo "✓ Web build complete → $(DIST)/"
 
 # ── preview ──────────────────────────────────────────────────
 preview: build
-	$(VITE) preview
+	$(NPM) run preview
 
 # ── sync ─────────────────────────────────────────────────────
 # Copy the latest dist/ output into android/assets and ios
@@ -107,7 +106,7 @@ ios: sync
 # ── lint ─────────────────────────────────────────────────────
 lint:
 	@echo "→ Running svelte-check…"
-	$(NPM) exec svelte-check -- --tsconfig ./jsconfig.json || true
+	$(NPM) run check
 
 # ── clean ────────────────────────────────────────────────────
 clean:
