@@ -262,8 +262,7 @@ make docker-build # Build Docker image
 > These are tracked in the source code with `# TODO` comments.
 
 - **Authentication is a stub** — `auth_service.login()` returns a hardcoded token. Real JWT signing/verification (e.g. with `python-jose`) must be implemented in `security.py`.
-- **Password hashing is a stub** — `hash_password()` returns the plain-text password. Replace with `bcrypt` or `argon2`.
-- **`right` field should be an Enum** — the `LnkUserCalendar` schemas use a plain `str`. A `Literal["C", "P", "O"]` or `Enum` would provide validation.
+- **`right` field should be an Enum** — the `LnkUserCalendar` schemas use a plain `str`. A `Literal["R", "W", "O"]` or `Enum` would provide validation.
 - **Categories are not implemented** — `ObjCategorySchema` and `category_id` fields exist but there are no model, service or routing counterparts.
 - **Recurrences are not implemented** — `ObjEventRecurrenceSchema` and `recurrence_id` exist but are not wired up.
 - **`user_right` on `ObjCalendarModel`** — currently declared as `ClassVar` (non-column). It should be populated in the service layer before returning calendar objects to clients.

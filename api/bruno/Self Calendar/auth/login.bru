@@ -4,14 +4,21 @@ meta {
   seq: 1
 }
 
-get {
+post {
   url: http://{{server_ip}}:{{server_port}}/auth/login
-  body: none
+  body: json
   auth: none
 }
 
+body:json {
+  {
+    "username": "test",
+    "password": "test"
+  }
+}
+
 script:post-response {
-  const token = res.body.token
+  const token = res.body
   bru.setVar('BearerToken',token)
 }
 

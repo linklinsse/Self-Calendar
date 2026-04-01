@@ -51,14 +51,14 @@ def get_calendar(
 
     Returns 404 if the calendar does not exist OR if the current user has
     no access — this intentional ambiguity prevents calendar enumeration.
-    Requires at least "C" (Consulter / read) permission.
+    Requires at least "R" (read) permission.
     """
     db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     has_right = verif_user_right_calendar(
-        get_loged_user_context(), db_calendar, "C"
+        get_loged_user_context(), db_calendar, "R"
     )
     if not has_right:
         # Return 404 (not 403) to avoid leaking the calendar's existence

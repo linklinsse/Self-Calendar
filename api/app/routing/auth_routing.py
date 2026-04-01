@@ -1,15 +1,14 @@
 from fastapi import APIRouter
 
 from app.services import auth_service
+from app.schemas.auth_schema import AuthSchema
 
 router = APIRouter(prefix="/auth")
 
 
-@router.get("/login")
-async def login():
-    """Authenticate a user and return an access token.
-
-    TODO: Switch to POST, accept OAuth2PasswordRequestForm, and return a
-    proper {"access_token": ..., "token_type": "bearer"} payload.
-    """
-    return auth_service.login()
+@router.post("/login")
+async def login(
+    response_model: AuthSchema
+):
+    """Authenticate a user and return an access token."""
+    return auth_service.login(response_model)

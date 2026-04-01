@@ -4,11 +4,11 @@ from app.models.obj_user_model import ObjUserModel
 
 # ---------------------------------------------------------------------------
 # Permission levels in ascending order of privilege:
-#   C — Consulter  (read-only access)
-#   P — Participer (can create/edit events)
-#   O — Owner      (full control, including calendar settings and deletion)
+#       "R" — Read only
+#       "W" — Read/Write (can create/edit events)
+#       "O" — Owner      (full control)
 # ---------------------------------------------------------------------------
-right_order: List[str] = ["C", "P", "O"]
+right_order: List[str] = ["R", "W", "O"]
 
 
 def verif_user_right_calendar(
@@ -21,7 +21,7 @@ def verif_user_right_calendar(
     Args:
         db_user:       The user whose permissions are being checked.
         db_calendar:   The calendar to check against.
-        needed_right:  Minimum required permission level ("C", "P", or "O").
+        needed_right:  Minimum required permission level ("R", "W", or "O").
 
     Returns:
         True if the user has the required permission level or higher,

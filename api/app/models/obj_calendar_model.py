@@ -24,6 +24,6 @@ class ObjCalendarModel(SQLModel, table=True):
 
     # ClassVar: not a database column — computed at runtime from lnk_users
     # and injected into the response to expose the current user's permission
-    # level (e.g. "C", "P", "O") without an extra query.
+    # level (e.g. "R", "W", "O") without an extra query.
     # TODO: populate this field in the service layer before returning the model.
     user_right: ClassVar[str]

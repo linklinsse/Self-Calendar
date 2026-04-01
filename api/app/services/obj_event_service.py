@@ -22,7 +22,7 @@ def create_event(
 ) -> ObjEventSchemaComplete:
     """Create a new event inside an existing calendar.
 
-    Requires at least "P" (Participer) permission on the target calendar.
+    Requires at least "W" (Edit) permission on the target calendar.
     Returns 404 instead of 403 if the calendar is inaccessible, to avoid
     leaking its existence.
     """
@@ -31,7 +31,7 @@ def create_event(
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     has_right = verif_user_right_calendar(
-        get_loged_user_context(), db_calendar, "P"
+        get_loged_user_context(), db_calendar, "W"
     )
     if not has_right:
         raise HTTPException(status_code=404, detail="Calendar not found")
@@ -66,14 +66,14 @@ def get_all_event_between(
         to_date:      Range end as a Unix timestamp (inclusive).
         category_id:  Optional filter — only return events of this category.
 
-    Requires at least "C" (Consulter / read) permission.
+    Requires at least "R" (read) permission.
     """
     db_calendar = db_session.get(ObjCalendarModel, calendar_id)
     if not db_calendar:
         raise HTTPException(status_code=404, detail="Calendar not found")
 
     has_right = verif_user_right_calendar(
-        get_loged_user_context(), db_calendar, "C"
+        get_loged_user_context(), db_calendar, "R"
     )
     if not has_right:
         raise HTTPException(status_code=404, detail="Calendar not found")
@@ -96,7 +96,7 @@ def get_all_event_between(
 def get_event(event_id: str, db_session: SessionDep) -> ObjEventSchemaComplete:
     """Fetch a single event by ID.
 
-    Requires at least "C" (Consulter / read) permission on the parent calendar.
+    Requires at least "R" (read) permission.
     Returns 404 if the event does not exist or the user has no access.
     """
     db_event = db_session.get(ObjEventModel, event_id)
@@ -104,7 +104,7 @@ def get_event(event_id: str, db_session: SessionDep) -> ObjEventSchemaComplete:
         raise HTTPException(status_code=404, detail="Event not found")
 
     has_right = verif_user_right_calendar(
-        get_loged_user_context(), db_event.obj_calendar, "C"
+        get_loged_user_context(), db_event.obj_calendar, "R"
     )
     if not has_right:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -118,14 +118,14 @@ def edit_event(
 ) -> ObjEventSchemaComplete:
     """Update an event's fields (PATCH semantics — only provided fields are updated).
 
-    Requires at least "P" (Participer) permission on the parent calendar.
+    Requires at least "W" (Edit) permission on the parent calendar.
     """
     db_event = db_session.get(ObjEventModel, event_id)
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     has_right = verif_user_right_calendar(
-        get_loged_user_context(), db_event.obj_calendar, "P"
+        get_loged_user_context(), db_event.obj_calendar, "W"
     )
     if not has_right:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -146,14 +146,14 @@ def edit_event(
 def delete_event(event_id: str, db_session: SessionDep):
     """Permanently delete an event.
 
-    Requires at least "P" (Participer) permission on the parent calendar.
+    Requires at least "W" (Edit) permission on the parent calendar.
     """
     db_event = db_session.get(ObjEventModel, event_id)
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     has_right = verif_user_right_calendar(
-        get_loged_user_context(), db_event.obj_calendar, "P"
+        get_loged_user_context(), db_event.obj_calendar, "W"
     )
     if not has_right:
         raise HTTPException(status_code=404, detail="Event not found")

@@ -27,7 +27,7 @@ async def get_all() -> List[ObjCalendarSchemaComplete]:
 
 @router.get("/{calendar_id}", response_model=ObjCalendarSchemaComplete)
 async def get(calendar_id: str) -> ObjCalendarSchemaComplete:
-    """Return a single calendar. Requires at least read ("C") permission."""
+    """Return a single calendar. Requires at least read ("R") permission."""
     return obj_calendar_service.get_calendar(calendar_id)
 
 

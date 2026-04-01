@@ -1,9 +1,6 @@
 from fastapi import Depends, FastAPI
 
 from app.common.decorators.db_session_injector import db_session_injector
-from app.common.dependencies.fill_loged_user_context_dependency import (
-    fill_loged_user_context_dependency,
-)
 from app.common.dependencies.verify_loged_user_dependency import (
     verify_loged_user_dependency,
 )
@@ -32,28 +29,24 @@ app.include_router(
     calendar_routing.router,
     dependencies=[
         Depends(verify_loged_user_dependency),
-        Depends(fill_loged_user_context_dependency),
     ],
 )
 app.include_router(
     user_calendar_routing.router,
     dependencies=[
         Depends(verify_loged_user_dependency),
-        Depends(fill_loged_user_context_dependency),
     ],
 )
 app.include_router(
     user_routing.router,
     dependencies=[
         Depends(verify_loged_user_dependency),
-        Depends(fill_loged_user_context_dependency),
     ],
 )
 app.include_router(
     event_routing.router,
     dependencies=[
         Depends(verify_loged_user_dependency),
-        Depends(fill_loged_user_context_dependency),
     ],
 )
 
@@ -71,7 +64,7 @@ create_db_and_tables()
 def create_user(db_session: SessionDep):
     """Insert a hard-coded test user into the database."""
     user = ObjUserSchemaComplete(
-        id="test", login="test", hashed_password="test"
+        id="test", login="test", hashed_password="9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     )
     db_calendar = ObjUserModel.model_validate(user)
     db_session.add(db_calendar)

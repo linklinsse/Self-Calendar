@@ -17,7 +17,7 @@ async def create(
 ) -> ObjEventSchemaComplete:
     """Create a new event inside a calendar.
 
-    Requires at least "P" (Participer) permission on the target calendar.
+    Requires at least "W" (Edit) permission on the target calendar.
     """
     return obj_event_service.create_event(new_event)
 
@@ -36,7 +36,7 @@ async def get_all(
         to_date:     Range end as a Unix timestamp.
         category_id: Optional — filter results to a specific category.
 
-    Requires at least "C" (Consulter / read) permission.
+    Requires at least "R" (read) permission.
     """
     return obj_event_service.get_all_event_between(
         calendar_id, from_date, to_date, category_id
@@ -47,7 +47,7 @@ async def get_all(
 async def get(event_id: str) -> ObjEventSchemaComplete:
     """Return a single event by ID.
 
-    Requires at least "C" (Consulter / read) permission on its calendar.
+    Requires at least "R" (read) permission.
     """
     return obj_event_service.get_event(event_id)
 
@@ -56,11 +56,11 @@ async def get(event_id: str) -> ObjEventSchemaComplete:
 async def patch(
     event_id: str, edited_event: ObjEventSchemaEdit
 ) -> ObjEventSchemaComplete:
-    """Partially update an event. Requires at least "P" (Participer) permission."""
+    """Partially update an event. Requires at least "W" (Edit) permission."""
     return obj_event_service.edit_event(event_id, edited_event)
 
 
 @router.delete("/{event_id}")
 async def delete(event_id: str):
-    """Delete an event. Requires at least "P" (Participer) permission."""
+    """Delete an event. Requires at least "W" (Edit) permission."""
     return obj_event_service.delete_event(event_id)

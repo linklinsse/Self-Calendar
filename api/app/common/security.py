@@ -1,37 +1,75 @@
+"""
+app/common/security.py
+-----------------------
+Authentication utilities:
+  - OAuth2 bearer scheme declaration
+  - JWT token creation and verification
+  - Password hashing / verification
+
+All secrets come from `settings` (i.e. the .env file).
+"""
+
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from datetime import datetime, timedelta, timezone
+from passlib.context import CryptContext
 
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
 from app.services.obj_user_service import get_user
+from app.common.config import settings
+from app.common.errors import AppErrorCode, raise_app_error
 
-# FastAPI OAuth2 scheme — reads the Bearer token from the Authorization header.
-# `tokenUrl` points to the login endpoint that issues the token.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# ── OAuth2 scheme ─────────────────────────────────────────────────────────────
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+# ── Password hashing ──────────────────────────────────────────────────────────
+
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# ── Password hashing ──────────────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    """Hash a plain-text password.
+    """Return the bcrypt hash of *plain*."""
+    return _pwd_context.hash(password)
 
-    TODO: Replace with a real hashing library such as bcrypt or argon2.
-    """
-    return password
 
+def verify_password(plain: str, hashed: str) -> bool:
+    """Return True when *plain* matches *hashed*."""
+    return _pwd_context.verify(plain, hashed)
+
+# ── JWT ───────────────────────────────────────────────────────────────────────
 
 def encode_token(user: ObjUserSchemaComplete) -> str:
-    """Encode user data into a token string.
+    """Create a signed JWT.
 
-    TODO: Replace with a signed JWT (e.g. python-jose / PyJWT).
-    Currently returns the user ID directly, which is insecure.
+    A `exp` claim is added automatically using
+    `settings.ACCESS_TOKEN_EXPIRE_MINUTES`.
     """
-    return user.id
 
+    payload = {}
+    payload["userId"] = user.id
+    expire = datetime.now(tz=timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    payload["exp"] = expire
+    return jwt.encode(
+        payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
 
 def decode_token(token: str) -> str:
-    """Decode a token and return the embedded user identifier.
+    """Decode and verify a JWT.
 
-    TODO: Replace with proper JWT verification.
-    Currently returns the token as-is (mirrors encode_token stub above).
+    Raises `HTTP 401` (INVALID_TOKEN) on any failure.
     """
-    return token
+    try:
+        payload: dict[str, object] = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        return payload["userId"]
+    except JWTError:
+        raise_app_error(AppErrorCode.INVALID_TOKEN)
+        raise  # unreachable – satisfies type-checker
 
 
 def get_current_user(token: str) -> ObjUserSchemaComplete:

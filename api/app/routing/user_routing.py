@@ -5,7 +5,6 @@ from app.schemas.obj_user_schema import ObjUserSchemaComplete
 
 router = APIRouter(prefix="/user")
 
-
 @router.get("/me", response_model=ObjUserSchemaComplete)
 async def get() -> ObjUserSchemaComplete:
     """Return the profile of the currently authenticated user.

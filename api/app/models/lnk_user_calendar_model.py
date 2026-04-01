@@ -9,8 +9,8 @@ class LnkUserCalendarModel(SQLModel, table=True):
 
     The `right` field holds a single character representing the user's
     permission on the calendar:
-        "C" — Consulter  (read-only)
-        "P" — Participer (can create/edit events)
+        "R" — Read only
+        "W" — Read/Write (can create/edit events)
         "O" — Owner      (full control)
     """
 

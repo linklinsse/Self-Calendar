@@ -1,20 +1,21 @@
 from typing import Annotated
 
 from fastapi import HTTPException, Depends
-import app.common.security as security
+from app.common.errors import AppErrorCode, raise_app_error
+from app.common.security import get_current_user, oauth2_scheme
+from app.common.contexts.loged_user_context import set_loged_user_context
 
 
 async def verify_loged_user_dependency(
-    token: Annotated[str, Depends(security.oauth2_scheme)],
+    token: Annotated[str, Depends(oauth2_scheme)],
 ):
-    """FastAPI dependency — gate access to protected routes.
+    """Decode *token*, fetch the user and populate the context."""
+    if token:
+        # Decode the token to get the user ID, then fetch the user from DB
+        user = get_current_user(token)
+        if user:
+            set_loged_user_context(user)
+            return True
 
-    Raises HTTP 401 if no token is present.
-    This dependency runs before fill_loged_user_context_dependency and acts
-    as the first line of authentication enforcement.
+    raise_app_error(AppErrorCode.INVALID_TOKEN)
 
-    TODO: Validate the token signature/expiry here once real JWTs are in use.
-    """
-    if not token:
-        raise HTTPException(status_code=401, detail="Invalid or missing token")
-    return token

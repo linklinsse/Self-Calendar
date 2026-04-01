@@ -1,10 +1,19 @@
-def login():
-    """Authenticate a user and return an access token.
 
-    TODO: Implement real authentication:
-      - Accept a username + password from the request body
-      - Verify the password against the stored hash (use hash_password from security.py)
-      - Generate a signed JWT token (use encode_token from security.py)
-      - Return the token in the OAuth2 response format: {"access_token": ..., "token_type": "bearer"}
-    """
-    return {"token": "test"}
+from app.schemas.auth_schema import AuthSchema
+
+from app.common.security import verify_password, encode_token, hash_password
+from app.services.obj_user_service import find_user_by_username
+from app.common.errors import raise_app_error, AppErrorCode
+
+def login(response_model: AuthSchema):
+    """Authenticate a user and return an access token."""
+    user = find_user_by_username(response_model.username)
+
+    if not user:
+      raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
+
+    valid = verify_password(response_model.password, user.hashed_password)
+    if not valid:
+      raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
+
+    return encode_token(user)
