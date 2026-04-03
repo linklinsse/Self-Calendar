@@ -22,14 +22,14 @@
   const PX_HR = 58;
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-  $: days       = weekDays($cursor);
-  $: rangeStart = days[0];
-  $: rangeEnd   = days[6];
+  let days       = $derived(weekDays($cursor));
+  let rangeStart = $derived(days[0]);
+  let rangeEnd   = $derived(days[6]);
 
-  $: expanded = expandEventsForRange($visibleEvents, rangeStart, rangeEnd);
+  let expanded = $derived(expandEventsForRange($visibleEvents, rangeStart, rangeEnd));
 
   // ── All-day banner row: true allDay + events that fully span the day ──
-  $: allDayMap = Object.fromEntries(days.map(d => [
+  let allDayMap = $derived(Object.fromEntries(days.map(d => [
     d.toDateString(),
     expanded.filter(o => {
       if (o.ev.allDay) {
@@ -40,18 +40,18 @@
              midnight(o.startDate) < midnight(d) &&
              midnight(o.endDate)   > midnight(d);
     }),
-  ]));
+  ])));
 
   // ── Timed blocks per day (cross-midnight clipped; full-span excluded) ──
-  $: timedMap = Object.fromEntries(days.map(d => [
+  let timedMap = $derived(Object.fromEntries(days.map(d => [
     d.toDateString(),
     getTimedForDay(expanded, d),
-  ]));
+  ])));
 
-  $: colMap = Object.fromEntries(days.map(d => [
+  let colMap = $derived(Object.fromEntries(days.map(d => [
     d.toDateString(),
     computeColumns(timedMap[d.toDateString()] ?? []),
-  ]));
+  ])));
 
   /**
    * Return timed occurrences visible for a given day.
@@ -116,7 +116,7 @@
             <button
               class="allday-pill"
               style="background:{occ.ev.color}; color:#1a0812"
-              on:click|stopPropagation={() => $modalEventId = occ.ev.id}
+              onclick={e => { e.stopPropagation(); $modalEventId = occ.ev.id }}
               aria-label="{occ.ev.title}"
             >{occ.ev.title}</button>
           {/each}
@@ -138,14 +138,14 @@
       {#each days as d (d.toDateString())}
         <div class="day-col">
           {#each HOURS as h}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
               class="hour-slot"
               style="height:{PX_HR}px"
               role="button" tabindex="-1"
               aria-label="Add event {hourLabel(h) || '12 AM'} on {d.toLocaleDateString()}"
-              on:click={() => onSlotClick(d, h)}
-              on:keydown={e => e.key === 'Enter' && onSlotClick(d, h)}
+              onclick={() => onSlotClick(d, h)}
+              onkeydown={e => e.key === 'Enter' && onSlotClick(d, h)}
             ></div>
           {/each}
 
@@ -157,7 +157,7 @@
               class:clipped-start={item.occ._clip === 'start'}
               class:clipped-end={item.occ._clip === 'end'}
               style="{evStyle(item.occ, item.col, item.cols)} background:{item.occ.ev.color}44; border-left:3px solid {item.occ.ev.color};"
-              on:click|stopPropagation={() => $modalEventId = item.occ.ev.id}
+              onclick={e => { e.stopPropagation(); $modalEventId = item.occ.ev.id }}
               aria-label="{item.occ.ev.title}"
             >
               <span class="ev-title" style="color:{item.occ.ev.color}">{item.occ.ev.title}</span>

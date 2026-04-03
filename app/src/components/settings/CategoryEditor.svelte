@@ -33,28 +33,30 @@
   ];
 
   // ── Reactive form state ────────────────────────────────────
-  $: cat = $catEditorId && $catEditorId !== -1
+  let cat     = $derived($catEditorId && $catEditorId !== -1
     ? $categories.find(c => c.id === $catEditorId)
-    : null;
+    : null);
 
-  $: isNew = $catEditorId === -1;
-  $: isOpen = $catEditorId !== null;
+  let isNew  = $derived($catEditorId === -1);
+  let isOpen = $derived($catEditorId !== null);
 
-  let form = { icon: '🌸', label: '', color: '#f4b8c8' };
-  let labelError = false;
-  let saving = false;
-  let showDeleteConfirm = false;
+  let form              = $state({ icon: '🌸', label: '', color: '#f4b8c8' });
+  let labelError        = $state(false);
+  let saving            = $state(false);
+  let showDeleteConfirm = $state(false);
 
   // Re-sync form when editor opens
-  $: if (isOpen) {
-    if (cat) {
-      form = { icon: cat.icon, label: cat.label, color: cat.color };
-    } else {
-      form = { icon: '🌸', label: '', color: COLOR_PALETTE[0] };
+  $effect(() => {
+    if (isOpen) {
+      if (cat) {
+        form = { icon: cat.icon, label: cat.label, color: cat.color };
+      } else {
+        form = { icon: '🌸', label: '', color: COLOR_PALETTE[0] };
+      }
+      labelError = false;
+      showDeleteConfirm = false;
     }
-    labelError = false;
-    showDeleteConfirm = false;
-  }
+  });
 
   // ── Save ───────────────────────────────────────────────────
   async function handleSave() {
@@ -95,10 +97,10 @@
 {#if isOpen}
 
   <!-- Backdrop -->
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     class="backdrop"
-    on:click={onBackdropClick}
+    onclick={onBackdropClick}
     in:fade={{ duration: 200 }}
     out:fade={{ duration: 180 }}
     aria-hidden="true"
@@ -122,7 +124,7 @@
           {form.label || (isNew ? 'New category' : cat?.label)}
         </span>
       </div>
-      <button class="close-btn" on:click={close} aria-label="Close">✕</button>
+      <button class="close-btn" onclick={close} aria-label="Close">✕</button>
     </div>
 
     <div class="modal-body">
@@ -144,7 +146,7 @@
             <button
               class="emoji-btn"
               class:active={form.icon === emoji}
-              on:click={() => form.icon = emoji}
+              onclick={() => form.icon = emoji}
               aria-label={emoji}
               type="button"
             >{emoji}</button>
@@ -159,7 +161,7 @@
           id="cat-label"
           type="text"
           bind:value={form.label}
-          on:input={() => labelError = false}
+          oninput={() => labelError = false}
           placeholder="e.g. Health, Work, Travel…"
           autocomplete="off"
         />
@@ -173,7 +175,7 @@
         <label>Colour</label>
         <div class="swatches" role="group" aria-label="Category colour">
           {#each COLOR_PALETTE as hex (hex)}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
               class="swatch"
               class:selected={form.color === hex}
@@ -181,8 +183,8 @@
               role="radio"
               aria-checked={form.color === hex}
               tabindex="0"
-              on:click={() => form.color = hex}
-              on:keydown={e => e.key === 'Enter' && (form.color = hex)}
+              onclick={() => form.color = hex}
+              onkeydown={e => e.key === 'Enter' && (form.color = hex)}
             ></div>
           {/each}
 
@@ -191,7 +193,7 @@
             <input
               type="color"
               value={form.color}
-              on:input={e => form.color = e.target.value}
+              oninput={e => form.color = e.target.value}
             />
             <span aria-hidden="true">🎨</span>
           </label>
@@ -207,7 +209,7 @@
       {#if !isNew}
         <div class="danger-zone">
           {#if !showDeleteConfirm}
-            <button class="btn-danger" on:click={() => showDeleteConfirm = true}>
+            <button class="btn-danger" onclick={() => showDeleteConfirm = true}>
               Delete category
             </button>
           {:else}
@@ -215,12 +217,12 @@
             <div class="danger-row">
               <button
                 class="btn-danger-confirm"
-                on:click={handleDelete}
+                onclick={handleDelete}
                 disabled={saving}
               >
                 {saving ? '…' : 'Yes, delete'}
               </button>
-              <button class="btn-cancel-sm" on:click={() => showDeleteConfirm = false}>
+              <button class="btn-cancel-sm" onclick={() => showDeleteConfirm = false}>
                 Cancel
               </button>
             </div>
@@ -232,8 +234,8 @@
 
     <!-- Footer -->
     <div class="modal-ftr">
-      <button class="btn-cancel" on:click={close} disabled={saving}>Cancel</button>
-      <button class="btn-save"   on:click={handleSave} disabled={saving}>
+      <button class="btn-cancel" onclick={close} disabled={saving}>Cancel</button>
+      <button class="btn-save"   onclick={handleSave} disabled={saving}>
         {saving ? 'Saving…' : isNew ? 'Create category' : 'Save changes'}
       </button>
     </div>

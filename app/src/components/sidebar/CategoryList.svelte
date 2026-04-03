@@ -21,7 +21,7 @@
     <h3 class="sec-title">Categories</h3>
     <button
       class="hdr-btn"
-      on:click={() => $catEditorId = -1}
+      onclick={() => $catEditorId = -1}
       aria-label="Create new category"
       title="New category"
     >＋</button>
@@ -33,7 +33,7 @@
       <button
         class="cat-row"
         class:off={!cat.on}
-        on:click={() => toggleCategory(cat.id)}
+        onclick={() => toggleCategory(cat.id)}
         aria-pressed={cat.on}
         aria-label="{cat.label}, {cat.on ? 'visible' : 'hidden'}"
       >
@@ -49,7 +49,7 @@
 
       <button
         class="edit-btn"
-        on:click={() => $catEditorId = cat.id}
+        onclick={() => $catEditorId = cat.id}
         aria-label="Edit {cat.label}"
         title="Edit category"
       >✎</button>

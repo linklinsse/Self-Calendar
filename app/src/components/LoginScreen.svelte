@@ -13,11 +13,11 @@
   import { APP_NAME }                from '../lib/config.js';
 
   /** 'login' | 'register' */
-  let mode     = 'login';
-  let username = '';
-  let password = '';
-  let confirm  = '';
-  let error    = '';
+  let mode     = $state('login');
+  let username = $state('');
+  let password = $state('');
+  let confirm  = $state('');
+  let error    = $state('');
 
   function switchMode(m) {
     mode = m; error = ''; username = ''; password = ''; confirm = '';
@@ -62,17 +62,17 @@
       <button
         class="tab" class:active={mode === 'login'}
         role="tab" aria-selected={mode === 'login'}
-        on:click={() => switchMode('login')}
+        onclick={() => switchMode('login')}
       >Sign in</button>
       <button
         class="tab" class:active={mode === 'register'}
         role="tab" aria-selected={mode === 'register'}
-        on:click={() => switchMode('register')}
+        onclick={() => switchMode('register')}
       >Create account</button>
     </div>
 
     <!-- Form -->
-    <form on:submit={handleSubmit} novalidate>
+    <form onsubmit={handleSubmit} novalidate>
 
       {#if error}
         <p class="error-banner" role="alert" in:fly={{ y: -6, duration: 160 }}>{error}</p>

@@ -8,22 +8,22 @@
     expandEventsForRange, midnight,
   } from '../../lib/utils.js';
 
-  $: year  = $cursor.getFullYear();
-  $: month = $cursor.getMonth();
-  $: grid  = buildMonthGrid(year, month);
-  $: weeks = Math.ceil(grid.length / 7);  // explicit row count for banner-layer
-  $: rangeStart = grid[0]             ?? new Date(year, month, 1);
-  $: rangeEnd   = grid[grid.length-1] ?? new Date(year, month + 1, 0);
+  let year  = $derived($cursor.getFullYear());
+  let month = $derived($cursor.getMonth());
+  let grid  = $derived(buildMonthGrid(year, month));
+  let weeks = $derived(Math.ceil(grid.length / 7));  // explicit row count for banner-layer
+  let rangeStart = $derived(grid[0]             ?? new Date(year, month, 1));
+  let rangeEnd   = $derived(grid[grid.length-1] ?? new Date(year, month + 1, 0));
 
-  $: expanded = expandEventsForRange($visibleEvents, rangeStart, rangeEnd);
+  let expanded = $derived(expandEventsForRange($visibleEvents, rangeStart, rangeEnd));
 
   // Only truly spanning (multi-day) events go to the banner-layer.
   // Single-day allDay and timed events render inline inside each cell.
-  $: spanningOccs     = expanded.filter(o => !sameDay(o.startDate, o.endDate));
-  $: timedOccs        = expanded.filter(o =>  sameDay(o.startDate, o.endDate) && !o.ev.allDay);
-  $: singleAllDayOccs = expanded.filter(o =>  sameDay(o.startDate, o.endDate) &&  o.ev.allDay);
+  let spanningOccs     = $derived(expanded.filter(o => !sameDay(o.startDate, o.endDate)));
+  let timedOccs        = $derived(expanded.filter(o =>  sameDay(o.startDate, o.endDate) && !o.ev.allDay));
+  let singleAllDayOccs = $derived(expanded.filter(o =>  sameDay(o.startDate, o.endDate) &&  o.ev.allDay));
 
-  $: cellEvsByDay = (() => {
+  let cellEvsByDay = $derived((() => {
     const m = new Map();
     for (const d of grid) {
       const allDay = singleAllDayOccs.filter(o => sameDay(o.startDate, d));
@@ -33,7 +33,7 @@
       m.set(d.toDateString(), { allDay, timed, all: [...allDay, ...timed], timedShown, totalShown });
     }
     return m;
-  })();
+  })());
 
   function getSpanRows(occ) {
     const s = midnight(occ.startDate), e = midnight(occ.endDate);
@@ -54,9 +54,9 @@
     return rows;
   }
 
-  $: spanMap = spanningOccs.map(occ => ({ occ, rows: getSpanRows(occ) }));
+  let spanMap = $derived(spanningOccs.map(occ => ({ occ, rows: getSpanRows(occ) })));
 
-  $: slotAssignments = (() => {
+  let slotAssignments = $derived((() => {
     const slotUsed = Array.from({ length: grid.length }, () => new Set());
     const result   = new Map();
     for (const { occ, rows } of spanMap) {
@@ -74,9 +74,9 @@
       result.set(occ.ev.id + '-' + occ.startDate.toISOString(), slot);
     }
     return result;
-  })();
+  })());
 
-  $: bannerRowsByCell = (() => {
+  let bannerRowsByCell = $derived((() => {
     const m = new Map();
     for (const { occ, rows } of spanMap) {
       const slot = slotAssignments.get(occ.ev.id + '-' + occ.startDate.toISOString()) ?? 0;
@@ -87,7 +87,7 @@
         }
     }
     return m;
-  })();
+  })());
 
   const BANNER_H   = 22;
   const BANNER_GAP =  2;
@@ -120,7 +120,7 @@
         {@const dayEvs   = cellEvsByDay.get(d.toDateString()) ?? { allDay: [], timed: [], all: [] }}
         {@const slots    = bannerRowsByCell.get(ci) ?? 0}
 
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
           class="cell"
           class:outside class:today
@@ -128,8 +128,8 @@
           role="gridcell"
           aria-label="{d.toLocaleDateString()}{today ? ', today' : ''}"
           tabindex="0"
-          on:click={() => onCellClick(d)}
-          on:keydown={e => e.key === 'Enter' && onCellClick(d)}
+          onclick={() => onCellClick(d)}
+          onkeydown={e => e.key === 'Enter' && onCellClick(d)}
         >
           <span class="cell-num">{d.getDate()}</span>
 
@@ -142,7 +142,7 @@
               <button
                 class="ev-pill ev-pill--allday"
                 style="background:{occ.ev.color}; color:#1a0812"
-                on:click={e => onOccClick(occ, e)}
+                onclick={e => onOccClick(occ, e)}
                 aria-label="{occ.ev.title} (all day)"
               >{occ.ev.title}</button>
             {/each}
@@ -151,7 +151,7 @@
               <button
                 class="ev-pill"
                 style="background:{occ.ev.color}42; color:{occ.ev.color}; border-left:3px solid {occ.ev.color}"
-                on:click={e => onOccClick(occ, e)}
+                onclick={e => onOccClick(occ, e)}
                 aria-label="{occ.ev.title}"
               >
                 <span class="pill-dot" style="background:{occ.ev.color}"></span>
@@ -165,7 +165,7 @@
                   <button
                     class="ov-dot"
                     style="background:{occ.ev.color}"
-                    on:click={e => onOccClick(occ, e)}
+                    onclick={e => onOccClick(occ, e)}
                     aria-label={occ.ev.title}
                     title={occ.ev.title}
                   ></button>
@@ -206,7 +206,7 @@
               margin-left: {isStart ? '3px' : '0'};
               margin-right: {isEnd   ? '3px' : '0'};
             "
-            on:click|stopPropagation={() => $modalEventId = occ.ev.id}
+            onclick={e => { e.stopPropagation(); $modalEventId = occ.ev.id }}
           >
             {#if isStart}
               <span class="banner-title">{occ.ev.title}</span>

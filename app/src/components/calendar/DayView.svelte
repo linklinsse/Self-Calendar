@@ -19,23 +19,23 @@
   const PX_HR = 62;
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-  $: today   = isToday($cursor);
-  $: heading = formatLongDay($cursor);
-  $: dayStart = midnight($cursor);
-  $: dayEnd   = midnight($cursor);
-  $: expanded = expandEventsForRange($visibleEvents, dayStart, dayEnd);
+  let today   = $derived(isToday($cursor));
+  let heading = $derived(formatLongDay($cursor));
+  let dayStart = $derived(midnight($cursor));
+  let dayEnd   = $derived(midnight($cursor));
+  let expanded = $derived(expandEventsForRange($visibleEvents, dayStart, dayEnd));
 
   // All-day strip: true allDay + timed events that fully span this day
-  $: allDayOccs = expanded.filter(o => {
+  let allDayOccs = $derived(expanded.filter(o => {
     if (o.ev.allDay) return true;
     if (!o.ev.start) return false;
     // Fully spans: started before midnight, ends after midnight
     return midnight(o.startDate) < midnight($cursor) &&
            midnight(o.endDate)   > midnight($cursor);
-  });
+  }));
 
   // Timed grid: normal + cross-midnight clipped; full-span excluded
-  $: timedOccs = (() => {
+  let timedOccs = $derived((() => {
     const d = $cursor;
     const result = [];
     for (const o of expanded) {
@@ -54,9 +54,9 @@
       }
     }
     return result;
-  })();
+  })());
 
-  $: columns = computeColumns(timedOccs);
+  let columns = $derived(computeColumns(timedOccs));
 
   function evStyle(occ, col, cols) {
     const sm  = timeToMinutes(occ.ev.start ?? '00:00');
@@ -99,7 +99,7 @@
           <button
             class="allday-pill"
             style="background:{occ.ev.color}; color:#1a0812"
-            on:click={() => $modalEventId = occ.ev.id}
+            onclick={() => $modalEventId = occ.ev.id}
             aria-label="{occ.ev.title} (all day)"
           >{occ.ev.title}</button>
         {/each}
@@ -117,14 +117,14 @@
 
     <div class="event-col">
       {#each HOURS as h}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
           class="hour-slot"
           style="height:{PX_HR}px"
           role="button" tabindex="-1"
           aria-label="Add event at {hourLabel(h) || '12 AM'}"
-          on:click={() => onSlotClick(h)}
-          on:keydown={e => e.key === 'Enter' && onSlotClick(h)}
+          onclick={() => onSlotClick(h)}
+          onkeydown={e => e.key === 'Enter' && onSlotClick(h)}
         ></div>
       {/each}
 
@@ -136,7 +136,7 @@
           class:clipped-start={item.occ._clip === 'start'}
           class:clipped-end={item.occ._clip === 'end'}
           style="{evStyle(item.occ, item.col, item.cols)} background:{item.occ.ev.color}40; border-left:4px solid {item.occ.ev.color};"
-          on:click|stopPropagation={() => $modalEventId = item.occ.ev.id}
+          onclick={e => { e.stopPropagation(); $modalEventId = item.occ.ev.id }}
           aria-label="{item.occ.ev.title}"
         >
           <span class="ev-title" style="color:{item.occ.ev.color}">{item.occ.ev.title}</span>

@@ -25,9 +25,11 @@
   });
 
   // Re-apply whenever the theme id changes (ThemePicker)
-  $: if (typeof document !== 'undefined') {
-    applyTheme(resolveTheme($activeThemeId));
-  }
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+      applyTheme(resolveTheme($activeThemeId));
+    }
+  });
 
   // Global Escape: close the topmost open overlay
   function onKeydown(e) {
@@ -42,7 +44,7 @@
   }
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 <svelte:head>
   <style>

@@ -22,11 +22,11 @@
   ];
 
   // ── Inline create form state ───────────────────────────────
-  let creating   = false;  // whether the inline form is expanded
-  let newName    = '';
-  let newColor   = PALETTE[0];
-  let saving     = false;
-  let nameError  = false;
+  let creating   = $state(false);  // whether the inline form is expanded
+  let newName    = $state('');
+  let newColor   = $state(PALETTE[0]);
+  let saving     = $state(false);
+  let nameError  = $state(false);
 
   function openCreate() {
     creating  = true;
@@ -63,7 +63,7 @@
     {#if !creating}
       <button
         class="hdr-btn"
-        on:click={openCreate}
+        onclick={openCreate}
         aria-label="Create new calendar"
         title="New calendar"
       >＋</button>
@@ -75,7 +75,7 @@
     <div class="cal-row">
       <button
         class="row-toggle"
-        on:click={() => toggleCalendar(cal.id)}
+        onclick={() => toggleCalendar(cal.id)}
         aria-pressed={cal.on}
         aria-label="{cal.name}, {cal.on ? 'visible' : 'hidden'}"
       >
@@ -89,7 +89,7 @@
       {#if cal.role === 'admin'}
         <button
           class="gear-btn"
-          on:click={() => $calSettingsId = cal.id}
+          onclick={() => $calSettingsId = cal.id}
           aria-label="Edit {cal.name}"
           title="Edit calendar"
         >✎</button>
@@ -108,8 +108,8 @@
         <input
           type="text"
           bind:value={newName}
-          on:input={() => nameError = false}
-          on:keydown={onNameKeydown}
+          oninput={() => nameError = false}
+          onkeydown={onNameKeydown}
           placeholder="Calendar name"
           autocomplete="off"
           autofocus
@@ -122,7 +122,7 @@
       <!-- Colour swatches -->
       <div class="cf-swatches" role="group" aria-label="Calendar colour">
         {#each PALETTE as hex}
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
           <div
             class="cf-swatch"
             class:sel={newColor === hex}
@@ -130,18 +130,18 @@
             role="radio"
             aria-checked={newColor === hex}
             tabindex="0"
-            on:click={() => newColor = hex}
-            on:keydown={e => e.key === 'Enter' && (newColor = hex)}
+            onclick={() => newColor = hex}
+            onkeydown={e => e.key === 'Enter' && (newColor = hex)}
           ></div>
         {/each}
       </div>
 
       <!-- Actions -->
       <div class="cf-actions">
-        <button class="cf-save" on:click={submitCreate} disabled={saving}>
+        <button class="cf-save" onclick={submitCreate} disabled={saving}>
           {saving ? '…' : 'Create'}
         </button>
-        <button class="cf-cancel" on:click={cancelCreate}>Cancel</button>
+        <button class="cf-cancel" onclick={cancelCreate}>Cancel</button>
       </div>
     </div>
   {/if}

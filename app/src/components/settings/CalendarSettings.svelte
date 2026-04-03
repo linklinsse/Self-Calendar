@@ -42,23 +42,22 @@
   ];
 
   // ── Active calendar ────────────────────────────────────────
-  $: cal = $calSettingsId ? $calendars.find(c => c.id === $calSettingsId) : null;
+  let cal = $derived($calSettingsId ? $calendars.find(c => c.id === $calSettingsId) : null);
 
   // ── Tabs ───────────────────────────────────────────────────
-  let activeTab = 'general';
-  $: if ($calSettingsId) { activeTab = 'general'; } // reset on open
+  let activeTab = $state('general');
+  $effect(() => { if ($calSettingsId) { activeTab = 'general'; } }); // reset on open
 
   // ── General tab state ──────────────────────────────────────
-  let genName  = '';
-  let genColor = '';
-  let genDesc  = '';
-  let genSaving = false;
+  let genName   = $state('');
+  let genColor  = $state('');
+  let genDesc   = $state('');
+  let genSaving = $state(false);
 
   // FIX: Only re-init when the calendar ID changes (not on every calendar data update).
-  // Without this guard, typing in genName would get reset whenever
-  // updateCalendar() calls calendars.update() and makes `cal` re-compute.
-  let _prevCalId = null;
-  $: {
+  let _prevCalId        = $state(null);
+  let showDeleteConfirm = $state(false);
+  $effect(() => {
     const newId = cal?.id ?? null;
     if (newId !== _prevCalId) {
       _prevCalId = newId;
@@ -69,7 +68,7 @@
       }
       showDeleteConfirm = false;
     }
-  }
+  });
 
   async function saveGeneral() {
     genSaving = true;
@@ -77,7 +76,6 @@
     genSaving = false;
   }
 
-  let showDeleteConfirm = false;
   async function confirmDelete() {
     await removeCalendar(cal.id);
     $calSettingsId = null;
@@ -85,16 +83,14 @@
 
   // ── Members tab state ──────────────────────────────────────
   /** @type {import('../../lib/services/calendar.service').Member[]} */
-  let members      = [];
-  let membersLoading = false;
-  let inviteEmail  = '';
-  let inviteRole   = 'write';
-  let inviting     = false;
+  let members        = $state([]);
+  let membersLoading = $state(false);
+  let inviteEmail    = $state('');
+  let inviteRole     = $state('write');
+  let inviting       = $state(false);
 
   // Load members when the Members tab is activated
-  $: if (activeTab === 'members' && cal) {
-    loadMembers();
-  }
+  $effect(() => { if (activeTab === 'members' && cal) { loadMembers(); } });
 
   async function loadMembers() {
     membersLoading = true;
@@ -132,12 +128,10 @@
   }
 
   // ── Params tab state ───────────────────────────────────────
-  let params = null;
-  let paramsSaving = false;
+  let params       = $state(null);
+  let paramsSaving = $state(false);
 
-  $: if (activeTab === 'params' && cal && !params) {
-    loadParams();
-  }
+  $effect(() => { if (activeTab === 'params' && cal && !params) { loadParams(); } });
 
   async function loadParams() {
     try {
@@ -179,10 +173,10 @@
 {#if cal}
 
   <!-- Backdrop -->
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     class="backdrop"
-    on:click={onBackdropClick}
+    onclick={onBackdropClick}
     in:fade={{ duration: 200 }}
     out:fade={{ duration: 180 }}
     aria-hidden="true"
@@ -204,7 +198,7 @@
         <span class="cal-dot" style="background:{cal.color}"></span>
         <h2 class="hdr-title">{cal.name}</h2>
       </div>
-      <button class="close-btn" on:click={closeSettings} aria-label="Close settings">✕</button>
+      <button class="close-btn" onclick={closeSettings} aria-label="Close settings">✕</button>
     </div>
 
     <!-- Tabs -->
@@ -215,7 +209,7 @@
           class:active={activeTab === tab}
           role="tab"
           aria-selected={activeTab === tab}
-          on:click={() => { activeTab = tab; showDeleteConfirm = false; }}
+          onclick={() => { activeTab = tab; showDeleteConfirm = false; }}
         >
           {#if tab === 'general'}⚙ General
           {:else if tab === 'members'}👥 Members
@@ -239,7 +233,7 @@
           <label>Colour</label>
           <div class="swatch-row" role="group" aria-label="Calendar colour">
             {#each SWATCH_COLORS as hex}
-              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
               <div
                 class="swatch"
                 class:selected={genColor === hex}
@@ -248,8 +242,8 @@
                 aria-checked={genColor === hex}
                 aria-label="Colour {hex}"
                 tabindex="0"
-                on:click={() => genColor = hex}
-                on:keydown={e => e.key === 'Enter' && (genColor = hex)}
+                onclick={() => genColor = hex}
+                onkeydown={e => e.key === 'Enter' && (genColor = hex)}
               ></div>
             {/each}
           </div>
@@ -266,7 +260,7 @@
         </div>
 
         <div class="row-actions">
-          <button class="btn-save" on:click={saveGeneral} disabled={genSaving}>
+          <button class="btn-save" onclick={saveGeneral} disabled={genSaving}>
             {genSaving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
@@ -275,7 +269,7 @@
         <div class="danger-zone">
           <h3 class="danger-title">Danger zone</h3>
           {#if !showDeleteConfirm}
-            <button class="btn-danger" on:click={() => showDeleteConfirm = true}>
+            <button class="btn-danger" onclick={() => showDeleteConfirm = true}>
               Delete this calendar
             </button>
           {:else}
@@ -283,10 +277,10 @@
               This will permanently delete <strong>{cal.name}</strong> and all its events.
             </p>
             <div class="danger-row">
-              <button class="btn-danger-confirm" on:click={confirmDelete}>
+              <button class="btn-danger-confirm" onclick={confirmDelete}>
                 Yes, delete
               </button>
-              <button class="btn-cancel" on:click={() => showDeleteConfirm = false}>
+              <button class="btn-cancel" onclick={() => showDeleteConfirm = false}>
                 Cancel
               </button>
             </div>
@@ -317,7 +311,7 @@
                 <option value={r.value}>{r.label}</option>
               {/each}
             </select>
-            <button class="btn-invite" on:click={handleInvite} disabled={inviting || !inviteEmail.trim()}>
+            <button class="btn-invite" onclick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
               {inviting ? '…' : 'Invite'}
             </button>
           </div>
@@ -367,7 +361,7 @@
                 <select
                   class="role-select"
                   value={m.role}
-                  on:change={e => changeRole(m.userId, e.target.value)}
+                  onchange={e => changeRole(m.userId, e.target.value)}
                   aria-label="Role for {m.name}"
                 >
                   {#each ROLES as r}
@@ -378,7 +372,7 @@
                 <!-- Remove button -->
                 <button
                   class="remove-btn"
-                  on:click={() => removeMember(m.userId)}
+                  onclick={() => removeMember(m.userId)}
                   aria-label="Remove {m.name}"
                   title="Remove member"
                 >✕</button>
@@ -434,7 +428,7 @@
           </div>
 
           <div class="row-actions">
-            <button class="btn-save" on:click={saveParams} disabled={paramsSaving}>
+            <button class="btn-save" onclick={saveParams} disabled={paramsSaving}>
               {paramsSaving ? 'Saving…' : 'Save settings'}
             </button>
           </div>

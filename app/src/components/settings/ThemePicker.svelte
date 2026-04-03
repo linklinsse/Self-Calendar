@@ -11,7 +11,7 @@
   import { THEME_LIST, activeThemeId, applyTheme, resolveTheme }
     from '../../lib/themes/index.js';
 
-  let open = false;
+  let open = $state(false);
 
   function pickTheme(id) {
     activeThemeId.set(id);
@@ -19,7 +19,7 @@
     open = false;
   }
 
-  $: currentTheme = THEME_LIST.find(t => t.id === $activeThemeId) ?? THEME_LIST[0];
+  let currentTheme = $derived(THEME_LIST.find(t => t.id === $activeThemeId) ?? THEME_LIST[0]);
 </script>
 
 <div class="theme-picker">
@@ -27,7 +27,7 @@
   <!-- Toggle row — shows current theme name -->
   <button
     class="toggle-btn"
-    on:click={() => open = !open}
+    onclick={() => open = !open}
     aria-expanded={open}
     aria-label="Change theme"
   >
@@ -47,7 +47,7 @@
           <button
             class="theme-card"
             class:active={$activeThemeId === theme.id}
-            on:click={() => pickTheme(theme.id)}
+            onclick={() => pickTheme(theme.id)}
             aria-pressed={$activeThemeId === theme.id}
             aria-label="Apply {theme.name} theme"
             title={theme.name}

@@ -13,8 +13,8 @@
   } from '../lib/stores/index.js';
   import { MONTH_NAMES, MONTH_ABBR, DAY_NAMES, formatWeekRange } from '../lib/utils.js';
 
-  $: label = getLabel($currentView, $cursor);
-  $: year  = $currentView === 'month' ? ' ' + $cursor.getFullYear() : '';
+  let label = $derived(getLabel($currentView, $cursor));
+  let year  = $derived($currentView === 'month' ? ' ' + $cursor.getFullYear() : '');
 
   function getLabel(view, d) {
     if (view === 'month') return MONTH_NAMES[d.getMonth()];
@@ -42,7 +42,7 @@
 <header class="topbar">
 
   <!-- Sidebar toggle (works on both mobile and desktop) -->
-  <button class="icon-btn" on:click={() => $sidebarOpen = !$sidebarOpen} aria-label="Toggle sidebar">
+  <button class="icon-btn" onclick={() => $sidebarOpen = !$sidebarOpen} aria-label="Toggle sidebar">
     <svg width="17" height="13" viewBox="0 0 17 13" fill="none" aria-hidden="true">
       <rect y="0"  width="17" height="2" rx="1" fill="currentColor"/>
       <rect y="5.5" width="13" height="2" rx="1" fill="currentColor"/>
@@ -57,12 +57,12 @@
 
   <!-- Prev / Next -->
   <nav class="nav-cluster" aria-label="Calendar navigation">
-    <button class="nav-btn" on:click={navPrev} aria-label="Previous">‹</button>
-    <button class="nav-btn" on:click={navNext} aria-label="Next">›</button>
+    <button class="nav-btn" onclick={navPrev} aria-label="Previous">‹</button>
+    <button class="nav-btn" onclick={navNext} aria-label="Next">›</button>
   </nav>
 
   <!-- Today (desktop only) -->
-  <button class="today-btn desktop-only" on:click={goToday}>Today</button>
+  <button class="today-btn desktop-only" onclick={goToday}>Today</button>
 
   <div class="spacer"></div>
 
@@ -72,14 +72,14 @@
   </div>
 
   <!-- New event button (desktop only) -->
-  <button class="add-btn desktop-only" on:click={() => openAddPanel()} aria-label="New event">
+  <button class="add-btn desktop-only" onclick={() => openAddPanel()} aria-label="New event">
     <span aria-hidden="true">＋</span> New event
   </button>
 
   <!-- Filter icon (mobile only) -->
   <button
     class="icon-btn mobile-only"
-    on:click={() => $filterDrawerOpen = true}
+    onclick={() => $filterDrawerOpen = true}
     aria-label="Open filters"
   >
     <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">

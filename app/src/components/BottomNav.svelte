@@ -17,7 +17,7 @@
 <nav class="bottom-nav" aria-label="Mobile navigation">
 
   <!-- Sidebar / filter toggle -->
-  <button class="bn-btn" on:click={() => $sidebarOpen = !$sidebarOpen} aria-label="Menu and filters">
+  <button class="bn-btn" onclick={() => $sidebarOpen = !$sidebarOpen} aria-label="Menu and filters">
     <svg width="20" height="15" viewBox="0 0 20 15" fill="none" aria-hidden="true">
       <rect y="0"   width="20" height="2" rx="1" fill="currentColor"/>
       <rect y="6.5" width="15" height="2" rx="1" fill="currentColor"/>
@@ -30,12 +30,12 @@
   <ViewSwitcher compact={true} />
 
   <!-- FAB: add event -->
-  <button class="fab" on:click={() => openAddPanel()} aria-label="Add new event">
+  <button class="fab" onclick={() => openAddPanel()} aria-label="Add new event">
     <span aria-hidden="true">＋</span>
   </button>
 
   <!-- Today -->
-  <button class="bn-btn" on:click={goToday} aria-label="Go to today">
+  <button class="bn-btn" onclick={goToday} aria-label="Go to today">
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <circle cx="9" cy="9" r="7"  stroke="currentColor" stroke-width="1.6"/>
       <circle cx="9" cy="9" r="2"  fill="currentColor"/>

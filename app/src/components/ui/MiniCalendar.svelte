@@ -11,10 +11,10 @@
     from '../../lib/utils.js';
 
   // Local mini-cursor — independent from the main cursor
-  let miniYear  = $cursor.getFullYear();
-  let miniMonth = $cursor.getMonth();
+  let miniYear  = $state($cursor.getFullYear());
+  let miniMonth = $state($cursor.getMonth());
 
-  $: grid = buildMonthGrid(miniYear, miniMonth);
+  let grid = $derived(buildMonthGrid(miniYear, miniMonth));
 
   function prevMini() {
     if (miniMonth === 0) { miniMonth = 11; miniYear--; }
@@ -31,18 +31,18 @@
     $currentView = 'day';
   }
 
-  $: isSelected = (d) =>
-    d.getMonth() === miniMonth && sameDay(d, $cursor);
+  let isSelected = $derived((d) =>
+    d.getMonth() === miniMonth && sameDay(d, $cursor));
 </script>
 
 <div class="mini-cal" aria-label="Mini calendar">
   <!-- Month header -->
   <div class="mc-hdr">
-    <button class="mc-nav" on:click={prevMini} aria-label="Previous month">‹</button>
+    <button class="mc-nav" onclick={prevMini} aria-label="Previous month">‹</button>
     <span class="mc-label">
       {MONTH_ABBR[miniMonth]} {miniYear}
     </span>
-    <button class="mc-nav" on:click={nextMini} aria-label="Next month">›</button>
+    <button class="mc-nav" onclick={nextMini} aria-label="Next month">›</button>
   </div>
 
   <!-- Day-of-week labels -->
@@ -58,7 +58,7 @@
         class:other   ={d.getMonth() !== miniMonth}
         class:today   ={isToday(d)}
         class:selected={isSelected(d) && !isToday(d)}
-        on:click={() => pickDay(d)}
+        onclick={() => pickDay(d)}
         aria-label={d.toLocaleDateString()}
         aria-current={isToday(d) ? 'date' : undefined}
         tabindex={d.getMonth() !== miniMonth ? -1 : 0}

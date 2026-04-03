@@ -23,17 +23,17 @@
   } from '../../lib/utils.js';
 
   // ── Form state ──────────────────────────────────────────────
-  let form          = {};
-  let titleError    = false;
-  let formCategory  = '';
-  let lastSyncedCat = '';
-  let showRecur     = false;
+  let form          = $state({});
+  let titleError    = $state(false);
+  let formCategory  = $state('');
+  let lastSyncedCat = $state('');
+  let showRecur     = $state(false);
 
   // FIX [1]: Guard init with a "panel key" so we only reset form
   // when a genuinely different event is opened, not on every store update.
-  let _prevPanelKey = null;
+  let _prevPanelKey = $state(null);
 
-  $: {
+  $effect(() => {
     const p = $panelEvent;
     if (!p) {
       _prevPanelKey = null;
@@ -53,27 +53,27 @@
         showRecur     = !!p.recurrence;
       }
     }
-  }
+  });
 
-  $: isEdit = !!form.id && form.id !== -1;
+  let isEdit = $derived(!!form.id && form.id !== -1);
 
   // FIX [3]: Reactive category→color sync — guaranteed to fire on all platforms
-  $: form.category = formCategory;
-  $: {
+  $effect(() => { form.category = formCategory; });
+  $effect(() => {
     if (formCategory && formCategory !== lastSyncedCat) {
       const cat = $categories.find(c => c.id === formCategory);
       if (cat) form.color = cat.color;
       lastSyncedCat = formCategory;
     }
-  }
+  });
 
-  $: defaultColor    = $categories.find(c => c.id === formCategory)?.color ?? null;
-  $: colorOverridden = defaultColor !== null && form.color !== defaultColor;
+  let defaultColor    = $derived($categories.find(c => c.id === formCategory)?.color ?? null);
+  let colorOverridden = $derived(defaultColor !== null && form.color !== defaultColor);
   function resetColor() { form.color = defaultColor; }
 
   // FIX [4]: Calendar picker with colour dot
-  $: selectedCal = $calendars.find(c => c.id === form.calendar) ?? null;
-  let showCalPicker = false;
+  let selectedCal   = $derived($calendars.find(c => c.id === form.calendar) ?? null);
+  let showCalPicker = $state(false);
   function pickCalendar(id) { form.calendar = id; showCalPicker = false; }
   function onOutsideClick(e) {
     if (!e.target.closest?.('.cal-picker-wrap')) showCalPicker = false;
@@ -100,7 +100,7 @@
     const days = form.recurrence.days ?? [];
     form.recurrence = { ...form.recurrence, days: days.includes(d) ? days.filter(x => x !== d) : [...days, d] };
   }
-  $: recurSummary = describeRecurrence(form.recurrence);
+  let recurSummary = $derived(describeRecurrence(form.recurrence));
 
   // Save
   function handleSave() {
@@ -116,16 +116,16 @@
 
   // Swatches
   const EXTRAS = ['#e8c4e8','#c4e8e8','#e8e4c4','#b0b0c8'];
-  $: catColors   = $categories.map(c => c.color);
-  $: allSwatches = [...new Set([...catColors, ...EXTRAS])];
+  let catColors   = $derived($categories.map(c => c.color));
+  let allSwatches = $derived([...new Set([...catColors, ...EXTRAS])]);
 </script>
 
-<svelte:window on:click={onOutsideClick} />
+<svelte:window onclick={onOutsideClick} />
 
 {#if $panelEvent}
 
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="overlay" on:click={closePanel}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="overlay" onclick={closePanel}
     in:fade={{ duration: 180 }} out:fade={{ duration: 180 }} aria-hidden="true"></div>
 
   <div
@@ -140,7 +140,7 @@
       <div class="hdr-accent" style="background:{form.color ?? 'var(--acc)'}"></div>
       <div class="hdr-inner">
         <h2 class="panel-title">{isEdit ? 'Edit event' : 'New event'}</h2>
-        <button class="icon-btn" on:click={closePanel} aria-label="Close">✕</button>
+        <button class="icon-btn" onclick={closePanel} aria-label="Close">✕</button>
       </div>
     </div>
 
@@ -150,7 +150,7 @@
       <div class="field" class:has-error={titleError}>
         <label for="f-title">Title</label>
         <input id="f-title" type="text" bind:value={form.title}
-          on:input={() => titleError = false} placeholder="What's happening?" autocomplete="off" />
+          oninput={() => titleError = false} placeholder="What's happening?" autocomplete="off" />
         {#if titleError}<span class="err-msg" role="alert">Please enter a title.</span>{/if}
       </div>
 
@@ -165,7 +165,7 @@
       <div class="row-2">
         <div class="field">
           <label for="f-sdate">Start date</label>
-          <input id="f-sdate" type="date" bind:value={form.startDateStr} on:change={onStartDateChange} />
+          <input id="f-sdate" type="date" bind:value={form.startDateStr} onchange={onStartDateChange} />
         </div>
         <div class="field">
           <label for="f-edate">End date</label>
@@ -178,7 +178,7 @@
         <div class="row-2">
           <div class="field">
             <label for="f-start">Start time</label>
-            <input id="f-start" type="time" bind:value={form.start} on:change={onStartTimeChange} />
+            <input id="f-start" type="time" bind:value={form.start} onchange={onStartTimeChange} />
           </div>
           <div class="field">
             <label for="f-end">End time</label>
@@ -193,7 +193,7 @@
           class="recur-toggle"
           type="button"
           aria-expanded={showRecur}
-          on:click={() => {
+          onclick={() => {
             showRecur = !showRecur;
             if (!showRecur) clearRecurrence();
             else if (!form.recurrence) initRecurrence();
@@ -231,7 +231,7 @@
                   {#each DOW_LABELS as lbl, idx}
                     <button type="button" class="dow-btn"
                       class:on={form.recurrence.days?.includes(idx)}
-                      on:click={() => toggleDay(idx)}
+                      onclick={() => toggleDay(idx)}
                       aria-pressed={form.recurrence.days?.includes(idx)}>{lbl}</button>
                   {/each}
                 </div>
@@ -266,7 +266,7 @@
         <label>Calendar</label>
         <div class="cal-picker-wrap">
           <button class="cal-trigger" type="button"
-            on:click|stopPropagation={() => showCalPicker = !showCalPicker}
+            onclick={() => showCalPicker = !showCalPicker}
             aria-haspopup="listbox" aria-expanded={showCalPicker}>
             {#if selectedCal}
               <span class="cal-dot" style="background:{selectedCal.color}"></span>
@@ -282,7 +282,7 @@
                 <li>
                   <button class="cal-option" class:selected={form.calendar === cal.id}
                     role="option" aria-selected={form.calendar === cal.id}
-                    type="button" on:click|stopPropagation={() => pickCalendar(cal.id)}>
+                    type="button" onclick={() => pickCalendar(cal.id)}>
                     <span class="cal-dot" style="background:{cal.color}"></span>
                     <span>{cal.name}</span>
                     {#if form.calendar === cal.id}<span class="cal-check">✓</span>{/if}
@@ -321,23 +321,23 @@
         <div class="color-header">
           <label>Colour</label>
           {#if colorOverridden}
-            <button class="reset-color" type="button" on:click={resetColor}>↺ Reset to category</button>
+            <button class="reset-color" type="button" onclick={resetColor}>↺ Reset to category</button>
           {:else}
             <span class="color-hint">Matches category</span>
           {/if}
         </div>
         <div class="swatches" role="group" aria-label="Event colour">
           {#each allSwatches as hex (hex)}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div class="swatch" class:selected={form.color === hex} class:is-default={hex === defaultColor}
               style="background:{hex}" role="radio" aria-checked={form.color === hex} tabindex="0"
-              on:click={() => form.color = hex}
-              on:keydown={e => e.key === 'Enter' && (form.color = hex)}>
+              onclick={() => form.color = hex}
+              onkeydown={e => e.key === 'Enter' && (form.color = hex)}>
               {#if hex === defaultColor}<span class="def-marker" aria-hidden="true"></span>{/if}
             </div>
           {/each}
           <label class="custom-swatch" title="Custom colour">
-            <input type="color" value={form.color} on:input={e => form.color = e.target.value} />
+            <input type="color" value={form.color} oninput={e => form.color = e.target.value} />
             <span aria-hidden="true">🎨</span>
           </label>
         </div>
@@ -351,8 +351,8 @@
 
     <!-- Footer -->
     <div class="panel-ftr">
-      <button class="btn-cancel" type="button" on:click={closePanel}>Cancel</button>
-      <button class="btn-save"   type="button" on:click={handleSave}>
+      <button class="btn-cancel" type="button" onclick={closePanel}>Cancel</button>
+      <button class="btn-save"   type="button" onclick={handleSave}>
         {isEdit ? 'Update' : 'Save event'}
       </button>
     </div>

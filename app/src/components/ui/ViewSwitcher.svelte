@@ -9,7 +9,7 @@
    */
   import { currentView } from '../../lib/stores/index.js';
 
-  export let compact = false;
+  let { compact = false } = $props();
 
   const VIEWS = [
     { id: 'month', label: 'Month', short: 'M' },
@@ -23,7 +23,7 @@
     <button
       class="v-btn"
       class:active={$currentView === v.id}
-      on:click={() => $currentView = v.id}
+      onclick={() => $currentView = v.id}
       aria-pressed={$currentView === v.id}
       aria-label="{v.label} view"
     >

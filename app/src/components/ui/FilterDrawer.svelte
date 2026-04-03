@@ -14,17 +14,17 @@
 {#if $filterDrawerOpen}
 
   <!-- Backdrop -->
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     class="backdrop"
-    on:click={() => $filterDrawerOpen = false}
+    onclick={() => $filterDrawerOpen = false}
     in:fade={{ duration: 180 }}
     out:fade={{ duration: 180 }}
     aria-hidden="true"
   ></div>
 
   <!-- Drawer -->
-  <aside
+  <div
     class="drawer"
     role="dialog" aria-modal="true" aria-label="Filters"
     in:fly={{ x: -300, duration: 300, easing: t => 1 - Math.pow(1-t,3) }}
@@ -34,7 +34,7 @@
       <h2 class="ttl">Filters</h2>
       <button
         class="close"
-        on:click={() => $filterDrawerOpen = false}
+        onclick={() => $filterDrawerOpen = false}
         aria-label="Close filters"
       >✕</button>
     </div>
@@ -45,7 +45,7 @@
       {#each $calendars as cal (cal.id)}
         <button
           class="row"
-          on:click={() => toggleCalendar(cal.id)}
+          onclick={() => toggleCalendar(cal.id)}
           aria-pressed={cal.on}
         >
           <span class="dot" style="background:{cal.color}"></span>
@@ -62,7 +62,7 @@
         <button
           class="row cat-row"
           class:off={!cat.on}
-          on:click={() => toggleCategory(cat.id)}
+          onclick={() => toggleCategory(cat.id)}
           aria-pressed={cat.on}
         >
           <span class="icon">{cat.icon}</span>
@@ -72,7 +72,7 @@
         </button>
       {/each}
     </section>
-  </aside>
+  </div>
 
 {/if}
 

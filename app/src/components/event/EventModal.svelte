@@ -21,14 +21,14 @@
   } from '../../lib/utils.js';
 
   // ── Reactive lookups ────────────────────────────────────────
-  $: ev       = $modalEventId != null ? $events.find(e => e.id === $modalEventId) : null;
-  $: cal      = ev ? $calendars .find(c => c.id === ev.calendar) : null;
-  $: cat      = ev ? $categories.find(c => c.id === ev.category) : null;
-  $: catColor = cat ? cat.color : (ev?.color ?? '#888');
+  let ev       = $derived($modalEventId != null ? $events.find(e => e.id === $modalEventId) : null);
+  let cal      = $derived(ev ? $calendars .find(c => c.id === ev.calendar) : null);
+  let cat      = $derived(ev ? $categories.find(c => c.id === ev.category) : null);
+  let catColor = $derived(cat ? cat.color : (ev?.color ?? '#888'));
 
   // ── Date display (handles new startDate/endDate model) ──────
-  $: dateStr = ev ? buildDateStr(ev) : '';
-  $: recurStr = ev?.recurrence ? describeRecurrence(ev.recurrence) : null;
+  let dateStr  = $derived(ev ? buildDateStr(ev) : '');
+  let recurStr = $derived(ev?.recurrence ? describeRecurrence(ev.recurrence) : null);
 
   function buildDateStr(ev) {
     const s = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date);
@@ -53,7 +53,7 @@
     return `${sLabel} – ${eLabel}${timeRange ? ' · ' + timeRange : ''}`;
   }
 
-  $: canEdit = cal ? (cal.role === 'write' || cal.role === 'admin') : true;
+  let canEdit = $derived(cal ? (cal.role === 'write' || cal.role === 'admin') : true);
 
   function close() { $modalEventId = null; }
 
@@ -81,10 +81,10 @@
 {#if ev}
 
   <!-- Backdrop -->
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div
     class="backdrop"
-    on:click={onBackdropClick}
+    onclick={onBackdropClick}
     in:fade={{ duration: 200 }}
     out:fade={{ duration: 180 }}
     aria-hidden="true"
@@ -105,7 +105,7 @@
     <div class="body">
 
       <!-- Close -->
-      <button class="close-btn" on:click={close} aria-label="Close">✕</button>
+      <button class="close-btn" onclick={close} aria-label="Close">✕</button>
 
       <!-- Category tag -->
       <div class="ev-cat">
@@ -162,14 +162,14 @@
       <!-- Actions -->
       {#if canEdit}
         <div class="actions">
-          <button class="btn-edit"      on:click={onEdit}>Edit</button>
-          <button class="btn-duplicate" on:click={onDuplicate} title="Duplicate this event">⎘</button>
-          <button class="btn-delete"    on:click={onDelete}>Delete</button>
+          <button class="btn-edit"      onclick={onEdit}>Edit</button>
+          <button class="btn-duplicate" onclick={onDuplicate} title="Duplicate this event">⎘</button>
+          <button class="btn-delete"    onclick={onDelete}>Delete</button>
         </div>
       {:else}
         <div class="actions">
-          <button class="btn-duplicate" on:click={onDuplicate} title="Duplicate this event">⎘ Duplicate</button>
-          <button class="btn-ghost"     on:click={close}>Close</button>
+          <button class="btn-duplicate" onclick={onDuplicate} title="Duplicate this event">⎘ Duplicate</button>
+          <button class="btn-ghost"     onclick={close}>Close</button>
         </div>
       {/if}
 

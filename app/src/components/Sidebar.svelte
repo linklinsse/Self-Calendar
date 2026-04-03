@@ -46,7 +46,7 @@
 
     <!-- ── Sign out ── -->
     <footer class="sb-footer">
-      <button class="foot-btn" on:click={logoutUser}>
+      <button class="foot-btn" onclick={logoutUser}>
         <span aria-hidden="true">↩</span> Sign out
       </button>
     </footer>
