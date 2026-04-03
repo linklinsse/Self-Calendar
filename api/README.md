@@ -105,11 +105,11 @@ Calendars use a three-level permission system. Each user–calendar pair is stor
 
 | Code | Name        | Capabilities                                        |
 |------|-------------|-----------------------------------------------------|
-| `C`  | Consulter   | Read the calendar and its events                    |
-| `P`  | Participer  | All of the above + create, edit and delete events   |
+| `R`  | Read        | Read the calendar and its events                    |
+| `W`  | Write       | All of the above + create, edit and delete events   |
 | `O`  | Owner       | All of the above + edit/delete the calendar itself, manage members |
 
-Permissions are ordered: `C < P < O`. A check for level `P` will also pass for an `O` user.
+Permissions are ordered: `R < W < O`. A check for level `W` will also pass for an `O` user.
 
 When a user creates a calendar, they are automatically assigned the `O` (Owner) role.
 

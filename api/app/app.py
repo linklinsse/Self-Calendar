@@ -10,6 +10,7 @@ from app.routing import user_calendar_routing
 from app.routing import auth_routing
 from app.routing import user_routing
 from app.routing import event_routing
+from app.routing import category_routing
 from app.common.db_connection import SessionDep, create_db_and_tables
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
 
@@ -45,6 +46,12 @@ app.include_router(
 )
 app.include_router(
     event_routing.router,
+    dependencies=[
+        Depends(verify_loged_user_dependency),
+    ],
+)
+app.include_router(
+    category_routing.router,
     dependencies=[
         Depends(verify_loged_user_dependency),
     ],

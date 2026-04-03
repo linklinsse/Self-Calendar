@@ -1,11 +1,20 @@
-from pydantic import BaseModel, Field
-
-from app.schemas.common_fields import CommonFieldColor, CommonFieldTitle
+from pydantic import BaseModel
 
 
-class ObjCategorySchema(BaseModel):
-    id: str | None = Field(default=None)
-    user_id: str
-    title: CommonFieldTitle
-    color: CommonFieldColor
-    description: str | None = Field(default=None)
+class ObjCategoryBase(BaseModel):
+    title: str
+    color: str | None = None
+
+
+class ObjCategoryCreate(ObjCategoryBase):
+    calendar_id: str
+
+
+class ObjCategoryUpdate(BaseModel):
+    title: str | None = None
+    color: str | None = None
+
+
+class ObjCategoryRead(ObjCategoryBase):
+    id: str
+    calendar_id: str
