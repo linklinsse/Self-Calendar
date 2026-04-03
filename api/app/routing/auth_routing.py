@@ -5,7 +5,7 @@ from app.schemas.auth_schema import AuthSchema
 from app.common.contexts.loged_user_context import get_loged_user_context
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/auth", tags=["login"])
 
 
 @router.post("/login")

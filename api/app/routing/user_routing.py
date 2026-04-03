@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from app.schemas.obj_user_schema import ObjUserSchemaComplete, ObjUserSchemaChangePassword, ObjUserSchemaCreate
 from app.services import obj_user_service
 
-router = APIRouter(prefix="/user")
+router = APIRouter(prefix="/user", tags=["user"])
 
 @router.post("/", response_model=ObjUserSchemaComplete)
 async def get(new_user: ObjUserSchemaCreate) -> ObjUserSchemaComplete:

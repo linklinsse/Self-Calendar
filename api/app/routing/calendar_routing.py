@@ -8,7 +8,7 @@ from app.schemas.obj_calendar_schema import (
     ObjCalendarSchemaEdit,
 )
 
-router = APIRouter(prefix="/calendar")
+router = APIRouter(prefix="/calendar", tags=["calendar"])
 
 
 @router.post("/", response_model=ObjCalendarSchemaComplete)

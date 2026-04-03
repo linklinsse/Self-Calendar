@@ -8,7 +8,7 @@ from app.schemas.obj_event_schema import (
 )
 from app.services import obj_event_service
 
-router = APIRouter(prefix="/event")
+router = APIRouter(prefix="/event", tags=["event"])
 
 
 @router.post("/", response_model=ObjEventSchemaComplete)

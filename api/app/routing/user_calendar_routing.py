@@ -8,7 +8,7 @@ from app.schemas.lnk_user_calendar_schema import (
     LnkUserCalendarSchemaEdit,
 )
 
-router = APIRouter(prefix="/user_calendar")
+router = APIRouter(prefix="/user_calendar", tags=["user_calendar"])
 
 
 @router.post("/", response_model=LnkUserCalendarSchemaComplete)

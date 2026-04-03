@@ -48,4 +48,4 @@ export const DEFAULT_VIEW = (env.VITE_DEFAULT_VIEW ?? 'month');
 export const FIRST_DAY_OF_WEEK = Number(env.VITE_FIRST_DAY_OF_WEEK ?? 1);
 
 /** Locale string for Intl date formatting (e.g. 'en-US', 'fr-FR'). */
-export const LOCALE = env.VITE_LOCALE ?? 'en-US';
+export const LOCALE = env.VITE_LOCALE ?? 'fr-FR';
