@@ -15,7 +15,6 @@ from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 
 from app.schemas.obj_user_schema import ObjUserSchemaComplete
-from app.services.obj_user_service import get_user
 from app.common.config import settings
 from app.common.errors import AppErrorCode, raise_app_error
 
@@ -74,6 +73,8 @@ def decode_token(token: str) -> str:
 
 def get_current_user(token: str) -> ObjUserSchemaComplete:
     """Resolve a raw token string to the corresponding user object."""
+    from app.services.obj_user_service import get_user
+
     decoded_token = decode_token(token)
     user = get_user(decoded_token)
     return user

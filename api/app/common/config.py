@@ -16,13 +16,16 @@ Usage:
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
+# TODO Remake wiht default value and generate file if not existant
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file="./conf/.env",
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
+
+    # ── General ───────────────────────────────────
+    USER_CREATION: str = True
 
     # ── Authentication ──────────────────────────
     SECRET_KEY: str = "change-me"
