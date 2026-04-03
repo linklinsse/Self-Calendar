@@ -8,9 +8,7 @@ const config: Config = {
 	},
 	kit: {
 		adapter: adapter({
-			// SPA fallback required for Capacitor and client-side routing.
-			// Every route is served from index.html; the router handles the rest.
-			fallback: 'index.html'
+			fallback: 'app.html'
 		})
 	}
 };
