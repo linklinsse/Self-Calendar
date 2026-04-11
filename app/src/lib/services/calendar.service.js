@@ -114,8 +114,8 @@ export async function addUserCalendar(payload) {
 export async function fetchUserCalendars(calendarId) {
   if (MOCK_MODE) {
     return [
-      { id: 'lnk-1', user_id: 'user-1', calendar_id: calendarId, right: 'admin' },
-      { id: 'lnk-2', user_id: 'user-2', calendar_id: calendarId, right: 'write' },
+      { id: 'lnk-1', user_id: 'user-1', calendar_id: calendarId, right: 'O' },
+      { id: 'lnk-2', user_id: 'user-2', calendar_id: calendarId, right: 'W' },
     ];
   }
   return api.get(`/user_calendar/all/${calendarId}`);

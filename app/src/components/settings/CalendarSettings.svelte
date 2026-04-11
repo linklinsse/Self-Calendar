@@ -25,15 +25,9 @@
   // ── Constants ─────────────────────────────────────────────
   /** @type {Array<{value: string, label: string, desc: string}>} */
   const ROLES = [
-    { value: 'read',  label: 'Read',       desc: 'Can view events only'           },
-    { value: 'write', label: 'Read+Write',  desc: 'Can create and edit events'     },
-    { value: 'admin', label: 'Admin',       desc: 'Full access + manage members'   },
-  ];
-
-  const TIMEZONES = [
-    'Europe/Paris', 'Europe/London', 'America/New_York',
-    'America/Los_Angeles', 'Asia/Tokyo', 'Asia/Shanghai',
-    'Australia/Sydney', 'UTC',
+    { value: 'R',  label: 'Read',       desc: 'Can view events only'           },
+    { value: 'W', label: 'Read+Write',  desc: 'Can create and edit events'     },
+    { value: 'O', label: 'Admin',       desc: 'Full access + manage members'   },
   ];
 
   const SWATCH_COLORS = [
@@ -120,7 +114,7 @@
 
   // UserCalendar shape: { id, user_id, calendar_id, right }
   // m.id   = the link id  (used for PATCH/DELETE)
-  // m.right = 'read' | 'write' | 'admin'
+  // m.right = 'read' | 'write' | 'owner'
   async function changeRole(lnkId, right) {
     await changeCalendarMemberRole(lnkId, right);
     members = members.map(m => m.id === lnkId ? { ...m, right } : m);
@@ -303,9 +297,9 @@
           <div class="role-legend">
             {#each ROLES as r}
               <div class="role-item">
-                <span class="role-pill" class:role-read={r.value === 'read'}
-                      class:role-write={r.value === 'write'}
-                      class:role-admin={r.value === 'admin'}>
+                <span class="role-pill" class:role-read={r.value === 'R'}
+                      class:role-write={r.value === 'W'}
+                      class:role-admin={r.value === 'O'}>
                   {r.label}
                 </span>
                 <span class="role-desc">{r.desc}</span>
