@@ -1,9 +1,6 @@
 from fastapi import APIRouter, Depends
 
 from app.common.db_connection import SessionDep
-from app.common.dependencies.fill_loged_user_context_dependency import (
-    fill_loged_user_context_dependency,
-)
 from app.common.dependencies.verify_loged_user_dependency import (
     verify_loged_user_dependency,
 )
@@ -23,10 +20,6 @@ from app.services.obj_category_service import (
 router = APIRouter(
     prefix="/category",
     tags=["category"],
-    dependencies=[
-        Depends(verify_loged_user_dependency),
-        Depends(fill_loged_user_context_dependency),
-    ],
 )
 
 
