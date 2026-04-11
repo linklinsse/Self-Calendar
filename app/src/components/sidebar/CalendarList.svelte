@@ -41,7 +41,7 @@
     if (!newName.trim()) { nameError = true; return; }
     saving = true;
     try {
-      await createCalendar({ name: newName.trim(), color: newColor });
+      await createCalendar({ title: newName.trim(), color: newColor });
       creating = false;
     } finally {
       saving = false;
@@ -77,20 +77,20 @@
         class="row-toggle"
         onclick={() => toggleCalendar(cal.id)}
         aria-pressed={cal.on}
-        aria-label="{cal.name}, {cal.on ? 'visible' : 'hidden'}"
+        aria-label="{cal.title}, {cal.on ? 'visible' : 'hidden'}"
       >
         <span class="dot" style="background:{cal.color}"></span>
-        <span class="row-label" class:off={!cal.on}>{cal.name}</span>
+        <span class="row-label" class:off={!cal.on}>{cal.title}</span>
         <span class="chk" class:on={cal.on} aria-hidden="true">
           {#if cal.on}✓{/if}
         </span>
       </button>
 
-      {#if cal.role === 'admin'}
+      {#if !cal.role || cal.role === 'admin'}
         <button
           class="gear-btn"
           onclick={() => $calSettingsId = cal.id}
-          aria-label="Edit {cal.name}"
+          aria-label="Edit {cal.title}"
           title="Edit calendar"
         >✎</button>
       {/if}

@@ -1,12 +1,14 @@
 <script>
   /**
    * FilterDrawer.svelte — Mobile filter overlay.
-   * FIX: cat.colorVar → cat.color
+   *
+   * Categories section shows only categories whose calendar is toggled ON.
+   * Uses `visibleCategories` derived store (filters by active calendar_ids).
    */
 
   import { fly, fade } from 'svelte/transition';
   import {
-    filterDrawerOpen, calendars, categories,
+    filterDrawerOpen, calendars, visibleCategories,
     toggleCalendar, toggleCategory,
   } from '../../lib/stores/index.js';
 </script>
@@ -49,16 +51,16 @@
           aria-pressed={cal.on}
         >
           <span class="dot" style="background:{cal.color}"></span>
-          <span class="lbl">{cal.name}</span>
+          <span class="lbl">{cal.title}</span>
           <span class="chk" class:on={cal.on}>{cal.on ? '✓' : ''}</span>
         </button>
       {/each}
     </section>
 
-    <!-- Categories -->
+    <!-- Categories — only for active calendars -->
     <section class="section">
       <h3 class="sec-title">Categories</h3>
-      {#each $categories as cat (cat.id)}
+      {#each $visibleCategories as cat (cat.id)}
         <button
           class="row cat-row"
           class:off={!cat.on}
@@ -67,10 +69,12 @@
         >
           <span class="icon">{cat.icon}</span>
           <span class="lbl">{cat.label}</span>
-          <!-- FIX: was cat.colorVar, now cat.color -->
           <span class="pip" style="background:{cat.color}" class:pip-off={!cat.on}></span>
         </button>
       {/each}
+      {#if $visibleCategories.length === 0}
+        <p class="empty-hint">Enable a calendar to see its categories.</p>
+      {/if}
     </section>
   </div>
 
@@ -143,4 +147,9 @@
 
   .pip { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; transition: opacity .13s; }
   .pip-off { opacity: .2; }
+
+  .empty-hint {
+    font-size: var(--fs-xs, 13px); color: var(--t3);
+    padding: 4px 8px; font-style: italic;
+  }
 </style>

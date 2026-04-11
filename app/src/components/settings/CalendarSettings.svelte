@@ -19,8 +19,8 @@
     addCalendarMember, changeCalendarMemberRole, removeCalendarMember,
     showToast,
   } from '../../lib/stores/index.js';
-  import { fetchMembers, fetchCalendarParams, updateCalendarParams }
-    from '../../lib/services/calendar.service.js';
+  import { fetchUserCalendars } from '../../lib/services/calendar.service.js';
+
 
   // ── Constants ─────────────────────────────────────────────
   /** @type {Array<{value: string, label: string, desc: string}>} */
@@ -62,7 +62,7 @@
     if (newId !== _prevCalId) {
       _prevCalId = newId;
       if (cal) {
-        genName  = cal.name;
+        genName  = cal.title;
         genColor = cal.color;
         genDesc  = cal.description ?? '';
       }
@@ -72,7 +72,7 @@
 
   async function saveGeneral() {
     genSaving = true;
-    await updateCalendar(cal.id, { name: genName, color: genColor, description: genDesc });
+    await updateCalendar(cal.id, { title: genName, color: genColor, description: genDesc });
     genSaving = false;
   }
 
@@ -95,7 +95,7 @@
   async function loadMembers() {
     membersLoading = true;
     try {
-      members = await fetchMembers(cal.id);
+      members = await fetchUserCalendars(cal.id);
     } catch (e) {
       showToast('Could not load members: ' + e.message, 'error');
     } finally {
@@ -107,6 +107,7 @@
     if (!inviteEmail.trim()) return;
     inviting = true;
     try {
+      // API expects user_id; here we treat the input value as the user_id
       const m = await addCalendarMember(cal.id, inviteEmail.trim(), inviteRole);
       members  = [...members, m];
       inviteEmail = '';
@@ -117,40 +118,22 @@
     }
   }
 
-  async function changeRole(userId, role) {
-    await changeCalendarMemberRole(cal.id, userId, role);
-    members = members.map(m => m.userId === userId ? { ...m, role } : m);
+  // UserCalendar shape: { id, user_id, calendar_id, right }
+  // m.id   = the link id  (used for PATCH/DELETE)
+  // m.right = 'read' | 'write' | 'admin'
+  async function changeRole(lnkId, right) {
+    await changeCalendarMemberRole(lnkId, right);
+    members = members.map(m => m.id === lnkId ? { ...m, right } : m);
   }
 
-  async function removeMember(userId) {
-    await removeCalendarMember(cal.id, userId);
-    members = members.filter(m => m.userId !== userId);
+  async function removeMember(lnkId) {
+    await removeCalendarMember(lnkId);
+    members = members.filter(m => m.id !== lnkId);
   }
 
-  // ── Params tab state ───────────────────────────────────────
+  // ── Params tab — not supported by API, kept as UI stub ────
   let params       = $state(null);
   let paramsSaving = $state(false);
-
-  $effect(() => { if (activeTab === 'params' && cal && !params) { loadParams(); } });
-
-  async function loadParams() {
-    try {
-      params = await fetchCalendarParams(cal.id);
-    } catch (e) {
-      showToast('Could not load settings: ' + e.message, 'error');
-    }
-  }
-
-  async function saveParams() {
-    paramsSaving = true;
-    try {
-      await updateCalendarParams(cal.id, params);
-    } catch (e) {
-      showToast('Save failed: ' + e.message, 'error');
-    } finally {
-      paramsSaving = false;
-    }
-  }
 
   // ── Helpers ────────────────────────────────────────────────
   function closeSettings() {
@@ -187,7 +170,7 @@
     class="modal"
     role="dialog"
     aria-modal="true"
-    aria-label="Calendar settings — {cal.name}"
+    aria-label="Calendar settings — {cal.title}"
     in:fly={{ y: 28, duration: 320, easing: t => 1 - Math.pow(1-t,3) }}
     out:fly={{ y: 20, duration: 220 }}
   >
@@ -196,7 +179,7 @@
     <div class="modal-hdr" style="border-bottom-color: {cal.color}33">
       <div class="hdr-left">
         <span class="cal-dot" style="background:{cal.color}"></span>
-        <h2 class="hdr-title">{cal.name}</h2>
+        <h2 class="hdr-title">{cal.title}</h2>
       </div>
       <button class="close-btn" onclick={closeSettings} aria-label="Close settings">✕</button>
     </div>
@@ -274,7 +257,7 @@
             </button>
           {:else}
             <p class="danger-msg">
-              This will permanently delete <strong>{cal.name}</strong> and all its events.
+              This will permanently delete <strong>{cal.title}</strong> and all its events.
             </p>
             <div class="danger-row">
               <button class="btn-danger-confirm" onclick={confirmDelete}>
@@ -338,31 +321,25 @@
           <p class="empty-msg">No members yet.</p>
         {:else}
           <ul class="member-list">
-            {#each members as m (m.userId)}
+            {#each members as m (m.id)}
               <li class="member-row">
-                <!-- Avatar -->
+                <!-- Avatar placeholder using user_id initials -->
                 <div class="avatar" aria-hidden="true">
-                  {#if m.avatar}
-                    <img src={m.avatar} alt={m.name} />
-                  {:else}
-                    <span>{initials(m.name)}</span>
-                  {/if}
+                  <span>{m.user_id.slice(0, 2).toUpperCase()}</span>
                 </div>
 
                 <!-- Info -->
                 <div class="member-info">
-                  <span class="member-name">{m.name}</span>
-                  {#if m.username}
-                    <span class="member-username">@{m.username}</span>
-                  {/if}
+                  <span class="member-name">{m.user_id}</span>
+                  <span class="member-username">id: {m.id.slice(0, 8)}…</span>
                 </div>
 
-                <!-- Role selector -->
+                <!-- Right selector -->
                 <select
                   class="role-select"
-                  value={m.role}
-                  onchange={e => changeRole(m.userId, e.target.value)}
-                  aria-label="Role for {m.name}"
+                  value={m.right}
+                  onchange={e => changeRole(m.id, e.target.value)}
+                  aria-label="Right for {m.user_id}"
                 >
                   {#each ROLES as r}
                     <option value={r.value}>{r.label}</option>
@@ -372,8 +349,8 @@
                 <!-- Remove button -->
                 <button
                   class="remove-btn"
-                  onclick={() => removeMember(m.userId)}
-                  aria-label="Remove {m.name}"
+                  onclick={() => removeMember(m.id)}
+                  aria-label="Remove {m.user_id}"
                   title="Remove member"
                 >✕</button>
               </li>
@@ -388,52 +365,10 @@
     ═══════════════════════════════ -->
     {:else if activeTab === 'params'}
       <div class="tab-body">
-
-        {#if !params}
-          <p class="loading-msg">Loading settings…</p>
-        {:else}
-
-          <div class="field">
-            <label for="cs-tz">Timezone</label>
-            <select id="cs-tz" bind:value={params.timezone}>
-              {#each TIMEZONES as tz}
-                <option value={tz}>{tz}</option>
-              {/each}
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="cs-fdow">First day of week</label>
-            <select id="cs-fdow" bind:value={params.firstDayOfWeek}>
-              <option value={1}>Monday</option>
-              <option value={0}>Sunday</option>
-              <option value={6}>Saturday</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="cs-dview">Default view</label>
-            <select id="cs-dview" bind:value={params.defaultView}>
-              <option value="month">Month</option>
-              <option value="week">Week</option>
-              <option value="day">Day</option>
-            </select>
-          </div>
-
-          <div class="field-row">
-            <label class="toggle-label">
-              <input type="checkbox" bind:checked={params.showWeekends} />
-              <span class="toggle-text">Show weekends</span>
-            </label>
-          </div>
-
-          <div class="row-actions">
-            <button class="btn-save" onclick={saveParams} disabled={paramsSaving}>
-              {paramsSaving ? 'Saving…' : 'Save settings'}
-            </button>
-          </div>
-
-        {/if}
+        <p class="empty-msg" style="font-style:italic;padding:20px 0;">
+          Calendar settings (timezone, default view…) are not yet exposed by
+          the API. Configure them directly on the server.
+        </p>
       </div>
     {/if}
 

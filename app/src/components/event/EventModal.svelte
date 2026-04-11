@@ -22,8 +22,8 @@
 
   // ── Reactive lookups ────────────────────────────────────────
   let ev       = $derived($modalEventId != null ? $events.find(e => e.id === $modalEventId) : null);
-  let cal      = $derived(ev ? $calendars .find(c => c.id === ev.calendar) : null);
-  let cat      = $derived(ev ? $categories.find(c => c.id === ev.category) : null);
+  let cal      = $derived(ev ? $calendars .find(c => c.id === (ev.calendar_id ?? ev.calendar)) : null);
+  let cat      = $derived(ev ? $categories.find(c => c.id === (ev.category_id ?? ev.category)) : null);
   let catColor = $derived(cat ? cat.color : (ev?.color ?? '#888'));
 
   // ── Date display (handles new startDate/endDate model) ──────
@@ -150,7 +150,7 @@
       {#if cal}
         <div class="detail-row">
           <span class="ico" aria-hidden="true">📅</span>
-          <span style="color:{cal.color}">{cal.name}</span>
+          <span style="color:{cal.color}">{cal.title ?? cal.name}</span>
         </div>
       {/if}
 

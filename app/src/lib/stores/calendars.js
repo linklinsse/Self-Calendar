@@ -1,14 +1,14 @@
 /**
  * stores/calendars.js — Calendar list state and CRUD.
  *
+ * Uses `title` (not `name`) to match the OpenAPI schema.
  * Exports the `calendars` store and helpers for loading, creating,
  * updating, deleting, and toggling calendar filter visibility.
- * Does NOT import from other data stores to avoid circular deps.
  */
 
 import { writable, get } from 'svelte/store';
 import { sampleCalendars } from '../sampleData.js';
-import * as calSvc  from '../services/calendar.service.js';
+import * as calSvc from '../services/calendar.service.js';
 import { showToast } from './ui.js';
 
 // ── Store ────────────────────────────────────────────────────
@@ -30,13 +30,13 @@ export async function loadCalendars() {
 // ── Create ───────────────────────────────────────────────────
 
 /**
- * @param {{ name: string, color: string, description?: string }} payload
+ * @param {{ title: string, color: string, description?: string }} payload
  */
 export async function createCalendar(payload) {
   try {
     const cal = await calSvc.createCalendar(payload);
-    calendars.update(list => [...list, { on: true, role: 'admin', ...cal }]);
-    showToast(`Calendar "${cal.name}" created`, 'success');
+    calendars.update(list => [...list, { on: true, ...cal }]);
+    showToast(`Calendar "${cal.title}" created`, 'success');
     return cal;
   } catch (e) {
     showToast('Error: ' + e.message, 'error');
@@ -66,14 +66,14 @@ export async function updateCalendar(id, payload) {
 
 /**
  * @param {string} id
- * @returns {string} — the deleted calendar id (for callers to cascade)
+ * @returns {Promise<string>} — the deleted calendar id (for callers to cascade)
  */
 export async function removeCalendar(id) {
   const cal = get(calendars).find(c => c.id === id);
   try {
     await calSvc.deleteCalendar(id);
     calendars.update(list => list.filter(c => c.id !== id));
-    showToast(`Calendar "${cal?.name}" deleted`);
+    showToast(`Calendar "${cal?.title}" deleted`);
     return id;
   } catch (e) {
     showToast('Error: ' + e.message, 'error');

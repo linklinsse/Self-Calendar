@@ -1,16 +1,41 @@
 /**
  * stores/categories.js — Category list state and CRUD.
+ *
+ * Categories are scoped to a calendar via `calendar_id`.
+ * There is no /categories API endpoint; data lives locally.
+ *
+ * Key exported derived helpers:
+ *   categoriesForCalendars(calendarIds) — returns only categories
+ *     belonging to the given calendar ids (used by FilterDrawer /
+ *     CategoryList to hide categories when their calendar is off).
  */
 
-import { writable, get } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { sampleCategories } from '../sampleData.js';
-import * as catSvc  from '../services/category.service.js';
+import * as catSvc from '../services/category.service.js';
 import { showToast } from './ui.js';
+import { calendars } from './calendars.js';
 
 // ── Store ─────────────────────────────────────────────────────
 
 /** @type {import('svelte/store').Writable<import('../services/category.service').Category[]>} */
 export const categories = writable([...sampleCategories]);
+
+// ── Derived: categories filtered by active calendars ──────────
+
+/**
+ * Only the categories whose calendar is currently toggled ON.
+ * Used by sidebar + filter drawer to hide orphaned categories.
+ *
+ * @type {import('svelte/store').Readable<import('../services/category.service').Category[]>}
+ */
+export const visibleCategories = derived(
+  [categories, calendars],
+  ([$cats, $cals]) => {
+    const activeCals = new Set($cals.filter(c => c.on).map(c => c.id));
+    return $cats.filter(c => activeCals.has(c.calendar_id));
+  }
+);
 
 // ── Load ──────────────────────────────────────────────────────
 
@@ -25,7 +50,9 @@ export async function loadCategories() {
 
 // ── Create ────────────────────────────────────────────────────
 
-/** @param {{ label: string, icon: string, color: string }} payload */
+/**
+ * @param {{ calendar_id: string, label: string, icon: string, color: string }} payload
+ */
 export async function createCategory(payload) {
   try {
     const cat = await catSvc.createCategory(payload);
@@ -77,4 +104,14 @@ export function toggleCategory(id) {
   categories.update(list =>
     list.map(c => c.id === id ? { ...c, on: !c.on } : c)
   );
+}
+
+// ── Calendar cascade ──────────────────────────────────────────
+
+/**
+ * Called when a calendar is deleted: removes all its categories from local state.
+ * @param {string} calendarId
+ */
+export function removeCategoriesByCalendar(calendarId) {
+  categories.update(list => list.filter(c => c.calendar_id !== calendarId));
 }

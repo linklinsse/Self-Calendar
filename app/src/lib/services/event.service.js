@@ -1,17 +1,18 @@
 /**
  * event.service.js — Event HTTP service.
  *
- * Endpoints (when MOCK_MODE = false):
- *   GET    /events               → CalEvent[]  (with optional query params)
- *   GET    /events/:id           → CalEvent
- *   POST   /events    body       → CalEvent
- *   PUT    /events/:id body      → CalEvent
- *   DELETE /events/:id           → void
+ * Endpoints (OpenAPI):
+ *   POST  /event/                                → CalEvent
+ *   GET   /event/range/{calendar_id}
+ *         ?from_date=<unix>&to_date=<unix>
+ *         [&category_id=<id>]                   → CalEvent[]
+ *   GET   /event/{event_id}                      → CalEvent
+ *   PATCH /event/{event_id}   body               → CalEvent
+ *   DELETE /event/{event_id}                     → void
  *
- * Query params for GET /events:
- *   calendarId  — filter by calendar
- *   from        — ISO date string, inclusive
- *   to          — ISO date string, inclusive
+ * API date fields are Unix timestamps (integers).
+ * Internally the app keeps Date objects on startDate / endDate
+ * and "HH:MM" strings on start / end (for timed events).
  */
 
 import { api, MOCK_MODE } from './api.js';
@@ -20,64 +21,115 @@ import { sampleEvents } from '../sampleData.js';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /**
- * @typedef {Object} CalEvent
+ * @typedef {Object} CalEvent  — internal app representation
  * @property {number|string} id
  * @property {string}        title
- * @property {Date}          date      — local Date object (parsed from API)
- * @property {string}        start     — "HH:MM"
- * @property {string}        end       — "HH:MM"
- * @property {string}        calendar  — calendar id
- * @property {string}        category  — category id
- * @property {string}        color     — hex colour
- * @property {string}        location
- * @property {string}        desc
+ * @property {string}        calendar_id   — calendar id (API field)
+ * @property {string}        [category_id] — category id (API field)
+ * @property {Date}          startDate     — local Date object
+ * @property {Date}          endDate       — local Date object
+ * @property {boolean}       allDay
+ * @property {string}        [start]       — "HH:MM" (timed events only)
+ * @property {string}        [end]         — "HH:MM" (timed events only)
+ * @property {string}        [adresse]     — location / address (API field)
+ * @property {string}        [description]
+ * @property {string}        [reminder]
+ * @property {string}        [recurrence_id]
+ * @property {string}        color         — derived from category, not stored in API
  */
 
 // ─── Serialisation helpers ────────────────────────────────────────────────────
 
 /**
- * Convert an API event (with ISO date string) to a local CalEvent (with Date).
+ * Convert a raw API event (unix timestamps) to an internal CalEvent (Date objects).
  * @param {Object} raw
  * @returns {CalEvent}
  */
 function deserialise(raw) {
+  const startDate = new Date(raw.date_start * 1000);
+  const endDate   = new Date(raw.date_end   * 1000);
+
+  // Detect all-day: API stores all-day as midnight → midnight (same day or next)
+  const diffMs = raw.date_end - raw.date_start;
+  const allDay = diffMs % 86400 === 0 && diffMs >= 0;
+
+  const startHH = String(startDate.getHours()).padStart(2, '0');
+  const startMM = String(startDate.getMinutes()).padStart(2, '0');
+  const endHH   = String(endDate.getHours()).padStart(2, '0');
+  const endMM   = String(endDate.getMinutes()).padStart(2, '0');
+
   return {
     ...raw,
-    date: raw.date instanceof Date ? raw.date : new Date(raw.date),
+    startDate,
+    endDate,
+    allDay,
+    start: allDay ? null : `${startHH}:${startMM}`,
+    end:   allDay ? null : `${endHH}:${endMM}`,
+    // Keep legacy aliases so calendar views still work during transition
+    date:     startDate,
+    calendar: raw.calendar_id,
+    category: raw.category_id ?? null,
+    color:    raw.color ?? '#b8c9f4',   // fallback; EventPanel resolves from category
+    location: raw.adresse ?? '',
+    desc:     raw.description ?? '',
   };
 }
 
 /**
- * Convert a local CalEvent to a plain API payload (Date → ISO string).
- * @param {CalEvent} ev
+ * Convert an internal CalEvent to an API payload (unix timestamps).
+ * @param {object} ev
  * @returns {Object}
  */
 function serialise(ev) {
+  const startDate = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date);
+  const endDate   = ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate   ?? ev.startDate ?? ev.date);
+
+  if (!ev.allDay) {
+    const [sh, sm] = (ev.start || '00:00').split(':').map(Number);
+    const [eh, em] = (ev.end   || '00:00').split(':').map(Number);
+    startDate.setHours(sh, sm, 0, 0);
+    endDate.setHours(eh, em, 0, 0);
+  } else {
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+  }
+
   return {
-    ...ev,
-    date: ev.date instanceof Date ? ev.date.toISOString().slice(0, 10) : ev.date,
+    calendar_id:   ev.calendar_id ?? ev.calendar,
+    title:         ev.title,
+    description:   ev.description ?? ev.desc ?? null,
+    date_start:    Math.floor(startDate.getTime() / 1000),
+    date_end:      Math.floor(endDate.getTime()   / 1000),
+    category_id:   ev.category_id ?? ev.category ?? null,
+    adresse:       ev.adresse ?? ev.location ?? null,
+    reminder:      ev.reminder ?? null,
+    recurrence_id: ev.recurrence_id ?? null,
   };
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 /**
- * Fetch events, optionally filtered by calendar and date range.
+ * Fetch events for a calendar within a date range.
+ * In MOCK_MODE returns all sample events regardless of filters.
  *
- * @param {{ calendarId?: string, from?: Date, to?: Date }} [filters]
+ * @param {{ calendarId: string, from: Date, to: Date, categoryId?: string }} filters
  * @returns {Promise<CalEvent[]>}
  */
 export async function fetchEvents(filters = {}) {
   if (MOCK_MODE) return sampleEvents.map(deserialise);
 
-  const params = new URLSearchParams();
-  if (filters.calendarId) params.set('calendarId', filters.calendarId);
-  if (filters.from)       params.set('from', filters.from.toISOString().slice(0, 10));
-  if (filters.to)         params.set('to',   filters.to.toISOString().slice(0, 10));
+  const { calendarId, from, to, categoryId } = filters;
+  if (!calendarId || !from || !to) return [];
 
-  const query = params.toString();
-  const data  = await api.get(`/events${query ? `?${query}` : ''}`);
-  return data.map(deserialise);
+  const params = new URLSearchParams({
+    from_date: String(Math.floor(from.getTime() / 1000)),
+    to_date:   String(Math.floor(to.getTime()   / 1000)),
+  });
+  if (categoryId) params.set('category_id', categoryId);
+
+  const data = await api.get(`/event/range/${calendarId}?${params}`);
+  return (data ?? []).map(deserialise);
 }
 
 /**
@@ -90,32 +142,34 @@ export async function fetchEvent(id) {
     const ev = sampleEvents.find(e => e.id === id);
     return ev ? deserialise(ev) : null;
   }
-  const data = await api.get(`/events/${id}`);
+  const data = await api.get(`/event/${id}`);
   return deserialise(data);
 }
 
 /**
  * Create a new event.
- * @param {Omit<CalEvent, 'id'>} payload
+ * @param {object} payload — internal CalEvent shape
  * @returns {Promise<CalEvent>}
  */
 export async function createEvent(payload) {
   if (MOCK_MODE) {
-    return deserialise({ id: Date.now(), ...payload });
+    return deserialise({ id: Date.now(), ...serialise(payload),
+      date_start: Math.floor((payload.startDate ?? new Date()).getTime() / 1000),
+      date_end:   Math.floor((payload.endDate   ?? new Date()).getTime() / 1000) });
   }
-  const data = await api.post('/events', serialise(payload));
+  const data = await api.post('/event/', serialise(payload));
   return deserialise(data);
 }
 
 /**
  * Update an existing event.
  * @param {string|number} id
- * @param {Partial<CalEvent>} payload
+ * @param {object} payload — internal CalEvent shape
  * @returns {Promise<CalEvent>}
  */
 export async function updateEvent(id, payload) {
-  if (MOCK_MODE) return deserialise({ id, ...payload });
-  const data = await api.put(`/events/${id}`, serialise(payload));
+  if (MOCK_MODE) return deserialise({ ...serialise(payload), id });
+  const data = await api.patch(`/event/${id}`, serialise(payload));
   return deserialise(data);
 }
 
@@ -126,5 +180,5 @@ export async function updateEvent(id, payload) {
  */
 export async function deleteEvent(id) {
   if (MOCK_MODE) return;
-  return api.delete(`/events/${id}`);
+  return api.delete(`/event/${id}`);
 }

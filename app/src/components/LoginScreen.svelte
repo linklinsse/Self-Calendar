@@ -9,7 +9,7 @@
    * No "guest" option.
    */
   import { fly, fade }               from 'svelte/transition';
-  import { loginUser, registerUser, authLoading } from '../lib/stores/index.js';
+  import { loginUser, authLoading } from '../lib/stores/index.js';
   import { APP_NAME }                from '../lib/config.js';
 
   /** 'login' | 'register' */
@@ -30,7 +30,7 @@
     if (!username.trim()) { error = 'Please enter a username.'; return; }
     if (!password)         { error = 'Please enter a password.';  return; }
 
-    if (mode === 'register') {
+    if (false) { // register not supported by API
       if (password.length < 6) { error = 'Password must be at least 6 characters.'; return; }
       if (password !== confirm) { error = 'Passwords do not match.'; return; }
     }
@@ -39,7 +39,7 @@
       if (mode === 'login') {
         await loginUser(username.trim(), password);
       } else {
-        await registerUser(username.trim(), password);
+        // registerUser removed — API has no register endpoint;
       }
     } catch (err) {
       error = err.message || (mode === 'login' ? 'Login failed.' : 'Registration failed.');
@@ -63,12 +63,16 @@
         class="tab" class:active={mode === 'login'}
         role="tab" aria-selected={mode === 'login'}
         onclick={() => switchMode('login')}
-      >Sign in</button>
+      >
+        Sign in
+      </button>
       <button
         class="tab" class:active={mode === 'register'}
         role="tab" aria-selected={mode === 'register'}
         onclick={() => switchMode('register')}
-      >Create account</button>
+      >
+        Create account
+      </button>
     </div>
 
     <!-- Form -->

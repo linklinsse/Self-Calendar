@@ -1,8 +1,10 @@
 /**
  * stores/events.js — Event list state, CRUD, and derived visible events.
  *
- * Imports calendars + categories to build the visibleEvents derived store.
- * Dependency direction: events → calendars, categories  (no circular deps).
+ * visibleEvents now filters by:
+ *   1. calendar_id  — the event's calendar must be toggled on
+ *   2. category_id  — the event's category must be toggled on
+ *   3. category's calendar — if the category's calendar is off, hide the event
  */
 
 import { writable, derived, get } from 'svelte/store';
@@ -21,28 +23,67 @@ export const events = writable([...sampleEvents]);
 // ── Derived: filtered event list ──────────────────────────────
 
 /**
- * Events filtered by the active calendar and category toggles.
- * Re-computes automatically whenever events, calendars, or categories change.
+ * Events visible after applying calendar + category filter toggles.
+ *
+ * An event is visible when ALL of:
+ *  - its calendar_id maps to an enabled calendar
+ *  - its category_id (if set) maps to an enabled category
+ *  - that category's own calendar_id is also enabled
+ *    (so hiding a calendar also hides cross-calendar categories)
  *
  * @type {import('svelte/store').Readable<import('../services/event.service').CalEvent[]>}
  */
 export const visibleEvents = derived(
   [events, calendars, categories],
   ([$events, $cals, $cats]) => {
-    const okCals = new Set($cals .filter(c => c.on).map(c => c.id));
-    const okCats = new Set($cats.filter(c => c.on).map(c => c.id));
-    return $events.filter(e =>
-      okCals.has(e.calendar) && okCats.has(e.category)
-    );
+    const okCals  = new Set($cals.filter(c => c.on).map(c => c.id));
+    const okCats  = new Set($cats.filter(c => c.on && okCals.has(c.calendar_id)).map(c => c.id));
+
+    return $events.filter(e => {
+      // Resolve calendar_id from either field name (API or legacy)
+      const calId = e.calendar_id ?? e.calendar;
+      if (!okCals.has(calId)) return false;
+
+      // Category is optional on events; if present it must be visible
+      const catId = e.category_id ?? e.category ?? null;
+      if (catId && !okCats.has(catId)) return false;
+
+      return true;
+    });
   }
 );
 
 // ── Load ──────────────────────────────────────────────────────
 
-export async function loadEvents() {
+/**
+ * Load events for all active calendars for a given date window.
+ * Falls back to sample data in MOCK_MODE.
+ *
+ * @param {{ from?: Date, to?: Date }} [range]
+ */
+export async function loadEvents(range = {}) {
   try {
-    const data = await eventSvc.fetchEvents();
-    if (data) events.set(data);
+    const { from, to } = range;
+    const calList = get(calendars);
+
+    if (!calList.length) { events.set([]); return; }
+
+    // In MOCK_MODE fetchEvents ignores filters and returns sample data
+    const results = await Promise.all(
+      calList.map(cal =>
+        eventSvc.fetchEvents({ calendarId: cal.id, from, to })
+      )
+    );
+
+    // Deduplicate by id in case a calendar appears in multiple requests
+    const seen = new Set();
+    const all  = results.flat().filter(e => {
+      if (seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
+
+    events.set(all);
   } catch (e) {
     showToast('Could not load events: ' + e.message, 'error');
   }
@@ -51,15 +92,20 @@ export async function loadEvents() {
 // ── Save (create or update) ───────────────────────────────────
 
 /**
- * Save an event from the EventPanel form data.
- *
- * Color policy: we trust formData.color entirely.
- * EventPanel already resets it to the category default on category change.
+ * Persist an event from the EventPanel form data.
+ * Accepts both old (calendar/category) and new (calendar_id/category_id) field names.
  *
  * @param {object} formData
  */
 export async function saveEvent(formData) {
-  const payload = { ...formData };
+  // Normalise to API field names
+  const payload = {
+    ...formData,
+    calendar_id: formData.calendar_id ?? formData.calendar,
+    category_id: formData.category_id ?? formData.category ?? null,
+    adresse:     formData.adresse ?? formData.location ?? null,
+    description: formData.description ?? formData.desc ?? null,
+  };
 
   try {
     if (payload.id === -1) {
@@ -73,7 +119,7 @@ export async function saveEvent(formData) {
       events.update(list => list.map(e => e.id === newEv.id ? newEv : e));
       showToast(`"${newEv.title}" updated`, 'success');
     }
-    panelEvent.set(null); // close panel
+    panelEvent.set(null);
   } catch (e) {
     showToast('Could not save event: ' + e.message, 'error');
   }
@@ -82,13 +128,11 @@ export async function saveEvent(formData) {
 // ── Delete ────────────────────────────────────────────────────
 
 /**
- * Delete an event by id.
- * Closes the detail modal first to avoid a flash of stale data.
  * @param {number|string} id
  */
 export async function deleteEvent(id) {
   const ev = get(events).find(e => e.id === id);
-  modalEventId.set(null); // close modal before removing from list
+  modalEventId.set(null);
   try {
     await eventSvc.deleteEvent(id);
     events.update(list => list.filter(e => e.id !== id));
@@ -102,9 +146,10 @@ export async function deleteEvent(id) {
 
 /**
  * Remove all events belonging to a deleted calendar from local state.
- * Called by the index.js removeCalendar wrapper.
  * @param {string} calendarId
  */
 export function removeEventsByCalendar(calendarId) {
-  events.update(list => list.filter(e => e.calendar !== calendarId));
+  events.update(list =>
+    list.filter(e => (e.calendar_id ?? e.calendar) !== calendarId)
+  );
 }

@@ -1,19 +1,18 @@
 /**
  * calendar.service.js — Calendar HTTP service.
  *
- * Endpoints (when MOCK_MODE = false):
- *   GET    /calendars                           → Calendar[]
- *   POST   /calendars              body         → Calendar
- *   PUT    /calendars/:id          body         → Calendar
- *   DELETE /calendars/:id                       → void
+ * Endpoints (OpenAPI):
+ *   GET    /calendar/                            → Calendar[]
+ *   POST   /calendar/              body          → Calendar
+ *   GET    /calendar/{id}                        → Calendar
+ *   PATCH  /calendar/{id}          body          → Calendar
+ *   DELETE /calendar/{id}                        → void
  *
- *   GET    /calendars/:id/params                → CalendarParams
- *   PUT    /calendars/:id/params   body         → CalendarParams
- *
- *   GET    /calendars/:id/members               → Member[]
- *   POST   /calendars/:id/members  body         → Member
- *   PUT    /calendars/:id/members/:userId body  → Member
- *   DELETE /calendars/:id/members/:userId       → void
+ *   POST   /user_calendar/         body          → UserCalendar
+ *   GET    /user_calendar/all/{calendarId}       → UserCalendar[]
+ *   GET    /user_calendar/{id}                   → UserCalendar
+ *   PATCH  /user_calendar/{id}     body          → UserCalendar
+ *   DELETE /user_calendar/{id}                   → void
  */
 
 import { api, MOCK_MODE } from './api.js';
@@ -22,173 +21,133 @@ import { sampleCalendars } from '../sampleData.js';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /**
- * @typedef {'read' | 'write' | 'admin'} CalendarRole
+ * @typedef {'read' | 'write' | 'admin'} CalendarRight
  *
- * Roles:
- *   read   — can view events
- *   write  — can view + create/edit/delete events
- *   admin  — write + manage members + edit calendar settings
- */
-
-/**
  * @typedef {Object} Calendar
- * @property {string}       id
- * @property {string}       name
- * @property {string}       color        — hex or CSS var
- * @property {boolean}      on           — local filter toggle (not persisted)
- * @property {CalendarRole} role         — current user's role on this calendar
- * @property {string}       [description]
- * @property {string}       ownerId
+ * @property {string}  id
+ * @property {string}  title        — display name (API field, replaces old `name`)
+ * @property {string}  [description]
+ * @property {string}  [color]      — hex, e.g. "#f4b8c8"
+ * @property {boolean} on           — local filter toggle (not persisted)
+ *
+ * @typedef {Object} UserCalendar
+ * @property {string}        id
+ * @property {string}        user_id
+ * @property {string}        calendar_id
+ * @property {CalendarRight} right
  */
 
-/**
- * @typedef {Object} CalendarParams
- * @property {string}  calendarId
- * @property {string}  timezone       — IANA tz name, e.g. "Europe/Paris"
- * @property {boolean} showWeekends
- * @property {number}  firstDayOfWeek — 0=Sun, 1=Mon
- * @property {string}  [defaultView]  — 'month'|'week'|'day'
- */
-
-/**
- * @typedef {Object} Member
- * @property {string}       userId
- * @property {string}       name
- * @property {string}       email
- * @property {CalendarRole} role
- * @property {string}       [avatar]
- */
-
-// ─── Calendar CRUD ───────────────────────────────────────────────────────────
+// ─── Calendar CRUD ────────────────────────────────────────────────────────────
 
 /**
  * Fetch all calendars the current user has access to.
  * @returns {Promise<Calendar[]>}
  */
 export async function fetchCalendars() {
-  if (MOCK_MODE) return sampleCalendars.map(c => ({ ...c, role: 'admin' }));
-  const data = await api.get('/calendars');
-  // Ensure the `on` filter flag is always present
+  if (MOCK_MODE) return sampleCalendars.map(c => ({ on: true, ...c }));
+  const data = await api.get('/calendar/');
   return data.map(c => ({ on: true, ...c }));
 }
 
 /**
  * Create a new calendar.
- * @param {{ name: string, color: string, description?: string }} payload
+ * @param {{ title: string, color?: string, description?: string }} payload
  * @returns {Promise<Calendar>}
  */
 export async function createCalendar(payload) {
   if (MOCK_MODE) {
-    return { id: `cal-${Date.now()}`, on: true, role: 'admin', ...payload };
+    return { id: `cal-${Date.now()}`, on: true, ...payload };
   }
-  const cal = await api.post('/calendars', payload);
+  const cal = await api.post('/calendar/', payload);
+  return { on: true, ...cal };
+}
+
+/**
+ * Fetch a single calendar by id.
+ * @param {string} id
+ * @returns {Promise<Calendar>}
+ */
+export async function fetchCalendar(id) {
+  if (MOCK_MODE) return sampleCalendars.find(c => c.id === id) ?? null;
+  const cal = await api.get(`/calendar/${id}`);
   return { on: true, ...cal };
 }
 
 /**
  * Update an existing calendar's metadata.
  * @param {string} id
- * @param {{ name?: string, color?: string, description?: string }} payload
+ * @param {{ title?: string, color?: string, description?: string }} payload
  * @returns {Promise<Calendar>}
  */
 export async function updateCalendar(id, payload) {
   if (MOCK_MODE) return { id, ...payload };
-  return api.put(`/calendars/${id}`, payload);
+  return api.patch(`/calendar/${id}`, payload);
 }
 
 /**
- * Delete a calendar (admin only).
+ * Delete a calendar.
  * @param {string} id
  * @returns {Promise<void>}
  */
 export async function deleteCalendar(id) {
   if (MOCK_MODE) return;
-  return api.delete(`/calendars/${id}`);
+  return api.delete(`/calendar/${id}`);
 }
 
-// ─── Calendar params ──────────────────────────────────────────────────────────
+// ─── User ↔ Calendar links ────────────────────────────────────────────────────
 
 /**
- * Fetch display/behaviour settings for a specific calendar.
- * @param {string} calendarId
- * @returns {Promise<CalendarParams>}
+ * Add a user to a calendar with a given right level.
+ * @param {{ user_id: string, calendar_id: string, right: CalendarRight }} payload
+ * @returns {Promise<UserCalendar>}
  */
-export async function fetchCalendarParams(calendarId) {
-  if (MOCK_MODE) {
-    return {
-      calendarId,
-      timezone:       'Europe/Paris',
-      showWeekends:   true,
-      firstDayOfWeek: 1,
-      defaultView:    'month',
-    };
-  }
-  return api.get(`/calendars/${calendarId}/params`);
+export async function addUserCalendar(payload) {
+  if (MOCK_MODE) return { id: `lnk-${Date.now()}`, ...payload };
+  return api.post('/user_calendar/', payload);
 }
 
 /**
- * Update a calendar's display settings (admin only).
+ * Fetch all user-calendar links for a given calendar.
  * @param {string} calendarId
- * @param {Partial<CalendarParams>} payload
- * @returns {Promise<CalendarParams>}
+ * @returns {Promise<UserCalendar[]>}
  */
-export async function updateCalendarParams(calendarId, payload) {
-  if (MOCK_MODE) return { calendarId, ...payload };
-  return api.put(`/calendars/${calendarId}/params`, payload);
-}
-
-// ─── Calendar members ─────────────────────────────────────────────────────────
-
-/**
- * Fetch all members of a calendar.
- * @param {string} calendarId
- * @returns {Promise<Member[]>}
- */
-export async function fetchMembers(calendarId) {
+export async function fetchUserCalendars(calendarId) {
   if (MOCK_MODE) {
     return [
-      { userId: 'user-1', name: 'Élise Moreau',  username: 'elise.moreau',   email: 'demo@selfcalendar.app', role: 'admin' },
-      { userId: 'user-2', name: 'Thomas Dupont',  username: 'thomas.dupont',  email: 'thomas@example.com',   role: 'write' },
-      { userId: 'user-3', name: 'Sophie Martin',  username: 'sophie.martin',  email: 'sophie@example.com',   role: 'read'  },
+      { id: 'lnk-1', user_id: 'user-1', calendar_id: calendarId, right: 'admin' },
+      { id: 'lnk-2', user_id: 'user-2', calendar_id: calendarId, right: 'write' },
     ];
   }
-  return api.get(`/calendars/${calendarId}/members`);
+  return api.get(`/user_calendar/all/${calendarId}`);
 }
 
 /**
- * Invite a user to a calendar.
- * @param {string}       calendarId
- * @param {string}       email
- * @param {CalendarRole} role
- * @returns {Promise<Member>}
+ * Fetch a single user-calendar link by its id.
+ * @param {string} lnkId
+ * @returns {Promise<UserCalendar>}
  */
-export async function addMember(calendarId, email, role) {
-  if (MOCK_MODE) {
-    const prefix = email.split('@')[0];
-    return { userId: `user-${Date.now()}`, name: prefix, username: prefix, email, role };
-  }
-  return api.post(`/calendars/${calendarId}/members`, { email, role });
+export async function fetchUserCalendar(lnkId) {
+  if (MOCK_MODE) return null;
+  return api.get(`/user_calendar/${lnkId}`);
 }
 
 /**
- * Change a member's role on a calendar (admin only).
- * @param {string}       calendarId
- * @param {string}       userId
- * @param {CalendarRole} role
- * @returns {Promise<Member>}
+ * Update the right on a user-calendar link.
+ * @param {string} lnkId
+ * @param {{ right: CalendarRight }} payload
+ * @returns {Promise<UserCalendar>}
  */
-export async function updateMemberRole(calendarId, userId, role) {
-  if (MOCK_MODE) return { userId, role };
-  return api.put(`/calendars/${calendarId}/members/${userId}`, { role });
+export async function updateUserCalendar(lnkId, payload) {
+  if (MOCK_MODE) return { id: lnkId, ...payload };
+  return api.patch(`/user_calendar/${lnkId}`, payload);
 }
 
 /**
- * Remove a member from a calendar (admin only).
- * @param {string} calendarId
- * @param {string} userId
+ * Remove a user-calendar link.
+ * @param {string} lnkId
  * @returns {Promise<void>}
  */
-export async function removeMember(calendarId, userId) {
+export async function deleteUserCalendar(lnkId) {
   if (MOCK_MODE) return;
-  return api.delete(`/calendars/${calendarId}/members/${userId}`);
+  return api.delete(`/user_calendar/${lnkId}`);
 }

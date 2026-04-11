@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.common.decorators.db_session_injector import db_session_injector
 from app.common.dependencies.verify_loged_user_dependency import (
@@ -18,7 +19,18 @@ from app.schemas.obj_user_schema import ObjUserSchemaComplete
 # FastAPI application instance
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Self Calendar Api", version="0.0.1", dependencies=[])
-
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:5173",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ---------------------------------------------------------------------------
 # Protected routers
 # Every route included here requires:

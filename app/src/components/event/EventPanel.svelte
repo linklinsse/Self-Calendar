@@ -47,7 +47,7 @@
           endDateStr:   toInputDate(p.endDate   ?? p.startDate ?? p.date ?? new Date()),
           recurrence:   p.recurrence ?? null,
         };
-        formCategory  = p.category ?? '';
+        formCategory  = p.category_id ?? p.category ?? '';
         lastSyncedCat = formCategory;
         titleError    = false;
         showRecur     = !!p.recurrence;
@@ -284,7 +284,7 @@
                     role="option" aria-selected={form.calendar === cal.id}
                     type="button" onclick={() => pickCalendar(cal.id)}>
                     <span class="cal-dot" style="background:{cal.color}"></span>
-                    <span>{cal.name}</span>
+                    <span>{cal.title ?? cal.name}</span>
                     {#if form.calendar === cal.id}<span class="cal-check">✓</span>{/if}
                   </button>
                 </li>

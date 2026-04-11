@@ -24,7 +24,8 @@ async function request(path, method, body) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   let data = null;
-  if ((res.headers.get('content-type') || '').includes('application/json')) data = await res.json();
+  if ((res.headers.get('content-type') || '').includes('application/json')) 
+    data = await res.json();
   if (!res.ok) throw new ApiError(res.status, data?.message || data?.error || res.statusText, data);
   return data;
 }

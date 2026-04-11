@@ -2,14 +2,12 @@
   /**
    * CategoryList.svelte — Left-sidebar section: category filter list.
    *
-   * Features:
-   *  • Toggle category visibility (filter) via pill rows
-   *  • Pencil icon → CategoryEditor modal (edit)
-   *  • "＋" button → CategoryEditor modal (create)
+   * Only shows categories whose calendar is currently active (toggled on).
+   * Uses the `visibleCategories` derived store from categories.js.
    */
 
   import {
-    categories, catEditorId,
+    visibleCategories, catEditorId,
     toggleCategory,
   } from '../../lib/stores/index.js';
 </script>
@@ -27,8 +25,8 @@
     >＋</button>
   </div>
 
-  <!-- Category rows -->
-  {#each $categories as cat (cat.id)}
+  <!-- Category rows — only for active calendars -->
+  {#each $visibleCategories as cat (cat.id)}
     <div class="cat-row-wrap">
       <button
         class="cat-row"
@@ -55,6 +53,10 @@
       >✎</button>
     </div>
   {/each}
+
+  {#if $visibleCategories.length === 0}
+    <p class="empty-hint">No categories for active calendars.</p>
+  {/if}
 
 </section>
 
@@ -119,4 +121,10 @@
   }
   .cat-row-wrap:hover .edit-btn { opacity: 1; }
   .edit-btn:hover { color: var(--acc); background: rgba(244,184,200,.1); }
+
+  /* ── Empty hint ─────────────────────────────────────────── */
+  .empty-hint {
+    font-size: var(--fs-xs, 13px); color: var(--t3);
+    padding: 6px 8px; font-style: italic;
+  }
 </style>

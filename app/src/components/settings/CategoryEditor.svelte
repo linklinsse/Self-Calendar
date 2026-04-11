@@ -15,7 +15,7 @@
 
   import { fly, fade } from 'svelte/transition';
   import {
-    catEditorId, categories,
+    catEditorId, categories, calendars,
     createCategory, updateCategory, removeCategory,
     showToast,
   } from '../../lib/stores/index.js';
@@ -49,9 +49,9 @@
   $effect(() => {
     if (isOpen) {
       if (cat) {
-        form = { icon: cat.icon, label: cat.label, color: cat.color };
+        form = { icon: cat.icon, label: cat.label, color: cat.color, calendar_id: cat.calendar_id ?? '' };
       } else {
-        form = { icon: '🌸', label: '', color: COLOR_PALETTE[0] };
+        form = { icon: '🌸', label: '', color: COLOR_PALETTE[0], calendar_id: $calendars[0]?.id ?? '' };
       }
       labelError = false;
       showDeleteConfirm = false;
@@ -130,6 +130,17 @@
     <div class="modal-body">
 
       <!-- ── Icon ───────────────────────────────────────────── -->
+      <!-- ── Calendar ──────────────────────────────────────────── -->
+      <div class="field">
+        <label for="cat-calendar">Calendar</label>
+        <select id="cat-calendar" bind:value={form.calendar_id} class="cal-select">
+          {#each $calendars as cal (cal.id)}
+            <option value={cal.id}>{cal.title}</option>
+          {/each}
+        </select>
+      </div>
+
+      <!-- ── Icon ─────────────────────────────────────────────── -->
       <div class="field">
         <label for="cat-icon">Icon</label>
         <input
@@ -446,4 +457,19 @@
   .btn-save:hover:not(:disabled)  { opacity: .9; transform: translateY(-1px); }
   .btn-save:active:not(:disabled) { transform: translateY(0); }
   .btn-save:disabled { opacity: .45; cursor: not-allowed; }
+
+  .cal-select {
+    width: 100%; padding: 9px 12px; border-radius: var(--r-s);
+    border: 1px solid var(--bdr); background: var(--bg-card);
+    color: var(--t1); font-size: 13px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .cal-select:focus { outline: none; border-color: var(--acc); }
 </style>
+
