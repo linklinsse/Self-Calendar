@@ -144,8 +144,8 @@
             <span class="ev-time" style="color:{item.occ.ev.color}">
               {#if item.occ._clip === 'end'}↩ {/if}{formatTime(item.occ.ev.start)} – {formatTime(item.occ.ev.end)}{#if item.occ._clip === 'start'} →{/if}
             </span>
-            {#if item.occ.ev.location && !item.occ._clip}
-              <span class="ev-loc">📍 {item.occ.ev.location}</span>
+            {#if item.occ.ev.adresse && !item.occ._clip}
+              <span class="ev-loc">📍 {item.occ.ev.adresse}</span>
             {/if}
           {/if}
         </button>

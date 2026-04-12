@@ -1,9 +1,9 @@
 /**
- * api.js — HTTP client. Reads all configuration from config.js.
+ * api.js — HTTP client with JWT bearer token support.
+ * Configuration is read from config.js — import from there directly,
+ * not via this module.
  */
 import { API_BASE_URL, MOCK_MODE } from '../config.js';
-
-export { API_BASE_URL, MOCK_MODE };
 
 const TOKEN_KEY = 'sc_auth_token';
 export const setToken = t => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);

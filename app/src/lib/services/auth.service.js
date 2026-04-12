@@ -10,11 +10,11 @@
  * as declared in the OpenAPI securitySchemes.
  */
 
-import { api, setToken, getToken, MOCK_MODE, API_BASE_URL } from './api.js';
+import { MOCK_MODE } from '../config.js';
+import { api, setToken, getToken } from './api.js';
+import { MOCK_USER } from '../sampleData.js';
 
 /** @typedef {{ id:string, login:string }} User */
-
-const MOCK_USER = { id: 'user-1', login: 'demo', name: 'Demo User', avatar: null };
 
 /**
  * Login with username + password (OAuth2 password grant).

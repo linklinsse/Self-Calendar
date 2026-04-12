@@ -2,13 +2,10 @@
   /**
    * EventPanel.svelte — Add / Edit event panel.
    *
-   * Fixes in this revision:
-   * [1] EDIT BUG: form is only re-initialised when the panel opens with a
-   *     DIFFERENT event (by id+startDate key). Typing in a field no longer
-   *     gets wiped when the calendars/categories stores update.
-   * [2] RECURRENCE moved immediately below the date/time fields.
-   * [3] Category→color sync via dedicated reactive var (mobile-safe).
-   * [4] Calendar custom picker with colour dot.
+   * [1] Form is only re-initialised when a different event is opened
+   *     (guarded by a panel key), so typing is never wiped by store updates.
+   * [2] Category→color sync uses a dedicated $effect (mobile-safe).
+   * [3] Calendar shown as a custom picker with colour dot.
    */
 
   import { fly, fade } from 'svelte/transition';
@@ -29,8 +26,8 @@
   let lastSyncedCat = $state('');
   let showRecur     = $state(false);
 
-  // FIX [1]: Guard init with a "panel key" so we only reset form
-  // when a genuinely different event is opened, not on every store update.
+  // Re-initialise form only when a genuinely different event is opened.
+  // Guarded by a panel key so store updates don't wipe in-progress edits.
   let _prevPanelKey = $state(null);
 
   $effect(() => {
@@ -38,16 +35,16 @@
     if (!p) {
       _prevPanelKey = null;
     } else {
-      const key = `${p.id}-${(p.startDate ?? p.date ?? '').toString()}`;
+      const key = `${p.id}-${(p.startDate ?? '').toString()}`;
       if (key !== _prevPanelKey) {
         _prevPanelKey = key;
         form = {
           ...p,
-          startDateStr: toInputDate(p.startDate ?? p.date ?? new Date()),
-          endDateStr:   toInputDate(p.endDate   ?? p.startDate ?? p.date ?? new Date()),
+          startDateStr: toInputDate(p.startDate ?? new Date()),
+          endDateStr:   toInputDate(p.endDate   ?? p.startDate ?? new Date()),
           recurrence:   p.recurrence ?? null,
         };
-        formCategory  = p.category_id ?? p.category ?? '';
+        formCategory  = p.category_id ?? '';
         lastSyncedCat = formCategory;
         titleError    = false;
         showRecur     = !!p.recurrence;
@@ -57,8 +54,8 @@
 
   let isEdit = $derived(!!form.id && form.id !== -1);
 
-  // FIX [3]: Reactive category→color sync — guaranteed to fire on all platforms
-  $effect(() => { form.category = formCategory; });
+  // Category→color sync — two effects so the sync fires reliably on all platforms.
+  $effect(() => { form.category_id = formCategory; });
   $effect(() => {
     if (formCategory && formCategory !== lastSyncedCat) {
       const cat = $categories.find(c => c.id === formCategory);
@@ -71,13 +68,20 @@
   let colorOverridden = $derived(defaultColor !== null && form.color !== defaultColor);
   function resetColor() { form.color = defaultColor; }
 
-  // FIX [4]: Calendar picker with colour dot
-  let selectedCal   = $derived($calendars.find(c => c.id === form.calendar) ?? null);
+  // Calendar picker with colour dot
+  let selectedCal   = $derived($calendars.find(c => c.id === form.calendar_id) ?? null);
   let showCalPicker = $state(false);
-  function pickCalendar(id) { form.calendar = id; showCalPicker = false; }
+  function pickCalendar(id) { form.calendar_id = id; showCalPicker = false; }
   function onOutsideClick(e) {
     if (!e.target.closest?.('.cal-picker-wrap')) showCalPicker = false;
   }
+  $effect(() => {
+    if (formCategory && formCategory !== lastSyncedCat) {
+      const cat = $categories.find(c => c.id === formCategory);
+      if (cat) form.color = cat.color;
+      lastSyncedCat = formCategory;
+    }
+  });
 
   // Time auto-advance
   function onStartTimeChange() {
@@ -187,7 +191,7 @@
         </div>
       {/if}
 
-      <!-- FIX [2]: RECURRENCE immediately below dates -->
+      <!-- Recurrence -->
       <div class="recur-section">
         <button
           class="recur-toggle"
@@ -270,7 +274,7 @@
             aria-haspopup="listbox" aria-expanded={showCalPicker}>
             {#if selectedCal}
               <span class="cal-dot" style="background:{selectedCal.color}"></span>
-              <span class="cal-name">{selectedCal.name}</span>
+              <span class="cal-name">{selectedCal.title}</span>
             {:else}
               <span class="cal-name placeholder">Select calendar…</span>
             {/if}
@@ -280,12 +284,12 @@
             <ul class="cal-dropdown" role="listbox" in:fly={{ y: -6, duration: 150 }}>
               {#each $calendars as cal (cal.id)}
                 <li>
-                  <button class="cal-option" class:selected={form.calendar === cal.id}
-                    role="option" aria-selected={form.calendar === cal.id}
+                  <button class="cal-option" class:selected={form.calendar_id === cal.id}
+                    role="option" aria-selected={form.calendar_id === cal.id}
                     type="button" onclick={() => pickCalendar(cal.id)}>
                     <span class="cal-dot" style="background:{cal.color}"></span>
-                    <span>{cal.title ?? cal.name}</span>
-                    {#if form.calendar === cal.id}<span class="cal-check">✓</span>{/if}
+                    <span>{cal.title}</span>
+                    {#if form.calendar_id === cal.id}<span class="cal-check">✓</span>{/if}
                   </button>
                 </li>
               {/each}
@@ -307,13 +311,13 @@
       <!-- Location -->
       <div class="field">
         <label for="f-loc">Location</label>
-        <input id="f-loc" type="text" bind:value={form.location} placeholder="Add a location" autocomplete="off" />
+        <input id="f-loc" type="text" bind:value={form.adresse} placeholder="Add a location" autocomplete="off" />
       </div>
 
       <!-- Notes -->
       <div class="field">
         <label for="f-notes">Notes</label>
-        <textarea id="f-notes" bind:value={form.desc} placeholder="Add notes…"></textarea>
+        <textarea id="f-notes" bind:value={form.description} placeholder="Add notes…"></textarea>
       </div>
 
       <!-- Colour picker -->

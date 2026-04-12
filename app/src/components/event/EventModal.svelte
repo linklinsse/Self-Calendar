@@ -2,12 +2,8 @@
   /**
    * EventModal.svelte — Single event detail view (read-only).
    *
-   * Updated for the new event model:
-   *   • Uses ev.startDate / ev.endDate instead of the removed ev.date
-   *   • Shows multi-day date range when start ≠ end
-   *   • Shows all-day badge when ev.allDay is true
-   *   • Shows recurrence summary when ev.recurrence is set
-   *   • Font sizes use --fs-* CSS vars
+   * Shows: multi-day date range, all-day badge, recurrence summary,
+   * location, calendar, description, and edit/duplicate/delete actions.
    */
 
   import { fly, fade } from 'svelte/transition';
@@ -22,8 +18,8 @@
 
   // ── Reactive lookups ────────────────────────────────────────
   let ev       = $derived($modalEventId != null ? $events.find(e => e.id === $modalEventId) : null);
-  let cal      = $derived(ev ? $calendars .find(c => c.id === (ev.calendar_id ?? ev.calendar)) : null);
-  let cat      = $derived(ev ? $categories.find(c => c.id === (ev.category_id ?? ev.category)) : null);
+  let cal      = $derived(ev ? $calendars .find(c => c.id === ev.calendar_id) : null);
+  let cat      = $derived(ev ? $categories.find(c => c.id === ev.category_id) : null);
   let catColor = $derived(cat ? cat.color : (ev?.color ?? '#888'));
 
   // ── Date display (handles new startDate/endDate model) ──────
@@ -31,8 +27,8 @@
   let recurStr = $derived(ev?.recurrence ? describeRecurrence(ev.recurrence) : null);
 
   function buildDateStr(ev) {
-    const s = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date);
-    const e = ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate   ?? ev.startDate ?? ev.date);
+    const s = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate);
+    const e = ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate ?? ev.startDate);
 
     const sLabel = `${DAY_NAMES[s.getDay()]}, ${MONTH_ABBR[s.getMonth()]} ${s.getDate()}`;
 
@@ -53,7 +49,7 @@
     return `${sLabel} – ${eLabel}${timeRange ? ' · ' + timeRange : ''}`;
   }
 
-  let canEdit = $derived(cal ? (cal.role === 'write' || cal.role === 'admin') : true);
+  let canEdit = $derived(cal ? (cal.right === 'write' || cal.right === 'admin' || !cal.right) : true);
 
   function close() { $modalEventId = null; }
 
@@ -111,12 +107,12 @@
       <div class="ev-cat">
         <span class="cat-dot" style="background:{catColor}"></span>
         <span class="cat-label" style="color:{catColor}">
-          {cat ? cat.icon + ' ' + cat.label : ev.category}
+          {cat ? cat.icon + ' ' + cat.label : '—'}
         </span>
         {#if ev.allDay}
           <span class="badge">All day</span>
         {/if}
-        {#if cal && cal.role === 'read'}
+        {#if cal && cal.right === 'read'}
           <span class="badge muted">Read only</span>
         {/if}
       </div>
@@ -139,10 +135,10 @@
       {/if}
 
       <!-- Location -->
-      {#if ev.location}
+      {#if ev.adresse}
         <div class="detail-row">
           <span class="ico" aria-hidden="true">📍</span>
-          <span>{ev.location}</span>
+          <span>{ev.adresse}</span>
         </div>
       {/if}
 
@@ -150,13 +146,13 @@
       {#if cal}
         <div class="detail-row">
           <span class="ico" aria-hidden="true">📅</span>
-          <span style="color:{cal.color}">{cal.title ?? cal.name}</span>
+          <span style="color:{cal.color}">{cal.title}</span>
         </div>
       {/if}
 
       <!-- Description -->
-      {#if ev.desc}
-        <p class="ev-desc">{ev.desc}</p>
+      {#if ev.description}
+        <p class="ev-desc">{ev.description}</p>
       {/if}
 
       <!-- Actions -->

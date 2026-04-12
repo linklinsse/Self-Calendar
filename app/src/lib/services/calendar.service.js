@@ -15,8 +15,9 @@
  *   DELETE /user_calendar/{id}                   → void
  */
 
-import { api, MOCK_MODE } from './api.js';
-import { sampleCalendars } from '../sampleData.js';
+import { MOCK_MODE } from '../config.js';
+import { api } from './api.js';
+import { sampleCalendars, MOCK_USER_CALENDARS } from '../sampleData.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -112,12 +113,7 @@ export async function addUserCalendar(payload) {
  * @returns {Promise<UserCalendar[]>}
  */
 export async function fetchUserCalendars(calendarId) {
-  if (MOCK_MODE) {
-    return [
-      { id: 'lnk-1', user_id: 'user-1', calendar_id: calendarId, right: 'O' },
-      { id: 'lnk-2', user_id: 'user-2', calendar_id: calendarId, right: 'W' },
-    ];
-  }
+  if (MOCK_MODE) return MOCK_USER_CALENDARS(calendarId);
   return api.get(`/user_calendar/all/${calendarId}`);
 }
 

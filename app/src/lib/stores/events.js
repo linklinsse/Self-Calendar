@@ -13,7 +13,11 @@ import * as eventSvc               from '../services/event.service.js';
 import { showToast, modalEventId, panelEvent } from './ui.js';
 import { calendars }               from './calendars.js';
 import { categories }              from './categories.js';
-import { nextId }                  from '../utils.js';
+
+// Local-only ID counter for optimistic mock inserts.
+// Only used in MOCK_MODE — real API always returns a server-assigned id.
+let _nextId = 100;
+function nextId() { return ++_nextId; }
 
 // ── Store ─────────────────────────────────────────────────────
 
@@ -36,19 +40,17 @@ export const events = writable([...sampleEvents]);
 export const visibleEvents = derived(
   [events, calendars, categories],
   ([$events, $cals, $cats]) => {
-    const okCals  = new Set($cals.filter(c => c.on).map(c => c.id));
-    const okCats  = new Set($cats.filter(c => c.on && okCals.has(c.calendar_id)).map(c => c.id));
+    const okCals = new Set($cals.filter(c => c.on).map(c => c.id));
+    const okCats = new Set($cats.filter(c => c.on && okCals.has(c.calendar_id)).map(c => c.id));
 
     return $events.filter(e => {
-      // Resolve calendar_id from either field name (API or legacy)
-      const calId = e.calendar_id ?? e.calendar;
-      if (!okCals.has(calId)) return false;
-
-      // Category is optional on events; if present it must be visible
-      const catId = e.category_id ?? e.category ?? null;
-      if (catId && !okCats.has(catId)) return false;
-
+      if (!okCals.has(e.calendar_id)) return false;
+      if (e.category_id && !okCats.has(e.category_id)) return false;
       return true;
+    }).map(e => {
+      if (e.color) return e;
+      const cat = e.category_id ? $cats.find(c => c.id === e.category_id) : null;
+      return { ...e, color: cat?.color ?? '#b8c9f4' };
     });
   }
 );
@@ -98,13 +100,10 @@ export async function loadEvents(range = {}) {
  * @param {object} formData
  */
 export async function saveEvent(formData) {
-  // Normalise to API field names
   const payload = {
     ...formData,
-    calendar_id: formData.calendar_id ?? formData.calendar,
-    category_id: formData.category_id ?? formData.category ?? null,
-    adresse:     formData.adresse ?? formData.location ?? null,
-    description: formData.description ?? formData.desc ?? null,
+    startDate:   formData.startDate instanceof Date ? formData.startDate : new Date(formData.startDate),
+    endDate:     formData.endDate   instanceof Date ? formData.endDate   : new Date(formData.endDate ?? formData.startDate),
   };
 
   try {
@@ -149,7 +148,5 @@ export async function deleteEvent(id) {
  * @param {string} calendarId
  */
 export function removeEventsByCalendar(calendarId) {
-  events.update(list =>
-    list.filter(e => (e.calendar_id ?? e.calendar) !== calendarId)
-  );
+  events.update(list => list.filter(e => e.calendar_id !== calendarId));
 }

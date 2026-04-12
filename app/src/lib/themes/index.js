@@ -44,17 +44,20 @@ import { DEFAULT_THEME_ID } from '../config.js';
 
 const STORAGE_KEY = 'sc_theme';
 
+// Guard against non-browser environments (SSR, test runners).
+const _storage = typeof localStorage !== 'undefined' ? localStorage : null;
+
 /**
  * The currently active theme id.
  * Persisted to localStorage so it survives page reloads.
  * @type {import('svelte/store').Writable<string>}
  */
 export const activeThemeId = writable(
-  localStorage.getItem(STORAGE_KEY) ?? DEFAULT_THEME_ID
+  _storage?.getItem(STORAGE_KEY) ?? DEFAULT_THEME_ID
 );
 
 // Persist changes to localStorage
-activeThemeId.subscribe(id => localStorage.setItem(STORAGE_KEY, id));
+activeThemeId.subscribe(id => _storage?.setItem(STORAGE_KEY, id));
 
 /**
  * Resolve the theme object for a given id.

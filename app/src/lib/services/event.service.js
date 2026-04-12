@@ -15,7 +15,8 @@
  * and "HH:MM" strings on start / end (for timed events).
  */
 
-import { api, MOCK_MODE } from './api.js';
+import { MOCK_MODE } from '../config.js';
+import { api } from './api.js';
 import { sampleEvents } from '../sampleData.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,13 +66,7 @@ function deserialise(raw) {
     allDay,
     start: allDay ? null : `${startHH}:${startMM}`,
     end:   allDay ? null : `${endHH}:${endMM}`,
-    // Keep legacy aliases so calendar views still work during transition
-    date:     startDate,
-    calendar: raw.calendar_id,
-    category: raw.category_id ?? null,
-    color:    raw.color ?? '#b8c9f4',   // fallback; EventPanel resolves from category
-    location: raw.adresse ?? '',
-    desc:     raw.description ?? '',
+    color: raw.color ?? '#b8c9f4',
   };
 }
 
@@ -81,8 +76,8 @@ function deserialise(raw) {
  * @returns {Object}
  */
 function serialise(ev) {
-  const startDate = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date);
-  const endDate   = ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate   ?? ev.startDate ?? ev.date);
+  const startDate = ev.startDate instanceof Date ? new Date(ev.startDate) : new Date(ev.startDate);
+  const endDate   = ev.endDate   instanceof Date ? new Date(ev.endDate)   : new Date(ev.endDate ?? ev.startDate);
 
   if (!ev.allDay) {
     const [sh, sm] = (ev.start || '00:00').split(':').map(Number);
@@ -95,13 +90,13 @@ function serialise(ev) {
   }
 
   return {
-    calendar_id:   ev.calendar_id ?? ev.calendar,
+    calendar_id:   ev.calendar_id,
     title:         ev.title,
-    description:   ev.description ?? ev.desc ?? null,
+    description:   ev.description ?? null,
     date_start:    Math.floor(startDate.getTime() / 1000),
     date_end:      Math.floor(endDate.getTime()   / 1000),
-    category_id:   ev.category_id ?? ev.category ?? null,
-    adresse:       ev.adresse ?? ev.location ?? null,
+    category_id:   ev.category_id ?? null,
+    adresse:       ev.adresse ?? null,
     reminder:      ev.reminder ?? null,
     recurrence_id: ev.recurrence_id ?? null,
   };
@@ -156,8 +151,7 @@ export async function createEvent(payload) {
     return deserialise({ id: Date.now(), ...serialise(payload),
       date_start: Math.floor((payload.startDate ?? new Date()).getTime() / 1000),
       date_end:   Math.floor((payload.endDate   ?? new Date()).getTime() / 1000) });
-  }
-  const data = await api.post('/event/', serialise(payload));
+  }  const data = await api.post('/event/', serialise(payload));
   return deserialise(data);
 }
 

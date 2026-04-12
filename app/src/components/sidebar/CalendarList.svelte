@@ -86,7 +86,7 @@
         </span>
       </button>
 
-      {#if !cal.role || cal.role === 'admin'}
+      {#if !cal.right || cal.right === 'admin'}
         <button
           class="gear-btn"
           onclick={() => $calSettingsId = cal.id}

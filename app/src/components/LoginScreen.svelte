@@ -1,48 +1,28 @@
 <script>
   /**
-   * LoginScreen.svelte
+   * LoginScreen.svelte — Sign-in form.
    *
-   * Two modes toggled by the user:
-   *   sign-in  — username + password → loginUser()
-   *   register — username + password + confirm → registerUser()
-   *
-   * No "guest" option.
+   * The API has no registration endpoint, so only the login flow is
+   * exposed here. If registration is added on the backend, extend this
+   * component at that point — do not add dead UI branches.
    */
-  import { fly, fade }               from 'svelte/transition';
+  import { fly, fade }              from 'svelte/transition';
   import { loginUser, authLoading } from '../lib/stores/index.js';
-  import { APP_NAME }                from '../lib/config.js';
+  import { APP_NAME }               from '../lib/config.js';
 
-  /** 'login' | 'register' */
-  let mode     = $state('login');
   let username = $state('');
   let password = $state('');
-  let confirm  = $state('');
   let error    = $state('');
-
-  function switchMode(m) {
-    mode = m; error = ''; username = ''; password = ''; confirm = '';
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     error = '';
-
     if (!username.trim()) { error = 'Please enter a username.'; return; }
     if (!password)         { error = 'Please enter a password.';  return; }
-
-    if (false) { // register not supported by API
-      if (password.length < 6) { error = 'Password must be at least 6 characters.'; return; }
-      if (password !== confirm) { error = 'Passwords do not match.'; return; }
-    }
-
     try {
-      if (mode === 'login') {
-        await loginUser(username.trim(), password);
-      } else {
-        // registerUser removed — API has no register endpoint;
-      }
+      await loginUser(username.trim(), password);
     } catch (err) {
-      error = err.message || (mode === 'login' ? 'Login failed.' : 'Registration failed.');
+      error = err.message || 'Login failed.';
     }
   }
 </script>
@@ -57,78 +37,38 @@
     <h1 class="logo">{@html APP_NAME.replace(' ', ' <em>') + '</em>'}</h1>
     <p class="tagline">Your days, beautifully organised.</p>
 
-    <!-- Mode tabs -->
-    <div class="tabs" role="tablist">
-      <button
-        class="tab" class:active={mode === 'login'}
-        role="tab" aria-selected={mode === 'login'}
-        onclick={() => switchMode('login')}
-      >
-        Sign in
-      </button>
-      <button
-        class="tab" class:active={mode === 'register'}
-        role="tab" aria-selected={mode === 'register'}
-        onclick={() => switchMode('register')}
-      >
-        Create account
-      </button>
-    </div>
-
-    <!-- Form -->
     <form onsubmit={handleSubmit} novalidate>
 
       {#if error}
         <p class="error-banner" role="alert" in:fly={{ y: -6, duration: 160 }}>{error}</p>
       {/if}
 
-      <!-- Username -->
       <div class="field">
         <label for="li-user">Username</label>
         <input
           id="li-user" type="text"
           bind:value={username}
           placeholder="your_username"
-          autocomplete={mode === 'login' ? 'username' : 'username'}
+          autocomplete="username"
           required
           disabled={$authLoading}
         />
       </div>
 
-      <!-- Password -->
       <div class="field">
         <label for="li-pass">Password</label>
         <input
           id="li-pass" type="password"
           bind:value={password}
           placeholder="••••••••"
-          autocomplete={mode === 'login' ? 'current-password' : 'new-password'}
+          autocomplete="current-password"
           required
           disabled={$authLoading}
         />
       </div>
 
-      <!-- Confirm password (register only) -->
-      {#if mode === 'register'}
-        <div class="field" in:fly={{ y: -8, duration: 200 }}>
-          <label for="li-confirm">Confirm password</label>
-          <input
-            id="li-confirm" type="password"
-            bind:value={confirm}
-            placeholder="••••••••"
-            autocomplete="new-password"
-            required
-            disabled={$authLoading}
-          />
-        </div>
-      {/if}
-
       <button class="btn-primary" type="submit" disabled={$authLoading}>
-        {#if $authLoading}
-          {mode === 'login' ? 'Signing in…' : 'Creating account…'}
-        {:else}
-          {mode === 'login' ? 'Sign in' : 'Create account'}
-        {/if}
+        {$authLoading ? 'Signing in…' : 'Sign in'}
       </button>
 
     </form>
@@ -176,23 +116,9 @@
 
   .tagline {
     font-size: 11px; color: var(--t3);
-    letter-spacing: .10em; text-transform: uppercase; margin-bottom: 24px;
+    letter-spacing: .10em; text-transform: uppercase; margin-bottom: 28px;
   }
 
-  /* Tabs */
-  .tabs {
-    display: flex; gap: 0;
-    background: var(--bg-raised); border-radius: var(--r-s);
-    padding: 3px; margin-bottom: 22px;
-  }
-  .tab {
-    flex: 1; padding: 8px 12px; border-radius: 6px;
-    font-size: var(--fs-xs, 13px); font-weight: 500; color: var(--t3);
-    transition: all .15s;
-  }
-  .tab.active { background: var(--bg-surf); color: var(--t1); }
-
-  /* Form */
   .error-banner {
     background: rgba(244,100,100,.10); border: 1px solid rgba(244,100,100,.28);
     border-radius: var(--r-s); color: #f49090;

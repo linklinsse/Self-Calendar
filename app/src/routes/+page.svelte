@@ -12,15 +12,16 @@
     isLoggedIn, panelEvent, modalEventId,
     filterDrawerOpen, sidebarOpen, calSettingsId,
     catEditorId, calCreatorOpen, closePanel,
+    restoreSession,
   } from '../lib/stores/index.js';
 
   import LoginScreen from '../components/LoginScreen.svelte';
   import AppShell    from '../components/AppShell.svelte';
   import Toast       from '../components/ui/Toast.svelte';
 
-  // Apply the persisted theme on first render
-  onMount(() => {
-    // applyTheme(resolveTheme($activeThemeId));
+  // Restore previous session from stored token, then set default view
+  onMount(async () => {
+    await restoreSession();
     currentView.set(DEFAULT_VIEW);
   });
 

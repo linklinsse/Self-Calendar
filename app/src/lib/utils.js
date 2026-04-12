@@ -1,7 +1,12 @@
 /**
  * utils.js — Pure date/time/recurrence helper functions.
- * No side effects, no imports. Fully testable in isolation.
+ *
+ * Imports FIRST_DAY_OF_WEEK and LOCALE from config.js so that week
+ * layout and date formatting respect the environment configuration.
+ * All other functions are side-effect free and fully testable in isolation.
  */
+
+import { FIRST_DAY_OF_WEEK, LOCALE } from './config.js';
 
 // ── Constants ─────────────────────────────────────────────────
 export const MONTH_NAMES = [
@@ -15,8 +20,17 @@ export const MONTH_ABBR = [
 export const DAY_NAMES = [
   'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday',
 ];
-export const DAY_ABBR_MON = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-export const DOW_LETTERS   = ['M','T','W','T','F','S','S'];
+
+// Ordered day abbreviations starting from FIRST_DAY_OF_WEEK.
+// e.g. FIRST_DAY_OF_WEEK=1 → ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+//      FIRST_DAY_OF_WEEK=0 → ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const ALL_DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+export const DAY_ABBR_MON = Array.from({ length: 7 }, (_, i) =>
+  ALL_DAY_ABBR[(FIRST_DAY_OF_WEEK + i) % 7]
+);
+export const DOW_LETTERS = Array.from({ length: 7 }, (_, i) =>
+  ALL_DAY_ABBR[(FIRST_DAY_OF_WEEK + i) % 7][0]
+);
 
 // ── Date normalisation ────────────────────────────────────────
 
@@ -78,12 +92,12 @@ export function isMultiDay(ev) {
 
 // ── Week helpers ──────────────────────────────────────────────
 
-/** Monday of the week containing `d`. */
+/** First day of the week containing `d`, respecting FIRST_DAY_OF_WEEK config (0=Sun, 1=Mon). */
 export function weekStart(d) {
   const dow  = d.getDay();
-  const diff = dow === 0 ? -6 : 1 - dow;
+  const diff = ((dow - FIRST_DAY_OF_WEEK) + 7) % 7;
   const r    = new Date(d);
-  r.setDate(d.getDate() + diff);
+  r.setDate(d.getDate() - diff);
   r.setHours(0, 0, 0, 0);
   return r;
 }
@@ -104,12 +118,13 @@ export function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 
-/** Full month grid padded to complete rows (Monday-first). */
+/** Full month grid padded to complete rows, respecting FIRST_DAY_OF_WEEK. */
 export function buildMonthGrid(year, month) {
   const first    = new Date(year, month, 1);
   const lastDate = daysInMonth(year, month);
   const dow      = first.getDay();
-  const offset   = dow === 0 ? 6 : dow - 1;
+  // How many days from the configured first-day-of-week to the 1st of the month
+  const offset   = ((dow - FIRST_DAY_OF_WEEK) + 7) % 7;
   const grid     = [];
 
   const prevLast = new Date(year, month, 0).getDate();
@@ -189,8 +204,8 @@ export function expandEventsForRange(events, rangeStart, rangeEnd) {
   const out = [];
 
   for (const ev of events) {
-    const s = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date);
-    const e = ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate   ?? ev.startDate ?? ev.date);
+    const s = ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate);
+    const e = ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate ?? ev.startDate);
     const spanMs = midnight(e) - midnight(s);
 
     if (!ev.recurrence) {
@@ -296,18 +311,21 @@ export function toInputDate(d) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+/** e.g. "Monday, Apr 11" — locale-aware. */
 export function formatLongDay(d) {
-  return `${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+  return new Intl.DateTimeFormat(LOCALE, { weekday: 'long', month: 'short', day: 'numeric' }).format(d);
 }
 
+/** e.g. "Apr 7 – 13" or "Mar 31 – Apr 6" — locale-aware. */
 export function formatWeekRange(d) {
   const days = weekDays(d);
   const s = days[0];
   const e = days[6];
+  const fmt = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' });
   if (s.getMonth() === e.getMonth()) {
-    return `${MONTH_ABBR[s.getMonth()]} ${s.getDate()} – ${e.getDate()}`;
+    return `${fmt.format(s).replace(/\s\d+$/, '')} ${s.getDate()} – ${e.getDate()}`;
   }
-  return `${MONTH_ABBR[s.getMonth()]} ${s.getDate()} – ${MONTH_ABBR[e.getMonth()]} ${e.getDate()}`;
+  return `${fmt.format(s)} – ${fmt.format(e)}`;
 }
 
 /**
@@ -339,10 +357,6 @@ export function describeRecurrence(rec) {
   }
   return base;
 }
-
-// ── ID generator ──────────────────────────────────────────────
-let _id = 100;
-export function nextId() { return ++_id; }
 
 // ── Overlapping event column layout ───────────────────────────
 

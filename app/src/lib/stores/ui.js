@@ -20,9 +20,9 @@ export const currentView = writable('month');
 
 /**
  * Cursor date — the date the calendar is centred on.
- * Change to new Date() for production; demo anchored to March 2026.
+ * Always starts on today so the app opens at the right week/month.
  */
-export const cursor = writable(new Date(2026, 2, 20));
+export const cursor = writable(new Date());
 
 // ── Drawer / overlay visibility ───────────────────────────────
 

@@ -1,10 +1,15 @@
 /**
- * stores/index.js — Public store API. Components import from here only.
- * Compound ops (login, logout, openAddPanel, removeCalendar cascade) live here.
+ * stores/index.js — Public store API.
+ *
+ * This is the single import point for all components. Compound operations
+ * that span multiple stores (auth bootstrap, calendar cascade delete,
+ * event panel open) live here to avoid circular dependencies between the
+ * individual store files.
  */
 import { get } from 'svelte/store';
 import * as authSvc from '../services/auth.service.js';
 import * as calSvc  from '../services/calendar.service.js';
+import { getToken } from '../services/api.js';
 
 export * from './auth.js';
 export * from './ui.js';
@@ -15,13 +20,31 @@ export * from './events.js';
 import { currentUser, authLoading }                               from './auth.js';
 import { sidebarOpen, filterDrawerOpen, panelEvent,
          cursor, showToast }                                      from './ui.js';
-import { calendars, loadCalendars }                               from './calendars.js';
+import { calendars, loadCalendars,
+         removeCalendar as deleteCalendarBase }                   from './calendars.js';
 import { categories, loadCategories,
          removeCategoriesByCalendar }                             from './categories.js';
 import { events, loadEvents, removeEventsByCalendar }             from './events.js';
-import { removeCalendar as _removeCalBase }                       from './calendars.js';
 
 // ── Auth compound ops ─────────────────────────────────────────
+
+/**
+ * Called on app mount — restores a previous session from the stored token.
+ * If no token exists the user stays on the LoginScreen silently.
+ */
+export async function restoreSession() {
+  if (!getToken()) return;           // nothing stored → stay on login screen
+  authLoading.set(true);
+  try {
+    const user = await authSvc.getMe();
+    if (user) {
+      currentUser.set(user);
+      await Promise.all([loadCalendars(), loadCategories()]);
+      await loadEvents();
+    }
+  } catch { /* token expired or invalid — remain logged out */ }
+  finally { authLoading.set(false); }
+}
 
 /** Login with username + password, then bootstrap app data. */
 export async function loginUser(username, password) {
@@ -48,7 +71,7 @@ export async function logoutUser() {
 
 /** Delete calendar AND cascade-remove its events and categories. */
 export async function removeCalendar(id) {
-  await _removeCalBase(id);
+  await deleteCalendarBase(id);
   removeEventsByCalendar(id);
   removeCategoriesByCalendar(id);
 }
@@ -67,11 +90,8 @@ export function openAddPanel(date, startTime) {
     end:   startTime ? _bumpHour(startTime) : '10:00',
     calendar_id: firstCal?.id    || '',
     category_id: firstCat?.id    || '',
-    // Legacy aliases so EventPanel doesn't need changes yet
-    calendar:    firstCal?.id    || '',
-    category:    firstCat?.id    || '',
     color:       firstCat?.color || '#f4b8c8',
-    adresse: '', location: '', description: '', desc: '', recurrence_id: null, recurrence: null,
+    adresse: '', description: '', recurrence_id: null, recurrence: null,
   });
 }
 
@@ -81,20 +101,14 @@ export function openEditPanel(id) {
   if (!ev) return;
   panelEvent.set({
     ...ev,
-    // Ensure both alias sets are present for EventPanel
-    calendar_id: ev.calendar_id ?? ev.calendar,
-    category_id: ev.category_id ?? ev.category ?? null,
-    calendar:    ev.calendar_id ?? ev.calendar,
-    category:    ev.category_id ?? ev.category ?? null,
-    startDate: ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date),
-    endDate:   ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate   ?? ev.startDate ?? ev.date),
+    calendar_id: ev.calendar_id,
+    category_id: ev.category_id ?? null,
+    startDate: ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate),
+    endDate:   ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate ?? ev.startDate),
   });
 }
 
-/**
- * Open add panel pre-filled with a COPY of an existing event.
- * @param {number|string} id
- */
+/** Open add panel pre-filled with a copy of an existing event. */
 export function openDuplicatePanel(id) {
   const ev = get(events).find(e => e.id === id);
   if (!ev) return;
@@ -102,12 +116,10 @@ export function openDuplicatePanel(id) {
     ...ev,
     id:          -1,
     title:       `Copy of ${ev.title}`,
-    calendar_id: ev.calendar_id ?? ev.calendar,
-    category_id: ev.category_id ?? ev.category ?? null,
-    calendar:    ev.calendar_id ?? ev.calendar,
-    category:    ev.category_id ?? ev.category ?? null,
-    startDate: ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate ?? ev.date),
-    endDate:   ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate   ?? ev.startDate ?? ev.date),
+    calendar_id: ev.calendar_id,
+    category_id: ev.category_id ?? null,
+    startDate: ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate),
+    endDate:   ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate ?? ev.startDate),
   });
 }
 

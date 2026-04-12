@@ -9,7 +9,7 @@
  * Each category is scoped to a calendar via `calendar_id`.
  */
 
-import { MOCK_MODE } from './api.js';
+import { MOCK_MODE } from '../config.js';
 import { sampleCategories } from '../sampleData.js';
 
 // ─── Local storage key ────────────────────────────────────────────────────────
