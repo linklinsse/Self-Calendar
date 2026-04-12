@@ -40,7 +40,10 @@ export async function restoreSession() {
     if (user) {
       currentUser.set(user);
       await Promise.all([loadCalendars(), loadCategories()]);
-      await loadEvents();
+      const now  = new Date();
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
+      const to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      await loadEvents({ from, to });
     }
   } catch { /* token expired or invalid — remain logged out */ }
   finally { authLoading.set(false); }
@@ -53,7 +56,11 @@ export async function loginUser(username, password) {
     const user = await authSvc.login(username, password);
     currentUser.set(user);
     await Promise.all([loadCalendars(), loadCategories()]);
-    await loadEvents(); // after calendars are loaded
+    // Load events for the current month so the calendar is populated immediately.
+    const now  = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    await loadEvents({ from, to });
   } finally { authLoading.set(false); }
 }
 

@@ -71,7 +71,22 @@
   // Calendar picker with colour dot
   let selectedCal   = $derived($calendars.find(c => c.id === form.calendar_id) ?? null);
   let showCalPicker = $state(false);
-  function pickCalendar(id) { form.calendar_id = id; showCalPicker = false; }
+
+  // Only show categories belonging to the currently selected calendar.
+  let calCategories = $derived(
+    $categories.filter(c => c.calendar_id === form.calendar_id)
+  );
+
+  function pickCalendar(id) {
+    form.calendar_id = id;
+    showCalPicker    = false;
+    // Reset category to the first one of the newly selected calendar
+    // so the category list and the colour are always in sync.
+    const firstCat = $categories.find(c => c.calendar_id === id);
+    formCategory   = firstCat?.id    ?? '';
+    form.color     = firstCat?.color ?? form.color;
+    lastSyncedCat  = formCategory;
+  }
   function onOutsideClick(e) {
     if (!e.target.closest?.('.cal-picker-wrap')) showCalPicker = false;
   }
@@ -298,13 +313,17 @@
         </div>
       </div>
 
-      <!-- Category -->
+      <!-- Category — filtered to the selected calendar -->
       <div class="field">
         <label for="f-cat">Category</label>
         <select id="f-cat" bind:value={formCategory}>
-          {#each $categories as cat (cat.id)}
-            <option value={cat.id}>{cat.icon}  {cat.label}</option>
-          {/each}
+          {#if calCategories.length === 0}
+            <option value="">No categories for this calendar</option>
+          {:else}
+            {#each calCategories as cat (cat.id)}
+              <option value={cat.id}>{cat.icon}  {cat.label}</option>
+            {/each}
+          {/if}
         </select>
       </div>
 

@@ -48,9 +48,11 @@ export const visibleEvents = derived(
       if (e.category_id && !okCats.has(e.category_id)) return false;
       return true;
     }).map(e => {
-      if (e.color) return e;
+      // Always resolve color from the category so the calendar view reflects
+      // the category's colour. Fall back to the event's own stored color
+      // (manual override) and finally to the default accent.
       const cat = e.category_id ? $cats.find(c => c.id === e.category_id) : null;
-      return { ...e, color: cat?.color ?? '#b8c9f4' };
+      return { ...e, color: cat?.color ?? e.color ?? '#b8c9f4' };
     });
   }
 );
