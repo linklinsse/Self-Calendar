@@ -3,10 +3,11 @@ from fastapi import Depends, APIRouter
 from app.services import auth_service
 from app.schemas.auth_schema import AuthSchema
 from app.common.contexts.loged_user_context import get_loged_user_context
-from app.schemas.obj_user_schema import ObjUserSchemaComplete
+from app.schemas.obj_user_schema import ObjUserSchemaComplete, ObjUserSchemaCreate
 from app.common.dependencies.verify_loged_user_dependency import (
     verify_loged_user_dependency,
 )
+from app.services import obj_user_service
 
 router = APIRouter(prefix="/auth", tags=["login"])
 
@@ -17,6 +18,10 @@ async def login(
 ):
     """Authenticate a user and return an access token."""
     return auth_service.login(response_model)
+
+@router.post("/register", response_model=ObjUserSchemaComplete)
+async def register(new_user: ObjUserSchemaCreate) -> ObjUserSchemaComplete:
+    return obj_user_service.create_user(new_user)
 
 @router.get(
     "/me",

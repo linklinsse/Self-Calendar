@@ -1,28 +1,47 @@
 <script>
   /**
-   * LoginScreen.svelte — Sign-in form.
+   * LoginScreen.svelte — Sign-in / Sign-up form.
    *
-   * The API has no registration endpoint, so only the login flow is
-   * exposed here. If registration is added on the backend, extend this
-   * component at that point — do not add dead UI branches.
+   * Two modes toggled inline:
+   *   • Login    — username + password
+   *   • Register — username + password + confirm password
    */
-  import { fly, fade }              from 'svelte/transition';
-  import { loginUser, authLoading } from '../lib/stores/index.js';
-  import { APP_NAME }               from '../lib/config.js';
+  import { fly, fade }                            from 'svelte/transition';
+  import { loginUser, registerUser, authLoading } from '../lib/stores/index.js';
+  import { APP_NAME }                             from '../lib/config.js';
+
+  /** @type {'login' | 'register'} */
+  let mode = $state('login');
 
   let username = $state('');
   let password = $state('');
+  let confirm  = $state('');
   let error    = $state('');
+
+  // Reset fields whenever mode switches
+  $effect(() => {
+    mode; username = ''; password = ''; confirm = ''; error = '';
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
     error = '';
+
     if (!username.trim()) { error = 'Please enter a username.'; return; }
     if (!password)         { error = 'Please enter a password.';  return; }
+    if (mode === 'register') {
+      if (password.length < 6) { error = 'Password must be at least 6 characters.'; return; }
+      if (password !== confirm) { error = 'Passwords do not match.'; return; }
+    }
+
     try {
-      await loginUser(username.trim(), password);
+      if (mode === 'login') {
+        await loginUser(username.trim(), password);
+      } else {
+        await registerUser(username.trim(), password);
+      }
     } catch (err) {
-      error = err.message || 'Login failed.';
+      error = err.message || (mode === 'login' ? 'Login failed.' : 'Registration failed.');
     }
   }
 </script>
@@ -37,41 +56,79 @@
     <h1 class="logo">{@html APP_NAME.replace(' ', ' <em>') + '</em>'}</h1>
     <p class="tagline">Your days, beautifully organised.</p>
 
-    <form onsubmit={handleSubmit} novalidate>
+    <!-- Mode toggle tabs -->
+    <div class="mode-tabs" role="tablist">
+      <button
+        class="mode-tab"
+        class:active={mode === 'login'}
+        role="tab"
+        aria-selected={mode === 'login'}
+        onclick={() => mode = 'login'}
+      >Sign in</button>
+      <button
+        class="mode-tab"
+        class:active={mode === 'register'}
+        role="tab"
+        aria-selected={mode === 'register'}
+        onclick={() => mode = 'register'}
+      >Create account</button>
+    </div>
 
-      {#if error}
-        <p class="error-banner" role="alert" in:fly={{ y: -6, duration: 160 }}>{error}</p>
-      {/if}
+    {#key mode}
+      <form onsubmit={handleSubmit} novalidate in:fly={{ y: 10, duration: 200 }}>
 
-      <div class="field">
-        <label for="li-user">Username</label>
-        <input
-          id="li-user" type="text"
-          bind:value={username}
-          placeholder="your_username"
-          autocomplete="username"
-          required
-          disabled={$authLoading}
-        />
-      </div>
+        {#if error}
+          <p class="error-banner" role="alert" in:fly={{ y: -6, duration: 160 }}>{error}</p>
+        {/if}
 
-      <div class="field">
-        <label for="li-pass">Password</label>
-        <input
-          id="li-pass" type="password"
-          bind:value={password}
-          placeholder="••••••••"
-          autocomplete="current-password"
-          required
-          disabled={$authLoading}
-        />
-      </div>
+        <div class="field">
+          <label for="li-user">Username</label>
+          <input
+            id="li-user" type="text"
+            bind:value={username}
+            placeholder="your_username"
+            autocomplete={mode === 'login' ? 'username' : 'off'}
+            required
+            disabled={$authLoading}
+          />
+        </div>
 
-      <button class="btn-primary" type="submit" disabled={$authLoading}>
-        {$authLoading ? 'Signing in…' : 'Sign in'}
-      </button>
+        <div class="field">
+          <label for="li-pass">Password</label>
+          <input
+            id="li-pass" type="password"
+            bind:value={password}
+            placeholder="••••••••"
+            autocomplete={mode === 'login' ? 'current-password' : 'new-password'}
+            required
+            disabled={$authLoading}
+          />
+        </div>
 
-    </form>
+        {#if mode === 'register'}
+          <div class="field" in:fly={{ y: 8, duration: 180 }}>
+            <label for="li-confirm">Confirm password</label>
+            <input
+              id="li-confirm" type="password"
+              bind:value={confirm}
+              placeholder="••••••••"
+              autocomplete="new-password"
+              required
+              disabled={$authLoading}
+            />
+          </div>
+        {/if}
+
+        <button class="btn-primary" type="submit" disabled={$authLoading}>
+          {#if $authLoading}
+            {mode === 'login' ? 'Signing in…' : 'Creating account…'}
+          {:else}
+            {mode === 'login' ? 'Sign in' : 'Create account'}
+          {/if}
+        </button>
+
+      </form>
+    {/key}
 
   </div>
 </div>
@@ -116,9 +173,32 @@
 
   .tagline {
     font-size: 11px; color: var(--t3);
-    letter-spacing: .10em; text-transform: uppercase; margin-bottom: 28px;
+    letter-spacing: .10em; text-transform: uppercase; margin-bottom: 22px;
   }
 
+  /* ── Mode tabs ───────────────────────────────────────────── */
+  .mode-tabs {
+    display: flex; gap: 2px;
+    background: var(--bg-card);
+    border: 1px solid var(--bdr-soft);
+    border-radius: var(--r-s);
+    padding: 3px; margin-bottom: 22px;
+  }
+  .mode-tab {
+    flex: 1; padding: 8px 12px;
+    border-radius: calc(var(--r-s) - 2px);
+    font-size: var(--fs-xs, 13px); font-weight: 500;
+    color: var(--t3); transition: all .16s;
+  }
+  .mode-tab:hover { color: var(--t2); }
+  .mode-tab.active {
+    background: var(--acc-bg);
+    color: var(--acc);
+    border: 1px solid var(--bdr);
+    box-shadow: 0 1px 4px rgba(0,0,0,.18);
+  }
+
+  /* ── Form ────────────────────────────────────────────────── */
   .error-banner {
     background: rgba(244,100,100,.10); border: 1px solid rgba(244,100,100,.28);
     border-radius: var(--r-s); color: #f49090;

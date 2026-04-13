@@ -40,13 +40,21 @@ export async function restoreSession() {
     if (user) {
       currentUser.set(user);
       await Promise.all([loadCalendars(), loadCategories()]);
-      const now  = new Date();
-      const from = new Date(now.getFullYear(), now.getMonth(), 1);
-      const to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-      await loadEvents({ from, to });
+      // Events are loaded by CalendarBody.$effect on mount — no extra call needed.
     }
   } catch { /* token expired or invalid — remain logged out */ }
   finally { authLoading.set(false); }
+}
+
+/** Register a new account, then auto-login and bootstrap app data. */
+export async function registerUser(username, password) {
+  authLoading.set(true);
+  try {
+    const user = await authSvc.register(username, password);
+    currentUser.set(user);
+    await Promise.all([loadCalendars(), loadCategories()]);
+    // Events are loaded by CalendarBody.$effect on mount.
+  } finally { authLoading.set(false); }
 }
 
 /** Login with username + password, then bootstrap app data. */
@@ -56,11 +64,7 @@ export async function loginUser(username, password) {
     const user = await authSvc.login(username, password);
     currentUser.set(user);
     await Promise.all([loadCalendars(), loadCategories()]);
-    // Load events for the current month so the calendar is populated immediately.
-    const now  = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1);
-    const to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    await loadEvents({ from, to });
+    // Events are loaded by CalendarBody.$effect on mount — no extra call needed.
   } finally { authLoading.set(false); }
 }
 

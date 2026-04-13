@@ -11,14 +11,11 @@
  *   onMount(() => applyTheme(resolveTheme()));
  */
 
-import { blushNoir }       from './blushNoir.js';
-import { sageDusk }        from './sageDusk.js';
-import { midnightInk }     from './midnightInk.js';
-import { oceanBreeze }     from './oceanBreeze.js';
-import { sunsetAmber }     from './sunsetAmber.js';
-import { lightClean }      from './lightClean.js';
-import { sunshineYellow }  from './sunshineYellow.js';
-import { blossomPink }     from './blossomPink.js';
+import { blushNoir }        from './blushNoir.js';
+import { sageDusk }         from './sageDusk.js';
+import { midnightInk }      from './midnightInk.js';
+import { oceanBreeze }      from './oceanBreeze.js';
+import { electricYellow }   from './electricYellow.js';
 
 // ── Registry ──────────────────────────────────────────────────
 // Keyed by theme id — same id used in VITE_THEME env var.
@@ -28,11 +25,7 @@ export const THEMES = {
   sageDusk,
   midnightInk,
   oceanBreeze,
-  sunsetAmber,
-  sunshineYellow,
-  // ── Light themes ─────────────────────────
-  lightClean,
-  blossomPink,
+  electricYellow,
 };
 
 /** Ordered list for the ThemePicker UI. */

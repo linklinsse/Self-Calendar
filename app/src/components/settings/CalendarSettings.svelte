@@ -6,7 +6,6 @@
    * Tabs:
    *   1. General  — name, colour, description
    *   2. Members  — list of members, invite new, change role, remove
-   *   3. Params   — timezone, first day of week, default view
    *
    * Only admins of a calendar can open this modal (Sidebar hides the
    * gear icon for non-admins). The API also enforces this server-side.
@@ -125,15 +124,10 @@
     members = members.filter(m => m.id !== lnkId);
   }
 
-  // ── Params tab — not supported by API, kept as UI stub ────
-  let params       = $state(null);
-  let paramsSaving = $state(false);
-
   // ── Helpers ────────────────────────────────────────────────
   function closeSettings() {
     $calSettingsId    = null;
     showDeleteConfirm = false;
-    params            = null;
     members           = [];
   }
 
@@ -180,7 +174,7 @@
 
     <!-- Tabs -->
     <div class="tabs" role="tablist">
-      {#each ['general', 'members', 'params'] as tab}
+      {#each ['general', 'members'] as tab}
         <button
           class="tab"
           class:active={activeTab === tab}
@@ -189,8 +183,7 @@
           onclick={() => { activeTab = tab; showDeleteConfirm = false; }}
         >
           {#if tab === 'general'}⚙ General
-          {:else if tab === 'members'}👥 Members
-          {:else}🔧 Settings{/if}
+          {:else if tab === 'members'}👥 Members{/if}
         </button>
       {/each}
     </div>
@@ -279,7 +272,7 @@
             <input
               type="text"
               bind:value={inviteEmail}
-              placeholder="Username or email"
+              placeholder="Username"
               class="invite-email"
               disabled={inviting}
             />
@@ -317,15 +310,14 @@
           <ul class="member-list">
             {#each members as m (m.id)}
               <li class="member-row">
-                <!-- Avatar placeholder using user_id initials -->
+                <!-- Avatar using username initials -->
                 <div class="avatar" aria-hidden="true">
-                  <span>{m.user_id.slice(0, 2).toUpperCase()}</span>
+                  <span>{(m.username ?? m.user_id ?? '?').slice(0, 2).toUpperCase()}</span>
                 </div>
 
-                <!-- Info -->
+                <!-- Info: username only -->
                 <div class="member-info">
-                  <span class="member-name">{m.user_id}</span>
-                  <span class="member-username">id: {m.id.slice(0, 8)}…</span>
+                  <span class="member-name">{m.username ?? m.user_id}</span>
                 </div>
 
                 <!-- Right selector -->
@@ -333,7 +325,7 @@
                   class="role-select"
                   value={m.right}
                   onchange={e => changeRole(m.id, e.target.value)}
-                  aria-label="Right for {m.user_id}"
+                  aria-label="Right for {m.username ?? m.user_id}"
                 >
                   {#each ROLES as r}
                     <option value={r.value}>{r.label}</option>
@@ -344,7 +336,7 @@
                 <button
                   class="remove-btn"
                   onclick={() => removeMember(m.id)}
-                  aria-label="Remove {m.user_id}"
+                  aria-label="Remove {m.username ?? m.user_id}"
                   title="Remove member"
                 >✕</button>
               </li>
@@ -354,16 +346,6 @@
 
       </div>
 
-    <!-- ═══════════════════════════════
-         PARAMS TAB
-    ═══════════════════════════════ -->
-    {:else if activeTab === 'params'}
-      <div class="tab-body">
-        <p class="empty-msg" style="font-style:italic;padding:20px 0;">
-          Calendar settings (timezone, default view…) are not yet exposed by
-          the API. Configure them directly on the server.
-        </p>
-      </div>
     {/if}
 
   </div>
@@ -569,8 +551,7 @@
   .member-info {
     flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0;
   }
-  .member-name     { font-size: 13px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .member-username { font-size: 11px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .member-name { font-size: 13px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .role-select {
     width: auto; padding: 6px 28px 6px 10px; font-size: 12px; flex-shrink: 0;
@@ -584,17 +565,7 @@
   }
   .remove-btn:hover { color: #f47070; background: rgba(244,100,100,.08); }
 
-  /* ── Params tab ─────────────────────────────────────────── */
-  .field-row { display: flex; align-items: center; gap: 10px; }
-  .toggle-label {
-    display: flex; align-items: center; gap: 10px; cursor: pointer;
-  }
-  .toggle-label input[type="checkbox"] {
-    width: 16px; height: 16px; accent-color: var(--acc); cursor: pointer;
-  }
-  .toggle-text { font-size: 13px; color: var(--t2); }
-
-  /* ── Shared action buttons ──────────────────────────────── */
+  /* ── Shared action buttons ──────────────────────────────────────────────── */
   .row-actions { display: flex; justify-content: flex-end; }
 
   .btn-save {

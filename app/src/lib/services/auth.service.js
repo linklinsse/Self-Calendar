@@ -36,6 +36,23 @@ export async function login(username, password) {
 }
 
 /**
+ * Register a new account.
+ * @param {string} username
+ * @param {string} password
+ * @returns {Promise<User>}
+ */
+export async function register(username, password) {
+  if (MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 500));
+    setToken('mock-token');
+    return { ...MOCK_USER, login: username };
+  }
+  await api.post('/auth/register', { username, password });
+  // Auto-login after registration
+  return login(username, password);
+}
+
+/**
  * Log out — clears local token only (no server-side logout endpoint).
  * @returns {Promise<void>}
  */
