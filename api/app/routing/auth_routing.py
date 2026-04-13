@@ -7,7 +7,7 @@ from app.schemas.auth_schema import AuthSchema
 from app.schemas.obj_user_schema import ObjUserSchemaComplete, ObjUserSchemaCreate
 from app.services import auth_service, obj_user_service
 
-router = APIRouter(prefix="/auth", tags=[\"auth\"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login")
