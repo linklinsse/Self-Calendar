@@ -71,10 +71,9 @@ def decode_token(token: str) -> str:
         raise  # unreachable – satisfies type-checker
 
 
-def get_current_user(token: str) -> ObjUserSchemaComplete:
+def get_current_user(token: str, session) -> ObjUserSchemaComplete:
     """Resolve a raw token string to the corresponding user object."""
     from app.services.obj_user_service import get_user
 
-    decoded_token = decode_token(token)
-    user = get_user(decoded_token)
-    return user
+    user_id = decode_token(token)
+    return get_user(user_id, session)

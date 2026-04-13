@@ -10,6 +10,5 @@ class ObjUserSchemaCreate(BaseModel):
     password: str
 
 class ObjUserSchemaChangePassword(BaseModel):
-    user_id: str
     old_password: str
     new_password: str

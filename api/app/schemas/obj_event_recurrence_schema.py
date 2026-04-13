@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated
 
 
-class ObjEventSchema(BaseModel):
+class ObjEventRecurrenceSchema(BaseModel):
     id: str | None = Field(default=None)
     pattern_type: str  # TODO Enum
     end_date: int | None = Field(default=None)

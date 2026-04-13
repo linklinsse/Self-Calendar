@@ -1,9 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 from app.common.db_connection import SessionDep
-from app.common.dependencies.verify_loged_user_dependency import (
-    verify_loged_user_dependency,
-)
 from app.schemas.obj_category_schema import (
     ObjCategoryCreate,
     ObjCategoryRead,

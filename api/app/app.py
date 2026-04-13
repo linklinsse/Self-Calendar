@@ -1,95 +1,63 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.common.decorators.db_session_injector import db_session_injector
-from app.common.dependencies.verify_loged_user_dependency import (
-    verify_loged_user_dependency,
+from app.common.config import settings
+from app.common.db_connection import create_db_and_tables
+from app.common.dependencies.verify_loged_user_dependency import verify_loged_user_dependency
+from app.routing import (
+    auth_routing,
+    calendar_routing,
+    category_routing,
+    event_routing,
+    user_calendar_routing,
+    user_routing,
 )
-from app.models.obj_user_model import ObjUserModel
-from app.routing import calendar_routing
-from app.routing import user_calendar_routing
-from app.routing import auth_routing
-from app.routing import user_routing
-from app.routing import event_routing
-from app.routing import category_routing
-from app.common.db_connection import SessionDep, create_db_and_tables
-from app.schemas.obj_user_schema import ObjUserSchemaComplete
+
+
+# ---------------------------------------------------------------------------
+# Lifespan — runs once on startup and once on shutdown
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create database tables on startup if they do not already exist."""
+    create_db_and_tables()
+    yield
+    # Add any shutdown logic here (e.g. close connection pools)
+
 
 # ---------------------------------------------------------------------------
 # FastAPI application instance
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Self Calendar Api", version="0.0.1", dependencies=[])
-origins = [
-    "http://localhost",
-    "http://localhost:8080",
-    "http://localhost:5173",
-]
+app = FastAPI(
+    title="Self Calendar API",
+    version="0.0.1",
+    lifespan=lifespan,
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # ---------------------------------------------------------------------------
-# Protected routers
-# Every route included here requires:
-#   1. verify_loged_user_dependency  — rejects requests without a valid token
-#   2. fill_loged_user_context_dependency — populates the request-scoped
-#      user context so downstream code can call get_loged_user_context()
+# Protected routers — every route below requires a valid Bearer token.
+#
+# verify_loged_user_dependency decodes the token, fetches the user from DB,
+# and populates the request-scoped context so services can call
+# get_loged_user_context() without receiving the user as a parameter.
 # ---------------------------------------------------------------------------
-app.include_router(
-    calendar_routing.router,
-    dependencies=[
-        Depends(verify_loged_user_dependency),
-    ],
-)
-app.include_router(
-    user_calendar_routing.router,
-    dependencies=[
-        Depends(verify_loged_user_dependency),
-    ],
-)
-app.include_router(
-    user_routing.router,
-    dependencies=[
-        Depends(verify_loged_user_dependency),
-    ],
-)
-app.include_router(
-    event_routing.router,
-    dependencies=[
-        Depends(verify_loged_user_dependency),
-    ],
-)
-app.include_router(
-    category_routing.router,
-    dependencies=[
-        Depends(verify_loged_user_dependency),
-    ],
-)
+_auth_dep = [Depends(verify_loged_user_dependency)]
+
+app.include_router(calendar_routing.router,      dependencies=_auth_dep)
+app.include_router(user_calendar_routing.router, dependencies=_auth_dep)
+app.include_router(user_routing.router,          dependencies=_auth_dep)
+app.include_router(event_routing.router,         dependencies=_auth_dep)
+app.include_router(category_routing.router,      dependencies=_auth_dep)
 
 # Public router — no authentication required
 app.include_router(auth_routing.router)
-
-# Create all SQLModel tables on startup if they do not already exist
-create_db_and_tables()
-
-
-# ---------------------------------------------------------------------------
-# Debug helper — kept for local development, NOT called in production
-# ---------------------------------------------------------------------------
-@db_session_injector
-def create_user(db_session: SessionDep):
-    """Insert a hard-coded test user into the database."""
-    user = ObjUserSchemaComplete(
-        id="test", login="test", hashed_password="9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
-    )
-    db_calendar = ObjUserModel.model_validate(user)
-    db_session.add(db_calendar)
-    db_session.commit()
-    db_session.refresh(db_calendar)
-
-
-# Uncomment the line below to seed the test user on first run:
-# create_user()

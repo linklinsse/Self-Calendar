@@ -1,4 +1,3 @@
-
 """
 app/common/config.py
 --------------------
@@ -16,7 +15,7 @@ Usage:
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# TODO Remake wiht default value and generate file if not existant
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file="./conf/.env",
@@ -25,7 +24,7 @@ class Settings(BaseSettings):
     )
 
     # ── General ───────────────────────────────────
-    USER_CREATION: str = True
+    USER_CREATION: bool = True
 
     # ── Authentication ──────────────────────────
     SECRET_KEY: str = "change-me"
@@ -34,6 +33,15 @@ class Settings(BaseSettings):
 
     # ── Database ────────────────────────────────
     DB_URL: str = "sqlite:///./dev.db"
+
+    # ── CORS ────────────────────────────────────
+    # Comma-separated list of allowed origins.
+    # Example in .env:  CORS_ORIGINS=http://localhost:5173,http://localhost:8080
+    CORS_ORIGINS: list[str] = [
+        "http://localhost",
+        "http://localhost:8080",
+        "http://localhost:5173",
+    ]
 
 
 # Single shared instance – import this, don't re-instantiate.
