@@ -32,7 +32,7 @@ def create_calendar(
     logged_user = get_logged_user_context()
     lnk_user_calendar_service.create_lnk_user_calendar(
         LnkUserCalendarSchemaCreate(
-            user_id=logged_user.id, calendar_id=db_calendar.id, right="O"
+            username=logged_user.username, calendar_id=db_calendar.id, right="O"
         ),
         session,
     )
