@@ -8,7 +8,7 @@ RED    := \033[0;31m
 NC     := \033[0m
 
 # Variables
-DOCKER_IMAGE := fastapi-app
+DOCKER_IMAGE := selfcalendar-api
 
 # ============================================================================
 # AIDE
@@ -82,5 +82,5 @@ lint-fix:
 
 docker-build:
 	@echo "$(GREEN)→ Construction Docker...$(NC)"
-	docker build -t $(DOCKER_IMAGE) .
+	docker build -t $(DOCKER_IMAGE):latest  .
 	@echo "$(GREEN)✓ Image: $(DOCKER_IMAGE)$(NC)"

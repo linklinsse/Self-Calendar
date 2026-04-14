@@ -21,6 +21,8 @@ CAP     := npx cap
 DIST    := dist
 SRC     := src
 
+DOCKER_IMAGE := selfcalendar-web
+
 # Detect OS for open command
 UNAME := $(shell uname -s 2>/dev/null || echo Windows)
 ifeq ($(UNAME),Darwin)
@@ -31,7 +33,7 @@ else
   OPEN := start
 endif
 
-.PHONY: all init dev build preview android ios sync lint clean help
+.PHONY: all init dev build preview android ios sync lint clean help docker-build
 
 # Default target
 all: build
@@ -113,3 +115,9 @@ clean:
 	@echo "→ Removing dist/ and node_modules/…"
 	rm -rf $(DIST) node_modules
 	@echo "✓ Clean complete."
+
+# ── docker ────────────────────────────────────────────────────
+docker-build:
+	@echo "$(GREEN)→ Construction Docker...$(NC)"
+	docker build -t $(DOCKER_IMAGE):latest  .
+	@echo "$(GREEN)✓ Image: $(DOCKER_IMAGE)$(NC)"

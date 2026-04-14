@@ -1,0 +1,23 @@
+services:
+  web:
+    image: selfcalendar-web:latest
+    container_name: SelfCalendar-web
+    labels:
+      "autoheal": "true"
+    restart: always
+    ports:
+      - 8686:80
+    environment:
+      MOCK_MODE: 'true'
+      API_BASE_URL: 'http://api:3000'
+      APP_NAME: 'Self Calendar'
+
+  api:
+    image: selfcalendar-api:latest
+    container_name: SelfCalendar-api
+    labels:
+      "autoheal": "true"
+    restart: always
+    volumes:
+      - ./conf:/work/app/conf
+      - ./db/prod.db:/work/app/prod.db
