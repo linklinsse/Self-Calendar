@@ -1,3 +1,4 @@
+from app.common.enums import CalendarRight
 from uuid import uuid4
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -21,6 +22,6 @@ class LnkUserCalendarModel(SQLModel, table=True):
     calendar_id: str = Field(
         nullable=False, index=True, foreign_key="obj_calendar.id"
     )
-    right: str = Field(nullable=False, min_length=1, max_length=1)
+    right: str = Field(nullable=False, min_length=1, max_length=1)  # stored as CalendarRight value
 
     obj_calendar: ObjCalendarModel = Relationship(back_populates="lnk_users")

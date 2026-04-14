@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 
 from app.common.db_connection import SessionDep
-from app.common.dependencies.verify_loged_user_dependency import verify_loged_user_dependency
-from app.common.contexts.loged_user_context import get_loged_user_context
+from app.common.dependencies.verify_logged_user_dependency import verify_logged_user_dependency
+from app.common.contexts.logged_user_context import get_logged_user_context
 from app.schemas.auth_schema import AuthSchema
 from app.schemas.obj_user_schema import ObjUserSchemaComplete, ObjUserSchemaCreate
 from app.services import auth_service, obj_user_service
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auths"])
 
 
 @router.post("/login")
@@ -25,8 +25,8 @@ async def register(new_user: ObjUserSchemaCreate, session: SessionDep) -> ObjUse
 @router.get(
     "/me",
     response_model=ObjUserSchemaComplete,
-    dependencies=[Depends(verify_loged_user_dependency)],
+    dependencies=[Depends(verify_logged_user_dependency)],
 )
 async def get_me() -> ObjUserSchemaComplete:
     """Return the profile of the currently authenticated user."""
-    return get_loged_user_context()
+    return get_logged_user_context()

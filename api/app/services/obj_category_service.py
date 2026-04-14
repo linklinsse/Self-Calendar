@@ -1,19 +1,19 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
-from app.common.contexts.loged_user_context import get_loged_user_context
-from app.common.utils.verif_user_right_calendar import verif_user_right_calendar
+from app.common.contexts.logged_user_context import get_logged_user_context
+from app.common.utils.verify_user_right_calendar import verify_user_right_calendar
 from app.models.obj_category_model import ObjCategoryModel
-from app.schemas.obj_category_schema import ObjCategoryCreate, ObjCategoryUpdate
+from app.schemas.obj_category_schema import ObjCategorySchemaCreate, ObjCategorySchemaEdit
 
 
 def create_category(
-    new_category: ObjCategoryCreate,
+    new_category: ObjCategorySchemaCreate,
     session: Session,
 ) -> ObjCategoryModel:
     # TODO fix it
-    # verif_user_right_calendar(
-    #     user_id=get_loged_user_context()
+    # verify_user_right_calendar(
+    #     user_id=get_logged_user_context()
     #     calendar_id=payload.calendar_id,
     #     required_right="W",
     # )
@@ -30,8 +30,8 @@ def get_categories_by_calendar(
     session: Session,
 ) -> list[ObjCategoryModel]:
     # TODO fix it
-    # verif_user_right_calendar(
-    #     user_id=get_loged_user_context()
+    # verify_user_right_calendar(
+    #     user_id=get_logged_user_context()
     #     calendar_id=payload.calendar_id,
     #     required_right="R",
     # )
@@ -54,8 +54,8 @@ def get_category(
         )
 
     # TODO fix it
-    # verif_user_right_calendar(
-    #     user_id=get_loged_user_context()
+    # verify_user_right_calendar(
+    #     user_id=get_logged_user_context()
     #     calendar_id=payload.calendar_id,
     #     required_right="R",
     # )
@@ -65,7 +65,7 @@ def get_category(
 
 def update_category(
     category_id: str,
-    payload: ObjCategoryUpdate,
+    payload: ObjCategorySchemaEdit,
     session: Session,
 ) -> ObjCategoryModel:
     category = session.get(ObjCategoryModel, category_id)
@@ -76,8 +76,8 @@ def update_category(
         )
 
     # TODO fix it
-    # verif_user_right_calendar(
-    #     user_id=get_loged_user_context()
+    # verify_user_right_calendar(
+    #     user_id=get_logged_user_context()
     #     calendar_id=payload.calendar_id,
     #     required_right="W",
     # )
@@ -104,8 +104,8 @@ def delete_category(
         )
 
     # TODO fix it
-    # verif_user_right_calendar(
-    #     user_id=get_loged_user_context()
+    # verify_user_right_calendar(
+    #     user_id=get_logged_user_context()
     #     calendar_id=payload.calendar_id,
     #     required_right="W",
     # )

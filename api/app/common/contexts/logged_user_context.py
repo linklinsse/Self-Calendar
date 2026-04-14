@@ -15,11 +15,11 @@ _loged_user: ContextVar[Optional[ObjUserModel]] = ContextVar(
 )
 
 
-def get_loged_user_context() -> ObjUserModel | None:
+def get_logged_user_context() -> ObjUserModel | None:
     """Return the authenticated user for the current request, or None."""
     return _loged_user.get()
 
 
-def set_loged_user_context(user: ObjUserModel | None):
+def set_logged_user_context(user: ObjUserModel | None):
     """Store the authenticated user for the current request."""
     _loged_user.set(user)

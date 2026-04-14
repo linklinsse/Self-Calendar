@@ -2,9 +2,9 @@ from fastapi import APIRouter
 
 from app.common.db_connection import SessionDep
 from app.schemas.obj_category_schema import (
-    ObjCategoryCreate,
-    ObjCategoryRead,
-    ObjCategoryUpdate,
+    ObjCategorySchemaCreate,
+    ObjCategorySchemaComplete,
+    ObjCategorySchemaEdit,
 )
 from app.services.obj_category_service import (
     create_category,
@@ -20,42 +20,42 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=ObjCategoryRead, status_code=201)
-def route_create_category(
-    payload: ObjCategoryCreate,
+@router.post("/", response_model=ObjCategorySchemaComplete, status_code=201)
+def create(
+    payload: ObjCategorySchemaCreate,
     session: SessionDep,
-) -> ObjCategoryRead:
+) -> ObjCategorySchemaComplete:
     return create_category(new_category=payload, session=session)
 
 
 @router.get(
     "/calendar/{calendar_id}",
-    response_model=list[ObjCategoryRead],
+    response_model=list[ObjCategorySchemaComplete],
 )
-def route_get_categories_by_calendar(
+def get_all(
     calendar_id: str,
     session: SessionDep,
-) -> list[ObjCategoryRead]:
+) -> list[ObjCategorySchemaComplete]:
     return get_categories_by_calendar(
         calendar_id=calendar_id,
         session=session,
     )
 
 
-@router.get("/{category_id}", response_model=ObjCategoryRead)
-def route_get_category(
+@router.get("/{category_id}", response_model=ObjCategorySchemaComplete)
+def get(
     category_id: str,
     session: SessionDep,
-) -> ObjCategoryRead:
+) -> ObjCategorySchemaComplete:
     return get_category(category_id=category_id, session=session)
 
 
-@router.patch("/{category_id}", response_model=ObjCategoryRead)
-def route_update_category(
+@router.patch("/{category_id}", response_model=ObjCategorySchemaComplete)
+def patch(
     category_id: str,
-    payload: ObjCategoryUpdate,
+    payload: ObjCategorySchemaEdit,
     session: SessionDep,
-) -> ObjCategoryRead:
+) -> ObjCategorySchemaComplete:
     return update_category(
         category_id=category_id,
         payload=payload,
@@ -64,7 +64,7 @@ def route_update_category(
 
 
 @router.delete("/{category_id}", status_code=204)
-def route_delete_category(
+def delete(
     category_id: str,
     session: SessionDep,
 ) -> None:

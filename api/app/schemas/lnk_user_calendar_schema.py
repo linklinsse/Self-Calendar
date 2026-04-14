@@ -1,18 +1,20 @@
 from pydantic import BaseModel
 
+from app.common.enums import CalendarRight
+
 
 class LnkUserCalendarSchemaComplete(BaseModel):
     id: str
     user_id: str
     calendar_id: str
-    right: str  # TODO Enum
+    right: CalendarRight
 
 
 class LnkUserCalendarSchemaCreate(BaseModel):
-    user_id: str
+    username: str       # resolved to user_id in the service layer
     calendar_id: str
-    right: str  # TODO Enum
+    right: CalendarRight
 
 
 class LnkUserCalendarSchemaEdit(BaseModel):
-    right: str  # TODO Enum
+    right: CalendarRight

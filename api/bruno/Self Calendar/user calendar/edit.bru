@@ -1,0 +1,22 @@
+meta {
+  name: edit
+  type: http
+  seq: 4
+}
+
+patch {
+  url: http://{{server_ip}}:{{server_port}}/user_calendar/{{membership_id}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "right": "W"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

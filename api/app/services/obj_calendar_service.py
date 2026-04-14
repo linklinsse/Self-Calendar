@@ -1,9 +1,9 @@
 from typing import List
 from sqlmodel import Session, exists, select
 
-from app.common.contexts.loged_user_context import get_loged_user_context
+from app.common.contexts.logged_user_context import get_logged_user_context
 from app.common.errors import AppErrorCode, raise_app_error
-from app.common.utils.verif_user_right_calendar import verif_user_right_calendar
+from app.common.utils.verify_user_right_calendar import verify_user_right_calendar
 from app.models.lnk_user_calendar_model import LnkUserCalendarModel
 from app.models.obj_calendar_model import ObjCalendarModel
 from app.schemas.obj_calendar_schema import (
@@ -29,7 +29,7 @@ def create_calendar(
     session.commit()
     session.refresh(db_calendar)
 
-    logged_user = get_loged_user_context()
+    logged_user = get_logged_user_context()
     lnk_user_calendar_service.create_lnk_user_calendar(
         LnkUserCalendarSchemaCreate(
             user_id=logged_user.id, calendar_id=db_calendar.id, right="O"
@@ -50,7 +50,7 @@ def get_calendar(calendar_id: str, session: Session) -> ObjCalendarSchemaComplet
     if not db_calendar:
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if not verif_user_right_calendar(get_loged_user_context(), db_calendar, "R"):
+    if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "R"):
         # Return 404 (not 403) to avoid leaking the calendar's existence.
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
@@ -59,7 +59,7 @@ def get_calendar(calendar_id: str, session: Session) -> ObjCalendarSchemaComplet
 
 def get_all_calendar(session: Session) -> List[ObjCalendarSchemaComplete]:
     """Return all calendars the current user is linked to (any permission level)."""
-    logged_user = get_loged_user_context()
+    logged_user = get_logged_user_context()
 
     return session.exec(
         select(ObjCalendarModel).where(
@@ -84,7 +84,7 @@ def edit_calendar(
     if not db_calendar:
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if not verif_user_right_calendar(get_loged_user_context(), db_calendar, "O"):
+    if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "O"):
         raise_app_error(AppErrorCode.INSUFFICIENT_RIGHTS)
 
     update_data = edited_calendar.model_dump(exclude_unset=True)
@@ -108,7 +108,7 @@ def delete_calendar(calendar_id: str, session: Session) -> None:
     if not db_calendar:
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if not verif_user_right_calendar(get_loged_user_context(), db_calendar, "O"):
+    if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "O"):
         raise_app_error(AppErrorCode.INSUFFICIENT_RIGHTS)
 
     session.delete(db_calendar)

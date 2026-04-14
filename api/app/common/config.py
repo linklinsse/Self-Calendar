@@ -35,13 +35,17 @@ class Settings(BaseSettings):
     DB_URL: str = "sqlite:///./dev.db"
 
     # ── CORS ────────────────────────────────────
-    # Comma-separated list of allowed origins.
-    # Example in .env:  CORS_ORIGINS=http://localhost:5173,http://localhost:8080
-    CORS_ORIGINS: list[str] = [
-        "http://localhost",
-        "http://localhost:8080",
-        "http://localhost:5173",
-    ]
+    # Empty by default — no cross-origin requests are allowed unless explicitly
+    # configured. Add origins in .env as a comma-separated list:
+    #   CORS_ORIGINS=http://localhost:5173,https://app.example.com
+    # A warning is printed at startup for every origin that is allowed.
+    CORS_ORIGINS: list[str] = []
+
+    # ── Rate limiting ────────────────────────────
+    # Number of consecutive failed requests from an IP before it is blocked.
+    RATE_LIMIT_MAX_FAILURES: int = 5
+    # How long (seconds) a blocked IP must wait before trying again.
+    RATE_LIMIT_TIMEOUT_SECONDS: int = 180
 
 
 # Single shared instance – import this, don't re-instantiate.

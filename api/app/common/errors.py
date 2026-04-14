@@ -45,6 +45,9 @@ class AppErrorCode(str, Enum):
     # Permissions
     INSUFFICIENT_RIGHTS = "INSUFFICIENT_RIGHTS"
 
+    # Rate limiting
+    RATE_LIMITED = "RATE_LIMITED"
+
 
 # ── 2. Human-readable messages ───────────────────────────────────────────────
 
@@ -80,6 +83,9 @@ _ERROR_MESSAGES: dict[AppErrorCode, str] = {
     AppErrorCode.INSUFFICIENT_RIGHTS: (
         "You do not have the required permission to perform this action."
     ),
+    AppErrorCode.RATE_LIMITED: (
+        "Too many failed attempts. Please try again later."
+    ),
 }
 
 
@@ -97,6 +103,7 @@ _ERROR_STATUS: dict[AppErrorCode, int] = {
     AppErrorCode.MEMBERSHIP_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     AppErrorCode.MEMBERSHIP_ALREADY_EXISTS: status.HTTP_409_CONFLICT,
     AppErrorCode.INSUFFICIENT_RIGHTS: status.HTTP_403_FORBIDDEN,
+    AppErrorCode.RATE_LIMITED: status.HTTP_429_TOO_MANY_REQUESTS,
 }
 
 

@@ -1,9 +1,9 @@
 from typing import List
 from sqlmodel import Session, select
 
-from app.common.contexts.loged_user_context import get_loged_user_context
+from app.common.contexts.logged_user_context import get_logged_user_context
 from app.common.errors import AppErrorCode, raise_app_error
-from app.common.utils.verif_user_right_calendar import verif_user_right_calendar
+from app.common.utils.verify_user_right_calendar import verify_user_right_calendar
 from app.models.obj_calendar_model import ObjCalendarModel
 from app.models.obj_event_model import ObjEventModel
 from app.schemas.obj_event_schema import (
@@ -26,7 +26,7 @@ def create_event(
     if not db_calendar:
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if not verif_user_right_calendar(get_loged_user_context(), db_calendar, "W"):
+    if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "W"):
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
     db_event = ObjEventModel.model_validate(new_event)
@@ -64,7 +64,7 @@ def get_all_event_between(
     if not db_calendar:
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if not verif_user_right_calendar(get_loged_user_context(), db_calendar, "R"):
+    if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "R"):
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
     statement = select(ObjEventModel).where(
@@ -89,8 +89,8 @@ def get_event(event_id: str, session: Session) -> ObjEventSchemaComplete:
     if not db_event:
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
-    if not verif_user_right_calendar(
-        get_loged_user_context(), db_event.obj_calendar, "R"
+    if not verify_user_right_calendar(
+        get_logged_user_context(), db_event.obj_calendar, "R"
     ):
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
@@ -108,8 +108,8 @@ def edit_event(
     if not db_event:
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
-    if not verif_user_right_calendar(
-        get_loged_user_context(), db_event.obj_calendar, "W"
+    if not verify_user_right_calendar(
+        get_logged_user_context(), db_event.obj_calendar, "W"
     ):
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
@@ -133,8 +133,8 @@ def delete_event(event_id: str, session: Session) -> None:
     if not db_event:
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
-    if not verif_user_right_calendar(
-        get_loged_user_context(), db_event.obj_calendar, "W"
+    if not verify_user_right_calendar(
+        get_logged_user_context(), db_event.obj_calendar, "W"
     ):
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 

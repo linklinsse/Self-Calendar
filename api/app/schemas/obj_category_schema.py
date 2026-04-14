@@ -1,20 +1,20 @@
 from pydantic import BaseModel
 
 
-class ObjCategoryBase(BaseModel):
+class ObjCategorySchemaBase(BaseModel):
     title: str
     color: str | None = None
 
 
-class ObjCategoryCreate(ObjCategoryBase):
+class ObjCategorySchemaCreate(ObjCategorySchemaBase):
     calendar_id: str
 
 
-class ObjCategoryUpdate(BaseModel):
+class ObjCategorySchemaEdit(BaseModel):
     title: str | None = None
     color: str | None = None
 
 
-class ObjCategoryRead(ObjCategoryBase):
+class ObjCategorySchemaComplete(ObjCategorySchemaBase):
     id: str
     calendar_id: str

@@ -17,6 +17,7 @@ class ObjCalendarSchemaCreate(BaseModel):
 
 
 class ObjCalendarSchemaEdit(BaseModel):
-    title: CommonFieldTitle
+    """All fields are optional — only provided fields are updated (PATCH semantics)."""
+    title: CommonFieldTitle | None = Field(default=None)
     description: str | None = Field(default=None)
     color: CommonFieldColor

@@ -6,8 +6,21 @@ meta {
 
 patch {
   url: http://{{server_ip}}:{{server_port}}/event/{{event_id}}
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "title": "Updated title",
+    "description": "Updated description",
+    "date_start": 1700000000,
+    "date_end": 1700007200,
+    "category_id": null,
+    "address": null,
+    "reminder": null,
+    "recurrence_id": null
+  }
 }
 
 settings {

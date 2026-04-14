@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from app.common.contexts.loged_user_context import get_loged_user_context
+from app.common.contexts.logged_user_context import get_logged_user_context
 from app.common.errors import raise_app_error, AppErrorCode
 from app.models.obj_user_model import ObjUserModel
 from app.schemas.obj_user_schema import ObjUserSchemaChangePassword, ObjUserSchemaCreate
@@ -30,9 +30,13 @@ def create_user(new_user: ObjUserSchemaCreate, session: Session) -> ObjUserModel
     """Register a new user account.
 
     Raises HTTP 401 if user creation is disabled via settings.
+    Raises HTTP 409 (USER_ALREADY_EXISTS) if the username is already taken.
     """
     if not settings.USER_CREATION:
         raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
+
+    if find_user_by_username(new_user.username, session):
+        raise_app_error(AppErrorCode.USER_ALREADY_EXISTS)
 
     db_user = ObjUserModel(
         username=new_user.username,
@@ -56,7 +60,7 @@ def update_user_password(
 
     Raises HTTP 401 if the old password is incorrect or no user is in context.
     """
-    logged_user = get_loged_user_context()
+    logged_user = get_logged_user_context()
     if not logged_user:
         raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
 

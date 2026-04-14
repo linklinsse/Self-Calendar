@@ -1,11 +1,11 @@
 meta {
-  name: get me
+  name: get all
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
-  url: http://{{server_ip}}:{{server_port}}/auth/me
+  url: http://{{server_ip}}:{{server_port}}/category/calendar/{{calendar_id}}
   body: none
   auth: inherit
 }
