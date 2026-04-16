@@ -20,36 +20,37 @@
   <!-- Inner wrapper: fixed 264px so content never reflows during width animation -->
   <div class="sidebar-inner">
 
-    <!-- Brand -->
-    <div class="logo">Self <em>Calendar</em></div>
-
-    <!-- ── Calendar filter list ── -->
-    <div class="section">
-      <CalendarList />
+    <!-- ── Sticky top: Brand ── -->
+    <div class="sidebar-top">
+      <div class="logo">Self <em>Calendar</em></div>
     </div>
 
-    <div class="divider" aria-hidden="true"></div>
+    <!-- ── Scrollable middle: calendars + categories ── -->
+    <div class="sidebar-scroll">
+      <div class="section">
+        <CalendarList />
+      </div>
 
-    <!-- ── Category filter list ── -->
-    <div class="section">
-      <CategoryList />
+      <div class="divider" aria-hidden="true"></div>
+
+      <div class="section">
+        <CategoryList />
+      </div>
     </div>
 
-    <!-- Spacer pushes footer content to the bottom -->
-    <div class="flex-spacer" aria-hidden="true"></div>
+    <!-- ── Sticky bottom: Theme + Sign out ── -->
+    <div class="sidebar-bottom">
+      <div class="section theme-section">
+        <p class="section-label">Theme</p>
+        <ThemePicker />
+      </div>
 
-    <!-- ── Theme picker ── -->
-    <div class="section theme-section">
-      <p class="section-label">Theme</p>
-      <ThemePicker />
+      <footer class="sb-footer">
+        <button class="foot-btn" onclick={logoutUser}>
+          <span aria-hidden="true">↩</span> Sign out
+        </button>
+      </footer>
     </div>
-
-    <!-- ── Sign out ── -->
-    <footer class="sb-footer">
-      <button class="foot-btn" onclick={logoutUser}>
-        <span aria-hidden="true">↩</span> Sign out
-      </button>
-    </footer>
 
   </div><!-- /sidebar-inner -->
 
@@ -96,13 +97,32 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 20px 14px 16px;
+    overflow: hidden;
+  }
+
+  /* ── Sticky top (logo) ───────────────────────────────────── */
+  .sidebar-top {
+    flex-shrink: 0;
+    padding: 20px 14px 0;
+  }
+
+  /* ── Scrollable middle (calendars + categories) ──────────── */
+  .sidebar-scroll {
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    padding: 0 14px;
+  }
+
+  /* ── Sticky bottom (theme + sign out) ───────────────────── */
+  .sidebar-bottom {
+    flex-shrink: 0;
+    padding: 0 14px 16px;
+    border-top: 1px solid var(--bdr-soft);
   }
 
   @media (max-width: 768px) {
-    .sidebar-inner {
+    .sidebar-bottom {
       padding-bottom: calc(66px + 16px);
     }
   }
@@ -120,7 +140,7 @@
 
   /* ── Sections ───────────────────────────────────────────── */
   .section        { flex-shrink: 0; padding: 8px 0; }
-  .theme-section  { padding-bottom: 4px; }
+  .theme-section  { padding-bottom: 4px; padding-top: 10px; }
 
   .section-label {
     font-size: 10px; font-weight: 500; color: var(--t3);
@@ -133,9 +153,6 @@
     height: 1px; background: var(--bdr-soft);
     margin: 4px 8px; flex-shrink: 0;
   }
-
-  /* ── Flexible spacer ────────────────────────────────────── */
-  .flex-spacer { flex: 1; min-height: 16px; }
 
   /* ── Footer ─────────────────────────────────────────────── */
   .sb-footer {

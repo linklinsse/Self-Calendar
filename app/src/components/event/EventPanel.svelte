@@ -197,11 +197,11 @@
         <div class="row-2">
           <div class="field">
             <label for="f-start">Start time</label>
-            <input id="f-start" type="time" bind:value={form.start} onchange={onStartTimeChange} />
+            <input id="f-start" type="time" lang="fr" bind:value={form.start} onchange={onStartTimeChange} />
           </div>
           <div class="field">
             <label for="f-end">End time</label>
-            <input id="f-end" type="time" bind:value={form.end} />
+            <input id="f-end" type="time" lang="fr" bind:value={form.end} />
           </div>
         </div>
       {/if}

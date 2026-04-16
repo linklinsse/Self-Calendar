@@ -19,8 +19,15 @@
     expandEventsForRange, midnight, computeColumns,
   } from '../../lib/utils.js';
 
-  const PX_HR = 58;
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+  // On mobile: shrink hour rows so all 24 fit without scrolling.
+  // topbar(56) + bottomNav(66) + wk-header(~70) = 192px overhead.
+  let windowHeight = $state(typeof window !== 'undefined' ? window.innerHeight : 900);
+  let isMobile = $derived(windowHeight <= 768);
+  let PX_HR = $derived(
+    isMobile ? Math.max(16, Math.floor((windowHeight - 192) / 24)) : 58
+  );
 
   let days       = $derived(weekDays($cursor));
   let rangeStart = $derived(days[0]);
@@ -98,7 +105,12 @@
   }
 
   let bodyEl;
-  onMount(() => { if (bodyEl) bodyEl.scrollTop = 7 * PX_HR; });
+  onMount(() => {
+    const onResize = () => { windowHeight = window.innerHeight; };
+    window.addEventListener('resize', onResize);
+    if (bodyEl && !isMobile) bodyEl.scrollTop = 7 * PX_HR;
+    return () => window.removeEventListener('resize', onResize);
+  });
 </script>
 
 <div class="week-view">
@@ -223,6 +235,11 @@
   /* ── Body ── */
   .wk-body { flex: 1; overflow-y: auto; overflow-x: auto; }
   .time-grid { display: grid; grid-template-columns: 54px repeat(7,1fr); min-width: 520px; }
+
+  @media (max-width: 768px) {
+    .wk-body { overflow: hidden; }
+    .time-grid { min-width: 0; }
+  }
 
   .time-gutter { border-right: 1px solid var(--bdr-soft); }
   .hour-lbl {

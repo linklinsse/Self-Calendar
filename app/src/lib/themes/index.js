@@ -22,10 +22,10 @@ import { electricYellow }   from './electricYellow.js';
 export const THEMES = {
   // ── Dark themes ──────────────────────────
   blushNoir,
-  sageDusk,
+  electricYellow,
   midnightInk,
   oceanBreeze,
-  electricYellow,
+  sageDusk,
 };
 
 /** Ordered list for the ThemePicker UI. */

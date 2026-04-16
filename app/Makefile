@@ -1,26 +1,17 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  SELF CALENDAR — Makefile                                    ║
-# ║                                                              ║
-# ║  Targets:                                                    ║
-# ║    make init          Install all dependencies               ║
-# ║    make dev           Start Vite dev server (hot reload)     ║
-# ║    make build         Production web build → dist/          ║
-# ║    make preview       Preview the production build locally   ║
-# ║    make android       Build + open in Android Studio         ║
-# ║    make ios           Build + open in Xcode                  ║
-# ║    make sync          Sync web assets to native platforms     ║
-# ║    make lint          Run svelte-check type-checking          ║
-# ║    make clean         Remove dist/ and node_modules/         ║
-# ╚══════════════════════════════════════════════════════════════╝
+.PHONY: help init dev build preview sync android ios lint clean docker-build
 
-# ── Configuration ────────────────────────────────────────────
-NODE    := node
-NPM     := npm
-CAP     := npx cap
+# Colors
+GREEN  := \033[0;32m
+YELLOW := \033[1;33m
+BLUE   := \033[0;34m
+RED    := \033[0;31m
+NC     := \033[0m
 
-DIST    := dist
-SRC     := src
-
+# Variables
+NODE         := node
+NPM          := npm
+CAP          := npx cap
+DIST         := dist
 DOCKER_IMAGE := selfcalendar-web
 
 # Detect OS for open command
@@ -33,91 +24,123 @@ else
   OPEN := start
 endif
 
-.PHONY: all init dev build preview android ios sync lint clean help docker-build
+# ============================================================================
+# HELP
+# ============================================================================
 
-# Default target
-all: build
-
-# ── help ─────────────────────────────────────────────────────
 help:
+	@echo "$(BLUE)╔═══════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║            Makefile - Self Calendar (Web)                 ║$(NC)"
+	@echo "$(BLUE)╚═══════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "  Self Calendar — available targets:"
+	@echo "$(GREEN)Setup & Installation:$(NC)"
+	@echo "  make init             - Install dependencies + Capacitor platforms"
 	@echo ""
-	@echo "  make init        Install npm dependencies + Capacitor"
-	@echo "  make dev         Start Vite dev server with HMR"
-	@echo "  make build       Production web build → dist/"
-	@echo "  make preview     Preview the production build"
-	@echo "  make android     Build web + sync + open Android Studio"
-	@echo "  make ios         Build web + sync + open Xcode"
-	@echo "  make sync        Sync latest web build to native platforms"
-	@echo "  make lint        Run svelte-check (type/style checks)"
-	@echo "  make clean       Remove dist/ and node_modules/"
+	@echo "$(GREEN)Development:$(NC)"
+	@echo "  make dev              - Start Vite dev server (hot reload)"
+	@echo ""
+	@echo "$(GREEN)Build & Preview:$(NC)"
+	@echo "  make build            - Production web build → $(DIST)/"
+	@echo "  make preview          - Preview the production build locally"
+	@echo ""
+	@echo "$(GREEN)Native (Capacitor):$(NC)"
+	@echo "  make sync             - Sync web assets to native platforms"
+	@echo "  make android          - Build + sync + open Android Studio"
+	@echo "  make ios              - Build + sync + open Xcode"
+	@echo ""
+	@echo "$(GREEN)Quality:$(NC)"
+	@echo "  make lint             - Run svelte-check (type & style checks)"
+	@echo ""
+	@echo "$(GREEN)Docker:$(NC)"
+	@echo "  make docker-build     - Build the Docker image"
+	@echo ""
+	@echo "$(GREEN)Maintenance:$(NC)"
+	@echo "  make clean            - Remove $(DIST)/ and node_modules/"
 	@echo ""
 
-# ── init ─────────────────────────────────────────────────────
-# Install web deps, then install Capacitor CLI + native platforms
+# ============================================================================
+# SETUP
+# ============================================================================
+
 init:
-	@echo "→ Installing npm dependencies…"
+	@echo "$(GREEN)→ Installing npm dependencies…$(NC)"
 	$(NPM) install
-	@echo "→ Installing Capacitor CLI + plugins…"
+	@echo "$(GREEN)→ Installing Capacitor CLI + plugins…$(NC)"
 	$(NPM) install --save-dev \
 	  @capacitor/cli \
 	  @capacitor/core \
 	  @capacitor/android \
 	  @capacitor/ios
-	@echo "→ Initialising Capacitor (if not already done)…"
+	@echo "$(GREEN)→ Initialising Capacitor (if not already done)…$(NC)"
 	@if [ ! -f capacitor.config.json ]; then \
 	  $(CAP) init "Self Calendar" "app.selfcalendar.app" --web-dir dist; \
 	fi
-	@echo "→ Adding native platforms (if not present)…"
+	@echo "$(GREEN)→ Adding native platforms (if not present)…$(NC)"
 	@if [ ! -d android ]; then $(CAP) add android; fi
 	@if [ ! -d ios ];     then $(CAP) add ios;     fi
-	@echo "✓ Init complete. Run 'make dev' to start."
+	@echo ""
+	@echo "$(GREEN)✅ Init complete. Run 'make dev' to start.$(NC)"
 
-# ── dev ──────────────────────────────────────────────────────
+# ============================================================================
+# DEVELOPMENT
+# ============================================================================
+
 dev:
+	@echo "$(GREEN)→ Starting Vite dev server…$(NC)"
 	$(NPM) run dev
 
-# ── build ────────────────────────────────────────────────────
-build:
-	@echo "→ Building production web assets…"
-	$(NPM) run build
-	@echo "✓ Web build complete → $(DIST)/"
+# ============================================================================
+# BUILD & PREVIEW
+# ============================================================================
 
-# ── preview ──────────────────────────────────────────────────
+build:
+	@echo "$(GREEN)→ Building production web assets…$(NC)"
+	$(NPM) run build
+	@echo "$(GREEN)✅ Build complete → $(DIST)/$(NC)"
+
 preview: build
+	@echo "$(GREEN)→ Starting preview server…$(NC)"
 	$(NPM) run preview
 
-# ── sync ─────────────────────────────────────────────────────
-# Copy the latest dist/ output into android/assets and ios
-sync: build
-	@echo "→ Syncing web assets to native platforms…"
-	$(CAP) sync
-	@echo "✓ Sync complete."
+# ============================================================================
+# NATIVE (CAPACITOR)
+# ============================================================================
 
-# ── android ──────────────────────────────────────────────────
+sync: build
+	@echo "$(GREEN)→ Syncing web assets to native platforms…$(NC)"
+	$(CAP) sync
+	@echo "$(GREEN)✓ Sync complete.$(NC)"
+
 android: sync
-	@echo "→ Opening Android Studio…"
+	@echo "$(GREEN)→ Opening Android Studio…$(NC)"
 	$(CAP) open android
 
-# ── ios ──────────────────────────────────────────────────────
 ios: sync
-	@echo "→ Opening Xcode…"
+	@echo "$(GREEN)→ Opening Xcode…$(NC)"
 	$(CAP) open ios
 
-# ── lint ─────────────────────────────────────────────────────
+# ============================================================================
+# QUALITY
+# ============================================================================
+
 lint:
-	@echo "→ Running svelte-check…"
+	@echo "$(GREEN)→ Running svelte-check…$(NC)"
 	$(NPM) run check
 
-# ── clean ────────────────────────────────────────────────────
-clean:
-	@echo "→ Removing dist/ and node_modules/…"
-	rm -rf $(DIST) node_modules
-	@echo "✓ Clean complete."
+# ============================================================================
+# DOCKER
+# ============================================================================
 
-# ── docker ────────────────────────────────────────────────────
 docker-build:
-	@echo "$(GREEN)→ Construction Docker...$(NC)"
-	docker build -t $(DOCKER_IMAGE):latest  .
+	@echo "$(GREEN)→ Building Docker image…$(NC)"
+	docker build -t $(DOCKER_IMAGE):latest .
 	@echo "$(GREEN)✓ Image: $(DOCKER_IMAGE)$(NC)"
+
+# ============================================================================
+# MAINTENANCE
+# ============================================================================
+
+clean:
+	@echo "$(RED)→ Removing $(DIST)/ and node_modules/…$(NC)"
+	rm -rf $(DIST) node_modules
+	@echo "$(GREEN)✓ Clean complete.$(NC)"

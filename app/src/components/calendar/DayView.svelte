@@ -16,7 +16,13 @@
     expandEventsForRange, midnight, computeColumns,
   } from '../../lib/utils.js';
 
-  const PX_HR = 62;
+  // On mobile: shrink hour rows so all 24 fit without scrolling.
+  // topbar(56) + bottomNav(66) + day-header(~70) = 192px overhead.
+  let windowHeight = $state(typeof window !== 'undefined' ? window.innerHeight : 900);
+  let isMobile = $derived(windowHeight <= 768);
+  let PX_HR = $derived(
+    isMobile ? Math.max(16, Math.floor((windowHeight - 192) / 24)) : 62
+  );
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
   let today   = $derived(isToday($cursor));
@@ -79,7 +85,12 @@
   }
 
   let bodyEl;
-  onMount(() => { if (bodyEl) bodyEl.scrollTop = 7 * PX_HR; });
+  onMount(() => {
+    const onResize = () => { windowHeight = window.innerHeight; };
+    window.addEventListener('resize', onResize);
+    if (bodyEl && !isMobile) bodyEl.scrollTop = 7 * PX_HR;
+    return () => window.removeEventListener('resize', onResize);
+  });
 </script>
 
 <div class="day-view">
@@ -185,6 +196,10 @@
   .allday-pill:hover { opacity: .78; }
 
   .day-body { flex: 1; overflow-y: auto; display: flex; }
+
+  @media (max-width: 768px) {
+    .day-body { overflow: hidden; }
+  }
 
   .time-col { width: 58px; flex-shrink: 0; border-right: 1px solid var(--bdr-soft); }
   .hour-lbl {

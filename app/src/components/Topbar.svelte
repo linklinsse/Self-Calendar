@@ -9,7 +9,7 @@
 
   import ViewSwitcher from './ui/ViewSwitcher.svelte';
   import {
-    currentView, cursor, sidebarOpen, filterDrawerOpen, openAddPanel,
+    currentView, cursor, sidebarOpen, openAddPanel,
   } from '../lib/stores/index.js';
   import { MONTH_NAMES, MONTH_ABBR, DAY_NAMES, formatWeekRange } from '../lib/utils.js';
 
@@ -76,18 +76,7 @@
     <span aria-hidden="true">＋</span> New event
   </button>
 
-  <!-- Filter icon (mobile only) -->
-  <button
-    class="icon-btn mobile-only"
-    onclick={() => $filterDrawerOpen = true}
-    aria-label="Open filters"
-  >
-    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
-      <rect x="0" y="0"  width="16" height="1.8" rx=".9" fill="currentColor"/>
-      <rect x="2" y="6"  width="12" height="1.8" rx=".9" fill="currentColor"/>
-      <rect x="4" y="12" width="8"  height="1.8" rx=".9" fill="currentColor"/>
-    </svg>
-  </button>
+
 
 </header>
 
