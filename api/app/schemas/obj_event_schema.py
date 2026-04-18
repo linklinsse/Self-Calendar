@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.schemas.common_fields import CommonFieldTitle
+from app.schemas.obj_event_recurence_schema import ObjEventRecurenceSchemaComplete, ObjEventRecurenceSchemaEdit, ObjEventRecurenceSchemaCreate
 
 
 class ObjEventSchemaComplete(BaseModel):
@@ -13,7 +14,8 @@ class ObjEventSchemaComplete(BaseModel):
     category_id: str | None = Field(default=None)
     address: str | None = Field(default=None)
     reminder: str | None = Field(default=None)
-    recurrence_id: str | None = Field(default=None)
+    recurence_id: str | None = Field(default=None)
+    obj_recurence: ObjEventRecurenceSchemaComplete | None = Field(default=None)
 
 
 class ObjEventSchemaCreate(BaseModel):
@@ -25,7 +27,8 @@ class ObjEventSchemaCreate(BaseModel):
     category_id: str | None = Field(default=None)
     address: str | None = Field(default=None)
     reminder: str | None = Field(default=None)
-    recurrence_id: str | None = Field(default=None)
+    recurence_id: str | None = Field(default=None)
+    obj_recurence: ObjEventRecurenceSchemaCreate | None = Field(default=None)
 
 
 class ObjEventSchemaEdit(BaseModel):
@@ -37,4 +40,5 @@ class ObjEventSchemaEdit(BaseModel):
     category_id: str | None = Field(default=None)
     address: str | None = Field(default=None)
     reminder: str | None = Field(default=None)
-    recurrence_id: str | None = Field(default=None)
+    recurence_id: str | None = Field(default=None)
+    obj_recurence: ObjEventRecurenceSchemaCreate | ObjEventRecurenceSchemaEdit | None = Field(default=None)

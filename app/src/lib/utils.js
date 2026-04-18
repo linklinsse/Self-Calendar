@@ -6,7 +6,7 @@
  * All other functions are side-effect free and fully testable in isolation.
  */
 
-import { FIRST_DAY_OF_WEEK, LOCALE } from './config.js';
+import { FIRST_DAY_OF_WEEK, LOCALE, HOUR_FORMAT } from './config.js';
 
 // ── Constants ─────────────────────────────────────────────────
 export const MONTH_NAMES = [
@@ -285,16 +285,33 @@ export function minutesToTime(m) {
 export function formatTime(t) {
   if (!t) return '';
   const [h, m] = t.split(':').map(Number);
+  if (HOUR_FORMAT === '24') return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   const suffix  = h < 12 ? 'AM' : 'PM';
   const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${display}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
 export function hourLabel(h) {
-  if (h === 0)  return '';
+  if (h === 0) return '';
+  if (HOUR_FORMAT === '24') return `${String(h).padStart(2, '0')}:00`;
   if (h < 12)  return `${h} AM`;
   if (h === 12) return '12 PM';
   return `${h - 12} PM`;
+}
+
+// ── ISO week number ───────────────────────────────────────────
+
+/**
+ * Returns the ISO 8601 week number for a given date (week starts Monday).
+ * @param {Date} date
+ * @returns {number}
+ */
+export function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7; // Mon=1 … Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - day); // nearest Thursday
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
 
 // ── Formatting ────────────────────────────────────────────────

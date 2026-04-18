@@ -201,17 +201,18 @@ The `right` field is set on `UserCalendar` objects returned by `/user_calendar/`
 
 ## Environment variables
 
-All variables can be set in `.env.local` (gitignored). The defaults work for local development without any backend.
+All variables can be set in `.env.local` (gitignored) prefixed with `VITE_` for local dev (e.g. `VITE_MOCK_MODE=false`), or without prefix in Docker via `window.__ENV__`. The `VITE_` prefix is a Vite requirement and is added automatically by `config.js` when looking up build-time values. The defaults work for local development without any backend.
 
-| Variable                 | Default                     | Description                                     |
-|--------------------------|-----------------------------|-------------------------------------------------|
-| `VITE_MOCK_MODE`         | `true`                      | Use sample data; set `false` for real API       |
-| `VITE_API_BASE_URL`      | `http://localhost:3000/api` | Backend API root (no trailing slash)            |
-| `VITE_THEME`             | `blushNoir`                 | Default theme key                               |
-| `VITE_APP_NAME`          | `Self Calendar`             | App name shown in tab title + login screen      |
-| `VITE_DEFAULT_VIEW`      | `month`                     | Starting calendar view: `month` / `week` / `day`|
-| `VITE_FIRST_DAY_OF_WEEK` | `1` (Monday)                | `0`=Sunday · `1`=Monday · `6`=Saturday         |
-| `VITE_LOCALE`            | `fr-FR`                     | BCP 47 locale tag for `Intl` date formatting    |
+| Variable            | Default                     | Description                                     |
+|---------------------|-----------------------------|-------------------------------------------------|
+| `MOCK_MODE`         | `true`                      | Use sample data; set `false` for real API       |
+| `API_BASE_URL`      | `http://localhost:3000/api` | Backend API root (no trailing slash)            |
+| `THEME`             | `blushNoir`                 | Default theme key                               |
+| `APP_NAME`          | `Self Calendar`             | App name shown in tab title + login screen      |
+| `DEFAULT_VIEW`      | `month`                     | Starting calendar view: `month` / `week` / `day`|
+| `FIRST_DAY_OF_WEEK` | `1` (Monday)                | `0`=Sunday · `1`=Monday · `6`=Saturday         |
+| `LOCALE`            | `fr-FR`                     | BCP 47 locale tag for `Intl` date formatting    |
+| `HOUR_FORMAT`       | `24`                        | Time display: `12` for AM/PM · `24` for 24-hour |
 
 ---
 
@@ -240,24 +241,3 @@ docker run -p 8080:80 self-calendar
 ```
 
 ---
-
-## Changelog
-
-| # | Issue | Fix |
-|---|-------|-----|
-| 1 | All-day events jumping to bottom of time grid | Events with no `start` time are treated as all-day, preventing `timeToMinutes(null)` placing them at row ~1400px |
-| 2 | Overlapping timed events rendered on top of each other | Added `computeColumns()` in `utils.js` — greedy column layout; WeekView and DayView both use it |
-| 3 | Short events (< 30 min) had unreadable titles | Short blocks use `font-weight: 700`, hide the time label, and use tighter padding |
-| 4 | Calendar/category filters had no effect in week/day view | Converted event lists to reactive derived stores so Svelte tracks the full dependency chain |
-| 5 | Sidebar hamburger was a no-op on desktop | Sidebar collapses to `width: 0` on desktop when `sidebarOpen` is false |
-| 6 | Auth token lost on page reload | `restoreSession()` called on mount reads `sc_auth_token` from localStorage and re-hydrates all stores |
-| 7 | Changing week/day did not fetch new events | `CalendarBody` uses `$effect` on `cursor` + `currentView` to call `loadEvents` with the correct date window |
-| 8 | Events with no color not inheriting category color | `visibleEvents` derived store resolves color: event color → category color → default |
-| 9 | `src/lib/theme.js` and `src/lib/stores.js` were dead files | Deleted — superseded by `src/lib/themes/` and `src/lib/stores/` respectively |
-| 10 | Register UI existed but was dead (`if (false)` guard) | LoginScreen simplified to login-only; register tab removed |
-| 11 | `cursor` hardcoded to March 2026 | Changed to `new Date()` so app opens on today; sample events use today-relative offsets |
-| 12 | `FIRST_DAY_OF_WEEK` and `LOCALE` config exported but never used | `weekStart`, `buildMonthGrid`, `DAY_ABBR_MON` now respect `FIRST_DAY_OF_WEEK`; date formatting uses `Intl.DateTimeFormat(LOCALE)` |
-| 13 | Legacy `calendar`/`category`/`location`/`desc` alias fields on every event object | Migration complete — all code uses canonical `calendar_id` / `category_id` / `adresse` / `description` |
-| 14 | `api.js` re-exported `MOCK_MODE` and `API_BASE_URL` from config | Removed re-exports; services import config values directly from `config.js` |
-| 15 | `nextId()` with mutable module state lived in `utils.js` ("no side effects") | Moved into `stores/events.js` as a private function beside its only caller |
-| 16 | `role` vs `right` naming inconsistency across components and README | Unified on `right` everywhere to match the API schema |

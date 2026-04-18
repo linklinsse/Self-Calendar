@@ -18,6 +18,7 @@
     timeToMinutes, minutesToTime,
     describeRecurrence,
   } from '../../lib/utils.js';
+  import { HOUR_FORMAT } from '../../lib/config.js';
 
   // ── Form state ──────────────────────────────────────────────
   let form          = $state({});
@@ -197,11 +198,11 @@
         <div class="row-2">
           <div class="field">
             <label for="f-start">Start time</label>
-            <input id="f-start" type="time" lang="fr" bind:value={form.start} onchange={onStartTimeChange} />
+            <input id="f-start" type="time" lang={HOUR_FORMAT === '24' ? 'fr' : 'en-US'} bind:value={form.start} onchange={onStartTimeChange} />
           </div>
           <div class="field">
             <label for="f-end">End time</label>
-            <input id="f-end" type="time" lang="fr" bind:value={form.end} />
+            <input id="f-end" type="time" lang={HOUR_FORMAT === '24' ? 'fr' : 'en-US'} bind:value={form.end} />
           </div>
         </div>
       {/if}

@@ -21,8 +21,8 @@ export const MOCK_USER = { id: 'user-1', login: 'demo', name: 'Demo User', avata
  * @param {string} calendarId
  */
 export const MOCK_USER_CALENDARS = calendarId => [
-  { id: 'lnk-1', user_id: 'user-1', calendar_id: calendarId, right: 'O' },
-  { id: 'lnk-2', user_id: 'user-2', calendar_id: calendarId, right: 'W' },
+  { id: 'lnk-1', user_id: 'user-1', username: 'demo',  calendar_id: calendarId, right: 'O' },
+  { id: 'lnk-2', user_id: 'user-2', username: 'alice', calendar_id: calendarId, right: 'W' },
 ];
 
 // ─── Colours ───────────────────────────────────────────────────
@@ -175,5 +175,112 @@ export const sampleEvents = [
     start: '22:00', end: '02:00',
     calendar_id: 'personal', category_id: 'personal', color: CAT_COLORS.personal,
     adresse: '', description: 'Hacking on the project.', recurrence_id: null,
+  },
+  {
+    id: 16, title: 'Weekly review',
+    startDate: d(-7), endDate: d(-7), allDay: false,
+    start: '17:00', end: '17:30',
+    calendar_id: 'work', category_id: 'work', color: CAT_COLORS.work,
+    adresse: 'Remote', description: 'End-of-week wrap-up.', recurrence_id: null,
+    recurrence: { type: 'weekly', interval: 1, days: [], endType: 'never', count: null, until: null },
+  },
+  {
+    id: 17, title: 'Dentist 🦷',
+    startDate: d(-9), endDate: d(-9), allDay: false,
+    start: '09:30', end: '10:30',
+    calendar_id: 'personal', category_id: 'health', color: CAT_COLORS.health,
+    adresse: 'Dr. Fontaine', description: 'Routine cleaning.', recurrence_id: null,
+  },
+  {
+    id: 18, title: 'Client presentation',
+    startDate: d(-11), endDate: d(-11), allDay: false,
+    start: '14:00', end: '15:30',
+    calendar_id: 'work', category_id: 'work', color: CAT_COLORS.work,
+    adresse: 'Zoom', description: 'Q2 results deck.', recurrence_id: null,
+  },
+  {
+    id: 19, title: 'Family dinner 🍽',
+    startDate: d(-5), endDate: d(-5), allDay: false,
+    start: '19:30', end: '22:00',
+    calendar_id: 'family', category_id: 'family', color: CAT_COLORS.health,
+    adresse: 'Parents place', description: 'Sunday roast.', recurrence_id: null,
+  },
+  {
+    id: 20, title: 'Hackathon 🚀',
+    startDate: d(8), endDate: d(9), allDay: true,
+    start: null, end: null,
+    calendar_id: 'work', category_id: 'work', color: CAT_COLORS.work,
+    adresse: 'Station F', description: '48h build sprint.', recurrence_id: null,
+  },
+  {
+    id: 21, title: 'Pilates',
+    startDate: d(7), endDate: d(7), allDay: false,
+    start: '08:00', end: '09:00',
+    calendar_id: 'personal', category_id: 'health', color: CAT_COLORS.health,
+    adresse: 'Studio Zen', description: 'Mat pilates.', recurrence_id: null,
+    recurrence: { type: 'weekly', interval: 1, days: [2, 4], endType: 'never', count: null, until: null },
+  },
+  {
+    id: 22, title: 'Cinema night 🎬',
+    startDate: d(10), endDate: d(10), allDay: false,
+    start: '20:30', end: '23:00',
+    calendar_id: 'personal', category_id: 'social', color: CAT_COLORS.social,
+    adresse: 'UGC Ciné Cité', description: 'New thriller with Jules.', recurrence_id: null,
+  },
+  {
+    id: 23, title: 'Quarterly OKRs',
+    startDate: d(12), endDate: d(12), allDay: false,
+    start: '10:00', end: '12:00',
+    calendar_id: 'work', category_id: 'work', color: CAT_COLORS.work,
+    adresse: 'HQ', description: 'Set Q3 objectives.', recurrence_id: null,
+  },
+  {
+    id: 24, title: 'Anniversary dinner ❤️',
+    startDate: d(14), endDate: d(14), allDay: false,
+    start: '20:00', end: '23:00',
+    calendar_id: 'personal', category_id: 'personal', color: CAT_COLORS.personal,
+    adresse: 'Chez Pierre', description: '5 years!', recurrence_id: null,
+  },
+  {
+    id: 25, title: 'Half marathon 🏃',
+    startDate: d(18), endDate: d(18), allDay: false,
+    start: '08:30', end: '11:30',
+    calendar_id: 'personal', category_id: 'health', color: CAT_COLORS.health,
+    adresse: 'Bois de Vincennes', description: '21km race day.', recurrence_id: null,
+  },
+  {
+    id: 26, title: 'School holiday',
+    startDate: d(20), endDate: d(25), allDay: true,
+    start: null, end: null,
+    calendar_id: 'family', category_id: 'family', color: CAT_COLORS.health,
+    adresse: '', description: 'Kids off school.', recurrence_id: null,
+  },
+  {
+    id: 27, title: 'Ski trip ⛷',
+    startDate: d(21), endDate: d(24), allDay: false,
+    start: '07:00', end: '20:00',
+    calendar_id: 'personal', category_id: 'travel', color: CAT_COLORS.travel,
+    adresse: 'Les Deux Alpes', description: 'Family ski weekend.', recurrence_id: null,
+  },
+  {
+    id: 28, title: 'Onboarding Thomas',
+    startDate: d(-13), endDate: d(-13), allDay: false,
+    start: '09:00', end: '11:00',
+    calendar_id: 'work', category_id: 'work', color: CAT_COLORS.work,
+    adresse: 'Office', description: 'Welcome new hire.', recurrence_id: null,
+  },
+  {
+    id: 29, title: 'Yoga retreat',
+    startDate: d(-15), endDate: d(-14), allDay: true,
+    start: null, end: null,
+    calendar_id: 'personal', category_id: 'health', color: CAT_COLORS.health,
+    adresse: 'Normandie', description: 'Weekend detox.', recurrence_id: null,
+  },
+  {
+    id: 30, title: 'Budget review',
+    startDate: d(-6), endDate: d(-6), allDay: false,
+    start: '11:00', end: '12:00',
+    calendar_id: 'work', category_id: 'work', color: CAT_COLORS.work,
+    adresse: 'Finance room', description: 'Monthly accounts.', recurrence_id: null,
   },
 ];

@@ -4,7 +4,7 @@
    *
    * Uses ViewSwitcher widget (shared with BottomNav).
    * Desktop: hamburger | period | prev/next | Today | ─── | ViewSwitcher | + New
-   * Mobile:  hamburger | period | prev/next | ─── | filter-icon
+   * Mobile:  hamburger | period(flex:1 centered) | prev/next | Today
    */
 
   import ViewSwitcher from './ui/ViewSwitcher.svelte';
@@ -61,8 +61,8 @@
     <button class="nav-btn" onclick={navNext} aria-label="Next">›</button>
   </nav>
 
-  <!-- Today (desktop only) -->
-  <button class="today-btn desktop-only" onclick={goToday}>Today</button>
+  <!-- Today (desktop + mobile) -->
+  <button class="today-btn" onclick={goToday}>Today</button>
 
   <div class="spacer"></div>
 
@@ -104,6 +104,7 @@
     font-family: var(--f-display);
     font-size: var(--fs-xl, 24px);
     font-weight: 300; letter-spacing: .02em; white-space: nowrap;
+    min-width: 130px;   /* reserve space for longest month "September" */
   }
   .period-year {
     font-family: var(--f-display);
@@ -150,9 +151,20 @@
   .mobile-only  { display: none; }
 
   @media (max-width: 768px) {
-    .topbar       { padding: 0 12px; gap: 6px; height: 56px; }
+    .topbar       { padding: 0 10px; gap: 4px; height: 56px; }
     .desktop-only { display: none !important; }
     .mobile-only  { display: flex; }
-    .period-main  { font-size: clamp(16px, 4vw, 22px); }
+
+    /* Period takes remaining space and centers its text so nav buttons
+       are always anchored at a fixed position regardless of label length */
+    .period       { flex: 1; justify-content: center; min-width: 0; }
+    .period-main  { font-size: clamp(14px, 3.5vw, 19px); min-width: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .period-year  { font-size: clamp(12px, 3vw, 16px); }
+
+    /* Compact today button — same row as nav */
+    .today-btn    { padding: 5px 9px; font-size: 11px; border-radius: 12px; }
+
+    /* Hide spacer on mobile (period already grows) */
+    .spacer       { display: none; }
   }
 </style>

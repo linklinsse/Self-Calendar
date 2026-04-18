@@ -25,3 +25,14 @@ class CalendarRight(str, Enum):
     READ  = "R"  # Can read the calendar and its events
     WRITE = "W"  # All of READ + create / edit / delete events
     OWNER = "O"  # All of WRITE + edit / delete the calendar, manage members
+
+
+class EventRecurenceType(str, Enum):
+    DAILY = "D"
+    WEEKLY = "W"
+    MONTHLY = "M"
+
+class EventRecurenceEndType(str, Enum):
+    NEVER = "N"
+    COUNT = "C"
+    UNTIL = "U"

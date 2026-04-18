@@ -11,6 +11,7 @@ from app.schemas.obj_event_schema import (
     ObjEventSchemaCreate,
     ObjEventSchemaEdit,
 )
+from app.services import obj_event_recurente_service
 
 
 def create_event(
@@ -30,6 +31,11 @@ def create_event(
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
     db_event = ObjEventModel.model_validate(new_event)
+
+    if (new_event.obj_recurence != None):
+        db_event_recurence = obj_event_recurente_service.create_event_recurence(new_event.recurence, session)
+        db_event.recurence_id = db_event_recurence.id
+
     session.add(db_event)
     session.commit()
     session.refresh(db_event)
@@ -112,6 +118,13 @@ def edit_event(
         get_logged_user_context(), db_event.obj_calendar, "W"
     ):
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
+
+    if (edited_event.obj_recurence != None):
+        db_event_recurence = obj_event_recurente_service.create_event_recurence(db_event.recurence, session)
+        edited_event.recurence_id = db_event_recurence.id
+
+    if (db_event.recurence != None):
+        obj_event_recurente_service.delete_event_recurence(db_event.recurence_id, session)
 
     update_data = edited_event.model_dump(exclude_unset=True)
     for key, value in update_data.items():

@@ -21,13 +21,13 @@
 
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-  // On mobile: shrink hour rows so all 24 fit without scrolling.
-  // topbar(56) + bottomNav(66) + wk-header(~70) = 192px overhead.
+  // Always fit all 24 hours on screen without scrolling.
+  // topbar(56) + bottomNav(66) + wk-header(~70) = 192px on narrow screens.
+  // topbar(56) + wk-header(~70) = 126px on desktop (no bottom nav).
   let windowHeight = $state(typeof window !== 'undefined' ? window.innerHeight : 900);
-  let isMobile = $derived(windowHeight <= 768);
-  let PX_HR = $derived(
-    isMobile ? Math.max(16, Math.floor((windowHeight - 192) / 24)) : 58
-  );
+  let windowWidth  = $state(typeof window !== 'undefined' ? window.innerWidth  : 1200);
+  let overhead = $derived(windowWidth <= 768 ? 192 : 126);
+  let PX_HR = $derived(Math.max(16, Math.floor((windowHeight - overhead) / 24)));
 
   let days       = $derived(weekDays($cursor));
   let rangeStart = $derived(days[0]);
@@ -106,9 +106,8 @@
 
   let bodyEl;
   onMount(() => {
-    const onResize = () => { windowHeight = window.innerHeight; };
+    const onResize = () => { windowHeight = window.innerHeight; windowWidth = window.innerWidth; };
     window.addEventListener('resize', onResize);
-    if (bodyEl && !isMobile) bodyEl.scrollTop = 7 * PX_HR;
     return () => window.removeEventListener('resize', onResize);
   });
 </script>
@@ -233,12 +232,32 @@
   .allday-pill:hover { opacity: .78; }
 
   /* ── Body ── */
-  .wk-body { flex: 1; overflow-y: auto; overflow-x: auto; }
-  .time-grid { display: grid; grid-template-columns: 54px repeat(7,1fr); min-width: 520px; }
+  .wk-body { flex: 1; overflow-y: hidden; overflow-x: hidden; }
+  .time-grid { display: grid; grid-template-columns: 54px repeat(7,1fr); }
 
   @media (max-width: 768px) {
-    .wk-body { overflow: hidden; }
-    .time-grid { min-width: 0; }
+    .wk-header { grid-template-columns: 40px repeat(7,1fr); }
+    .time-grid  { grid-template-columns: 40px repeat(7,1fr); }
+    .gutter-head { min-width: 40px; }
+
+    /* Fixed-height col-head: never grows due to allday events */
+    .col-head { height: 54px; min-height: 0; overflow: hidden; padding: 4px 2px 3px; }
+    .col-dow  { font-size: 9px; }
+    .col-num  { font-size: 15px; width: 26px; height: 26px; }
+
+    /* Replace text pills with colored dots so the header stays fixed-height */
+    .allday-row { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 2px; max-height: 10px; overflow: hidden; }
+    .allday-pill {
+      width: 6px; height: 6px; border-radius: 50%;
+      padding: 0; font-size: 0; line-height: 0;
+      flex-shrink: 0; box-shadow: none;
+    }
+
+    /* Timed event blocks: compact title like month view pills */
+    .ev-title { font-size: 9px; }
+    .ev-block.short .ev-title { font-size: 9px; }
+    .ev-time  { display: none; }
+    .ev-block { padding: 2px 3px; border-radius: 3px; }
   }
 
   .time-gutter { border-right: 1px solid var(--bdr-soft); }
@@ -281,8 +300,4 @@
   }
   .ev-block.short .ev-title { font-size: 11px; font-weight: 700; }
   .ev-time { display: block; font-size: 10px; opacity: .85; margin-top: 1px; font-weight: 500; }
-
-  @media (max-width: 768px) {
-    .col-num { font-size: 17px; width: 28px; height: 28px; }
-  }
 </style>

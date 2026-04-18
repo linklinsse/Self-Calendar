@@ -136,20 +136,30 @@ export function openDuplicatePanel(id) {
 
 // ── User-Calendar member management ──────────────────────────
 
-export async function addCalendarMember(calId, userId, right) {
-  const link = await calSvc.addUserCalendar({ user_id: userId, calendar_id: calId, right });
+export async function addCalendarMember(calId, username, right) {
+  const link = await calSvc.addUserCalendar({ username, calendar_id: calId, right });
   showToast(`User added with right "${right}"`, 'success');
   return link;
 }
 
 export async function changeCalendarMemberRole(lnkId, right) {
-  await calSvc.updateUserCalendar(lnkId, { right });
-  showToast('Right updated', 'success');
+  try {
+    await calSvc.updateUserCalendar(lnkId, { right });
+    showToast('Right updated', 'success');
+  } catch (e) {
+    showToast('Failed to update right: ' + e.message, 'error');
+    throw e;
+  }
 }
 
 export async function removeCalendarMember(lnkId) {
-  await calSvc.deleteUserCalendar(lnkId);
-  showToast('Member removed');
+  try {
+    await calSvc.deleteUserCalendar(lnkId);
+    showToast('Member removed');
+  } catch (e) {
+    showToast('Failed to remove member: ' + e.message, 'error');
+    throw e;
+  }
 }
 
 function _bumpHour(t) {

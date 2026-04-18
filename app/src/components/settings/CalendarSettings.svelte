@@ -13,7 +13,7 @@
 
   import { fly, fade } from 'svelte/transition';
   import {
-    calSettingsId, calendars,
+    calSettingsId, calendars, currentUser,
     updateCalendar, removeCalendar,
     addCalendarMember, changeCalendarMemberRole, removeCalendarMember,
     showToast,
@@ -75,12 +75,16 @@
   }
 
   // ── Members tab state ──────────────────────────────────────
-  /** @type {import('../../lib/services/calendar.service').Member[]} */
   let members        = $state([]);
   let membersLoading = $state(false);
   let inviteEmail    = $state('');
-  let inviteRole     = $state('write');
+  let inviteRole     = $state('R');
   let inviting       = $state(false);
+
+  // Sort self to the top
+  let sortedMembers = $derived(
+    [...members].sort((a, b) => (a.user_id === $currentUser?.id ? -1 : 1) - (b.user_id === $currentUser?.id ? -1 : 1))
+  );
 
   // Load members when the Members tab is activated
   $effect(() => { if (activeTab === 'members' && cal) { loadMembers(); } });
@@ -100,7 +104,6 @@
     if (!inviteEmail.trim()) return;
     inviting = true;
     try {
-      // API expects user_id; here we treat the input value as the user_id
       const m = await addCalendarMember(cal.id, inviteEmail.trim(), inviteRole);
       members  = [...members, m];
       inviteEmail = '';
@@ -111,17 +114,25 @@
     }
   }
 
-  // UserCalendar shape: { id, user_id, calendar_id, right }
+  // UserCalendar shape: { id, user_id, username, calendar_id, right }
   // m.id   = the link id  (used for PATCH/DELETE)
-  // m.right = 'read' | 'write' | 'owner'
+  // m.right = 'R' | 'W' | 'O'
   async function changeRole(lnkId, right) {
-    await changeCalendarMemberRole(lnkId, right);
-    members = members.map(m => m.id === lnkId ? { ...m, right } : m);
+    try {
+      await changeCalendarMemberRole(lnkId, right);
+      members = members.map(m => m.id === lnkId ? { ...m, right } : m);
+    } catch {
+      // toast already shown by store
+    }
   }
 
   async function removeMember(lnkId) {
-    await removeCalendarMember(lnkId);
-    members = members.filter(m => m.id !== lnkId);
+    try {
+      await removeCalendarMember(lnkId);
+      members = members.filter(m => m.id !== lnkId);
+    } catch {
+      // toast already shown by store
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────
@@ -133,11 +144,6 @@
 
   function onBackdropClick(e) {
     if (e.target === e.currentTarget) closeSettings();
-  }
-
-  /** Initials from a name, e.g. "John Doe" → "JD" */
-  function initials(name = '') {
-    return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
 </script>
 
@@ -276,7 +282,7 @@
               class="invite-email"
               disabled={inviting}
             />
-            <select bind:value={inviteRole} class="invite-role" disabled={inviting}>
+            <select bind:value={inviteRole} class="invite-role" disabled={inviting} required>
               {#each ROLES as r}
                 <option value={r.value}>{r.label}</option>
               {/each}
@@ -308,16 +314,16 @@
           <p class="empty-msg">No members yet.</p>
         {:else}
           <ul class="member-list">
-            {#each members as m (m.id)}
-              <li class="member-row">
-                <!-- Avatar using username initials -->
-                <div class="avatar" aria-hidden="true">
-                  <span>{(m.username ?? m.user_id ?? '?').slice(0, 2).toUpperCase()}</span>
-                </div>
+            {#each sortedMembers as m (m.id)}
+              {@const isMe = m.user_id === $currentUser?.id}
+              <li class="member-row" class:is-me={isMe}>
 
-                <!-- Info: username only -->
+                <!-- Info: username + "You" badge -->
                 <div class="member-info">
-                  <span class="member-name">{m.username ?? m.user_id}</span>
+                  <span class="member-name">
+                    {m.username}
+                    {#if isMe}<span class="you-badge">You</span>{/if}
+                  </span>
                 </div>
 
                 <!-- Right selector -->
@@ -325,20 +331,24 @@
                   class="role-select"
                   value={m.right}
                   onchange={e => changeRole(m.id, e.target.value)}
-                  aria-label="Right for {m.username ?? m.user_id}"
+                  aria-label="Right for {m.username}"
                 >
                   {#each ROLES as r}
                     <option value={r.value}>{r.label}</option>
                   {/each}
                 </select>
 
-                <!-- Remove button -->
-                <button
-                  class="remove-btn"
-                  onclick={() => removeMember(m.id)}
-                  aria-label="Remove {m.username ?? m.user_id}"
-                  title="Remove member"
-                >✕</button>
+                <!-- Remove button (hidden for self) -->
+                {#if !isMe}
+                  <button
+                    class="remove-btn"
+                    onclick={() => removeMember(m.id)}
+                    aria-label="Remove {m.username}"
+                    title="Remove member"
+                  >✕</button>
+                {:else}
+                  <div class="remove-placeholder"></div>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -537,21 +547,25 @@
     transition: border-color .15s;
   }
   .member-row:hover { border-color: var(--bdr); }
-
-  /* Avatar circle */
-  .avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--bg-raised); flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600; color: var(--t2);
-    overflow: hidden;
+  .member-row.is-me {
+    border-color: var(--acc-dim);
+    background: var(--acc-bg);
   }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
   .member-info {
     flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0;
   }
-  .member-name { font-size: 13px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .member-name {
+    font-size: 13px; color: var(--t1);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .you-badge {
+    font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    padding: 1px 7px; border-radius: 20px;
+    background: var(--acc); color: #1a0812; flex-shrink: 0;
+  }
+  .remove-placeholder { width: 28px; height: 28px; flex-shrink: 0; }
 
   .role-select {
     width: auto; padding: 6px 28px 6px 10px; font-size: 12px; flex-shrink: 0;

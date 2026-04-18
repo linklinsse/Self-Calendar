@@ -20,9 +20,9 @@
   import { onMount }    from 'svelte';
   import { sidebarOpen } from '../lib/stores/index.js';
 
-  // Open sidebar by default on desktop; keep closed on mobile
+  // Open sidebar on desktop, always keep closed on mobile
   onMount(() => {
-    if (window.innerWidth >= 769) sidebarOpen.set(true);
+    sidebarOpen.set(window.innerWidth >= 769);
   });
 </script>
 

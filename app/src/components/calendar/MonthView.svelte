@@ -1,12 +1,20 @@
 <script>
+  import { onMount } from 'svelte';
   import {
     cursor, currentView, visibleEvents,
     openAddPanel, modalEventId,
   } from '../../lib/stores/index.js';
   import {
     buildMonthGrid, DAY_ABBR_MON, sameDay, isToday,
-    expandEventsForRange, midnight,
+    expandEventsForRange, midnight, getISOWeek,
   } from '../../lib/utils.js';
+
+  let isMobile = $state(typeof window !== 'undefined' && window.innerWidth <= 768);
+  onMount(() => {
+    const onResize = () => { isMobile = window.innerWidth <= 768; };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  });
 
   let year  = $derived($cursor.getFullYear());
   let month = $derived($cursor.getMonth());
@@ -89,26 +97,46 @@
     return m;
   })());
 
-  const BANNER_H   = 22;
-  const BANNER_GAP =  2;
-  const CELL_TOP   = 30;
-  const MAX_DOTS   =  5;
+  let BANNER_H  = $derived(isMobile ? 14 : 22);
+  let BANNER_GAP = $derived(isMobile ?  1 :  2);
+  let CELL_TOP   = $derived(isMobile ? 24 : 30);
+  const MAX_DOTS =  5;
 
   function onCellClick(d)     { cursor.set(new Date(d)); $currentView = 'day'; }
   function onOccClick(occ, e) { e.stopPropagation(); $modalEventId = occ.ev.id; }
+  function goToWeek(rowIndex) { cursor.set(new Date(grid[rowIndex * 7])); $currentView = 'week'; }
 </script>
 
 <div class="month-view">
 
-  <div class="dow-row" role="row">
-    {#each DAY_ABBR_MON as name}
-      <span class="dow-cell" role="columnheader">{name}</span>
-    {/each}
+  <!-- ── Header: corner + day-of-week labels ── -->
+  <div class="header-row">
+    <div class="wk-corner">Wk</div>
+    <div class="dow-row" role="row">
+      {#each DAY_ABBR_MON as name}
+        <span class="dow-cell" role="columnheader">{name}</span>
+      {/each}
+    </div>
   </div>
 
-  <div class="grid-wrap">
+  <!-- ── Body: week numbers + calendar grid ── -->
+  <div class="body-row">
 
-    <!-- Layer 1: cells -->
+    <!-- Week number buttons -->
+    <div class="week-col" style="grid-template-rows: repeat({weeks}, 1fr)">
+      {#each Array(weeks) as _, r}
+        <button
+          class="wk-num"
+          onclick={() => goToWeek(r)}
+          title="Go to week {getISOWeek(grid[r * 7])}"
+          aria-label="Week {getISOWeek(grid[r * 7])}, go to week view"
+        >{getISOWeek(grid[r * 7])}</button>
+      {/each}
+    </div>
+
+    <div class="grid-wrap">
+
+      <!-- Layer 1: cells -->
     <div
       class="cell-layer"
       role="grid"
@@ -216,21 +244,61 @@
       {/each}
     </div>
 
-  </div>
+    </div><!-- /grid-wrap -->
+
+  </div><!-- /body-row -->
 </div>
 
 <style>
   .month-view { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
+  /* ── Header row: corner + day labels ── */
+  .header-row {
+    display: flex; flex-shrink: 0;
+    border-bottom: 1px solid var(--bdr-soft);
+    background: var(--bg-surf);
+  }
+  .wk-corner {
+    width: 32px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--fs-xs,13px); font-weight: 600; color: var(--t3);
+    text-transform: uppercase; letter-spacing: .07em;
+    border-right: 1px solid var(--bdr-soft);
+  }
   .dow-row {
+    flex: 1;
     display: grid; grid-template-columns: repeat(7,1fr);
-    background: var(--bg-surf); border-bottom: 1px solid var(--bdr-soft); flex-shrink: 0;
   }
   .dow-cell {
     text-align: center; padding: 9px 0;
     font-size: var(--fs-xs,13px); font-weight: 600; color: var(--t2);
     text-transform: uppercase; letter-spacing: .07em;
   }
+
+  /* ── Body row: week numbers + grid ── */
+  .body-row {
+    flex: 1; display: flex; overflow: hidden; min-height: 0;
+  }
+
+  /* Week number strip */
+  .week-col {
+    width: 32px; flex-shrink: 0;
+    display: grid;
+    border-right: 1px solid var(--bdr-soft);
+    background: var(--bg-surf);
+  }
+  .wk-num {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--t3);
+    cursor: pointer; border: none; background: none;
+    transition: color .12s, background .12s;
+    border-bottom: 1px solid var(--bdr-soft);
+  }
+  .wk-num:last-child { border-bottom: none; }
+  .wk-num:hover {
+    color: var(--acc); background: color-mix(in srgb, var(--acc) 8%, transparent);
+  }
+  .wk-num:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
 
   .grid-wrap {
     flex: 1; overflow: hidden;
@@ -241,8 +309,6 @@
   .banner-layer {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    /* grid-template-rows set via inline style (repeat(weeks, 1fr))
-       so both layers always have the EXACT same number of rows */
   }
 
   .cell-layer {
@@ -331,10 +397,24 @@
   @media (max-width: 768px) {
     .cell      { padding: 3px 2px 1px; }
     .cell-num  { font-size: var(--fs-xs,13px); width: 22px; height: 22px; }
-    .ev-pill   { font-size: 10px; }
-  }
-  @media (max-width: 380px) {
-    .ev-pill { display: none; }
-    .cell.has-ev .cell-num { box-shadow: 0 0 0 2px var(--acc); }
+    .wk-corner, .week-col { width: 24px; }
+    .wk-num    { font-size: 10px; }
+
+    /* On mobile, show event title in a compact pill — allday and timed are identical */
+    .ev-pill,
+    .ev-pill--allday {
+      height: auto; min-height: 0;
+      padding: 1px 2px 1px 3px;
+      gap: 2px;
+      border-radius: 3px;
+      font-size: 9px;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pill-dot { width: 4px; height: 4px; flex-shrink: 0; }
+    .overflow-row { padding: 1px 2px; gap: 2px; }
+    .ov-dot { width: 5px; height: 5px; }
   }
 </style>

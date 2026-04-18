@@ -112,7 +112,9 @@ function serialise(ev) {
  * @returns {Promise<CalEvent[]>}
  */
 export async function fetchEvents(filters = {}) {
-  if (MOCK_MODE) return sampleEvents.map(deserialise);
+  // sampleEvents already use the internal format (Date objects, start/end strings)
+  // — do NOT pass through deserialise which expects API unix timestamps.
+  if (MOCK_MODE) return [...sampleEvents];
 
   const { calendarId, from, to, categoryId } = filters;
   if (!calendarId || !from || !to) return [];
@@ -134,8 +136,7 @@ export async function fetchEvents(filters = {}) {
  */
 export async function fetchEvent(id) {
   if (MOCK_MODE) {
-    const ev = sampleEvents.find(e => e.id === id);
-    return ev ? deserialise(ev) : null;
+    return sampleEvents.find(e => e.id === id) ?? null;
   }
   const data = await api.get(`/event/${id}`);
   return deserialise(data);

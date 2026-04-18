@@ -11,7 +11,6 @@ class ObjCalendarModel(SQLModel, table=True):
     id: str = Field(primary_key=True, default_factory=lambda: str(uuid4()))
     title: str = Field(nullable=False, max_length=255)
     description: str | None = Field(nullable=True, default="")
-    # Hex color code (e.g. "#3A86FF") used for display purposes
     color: str = Field(nullable=True, min_length=7, max_length=7)
 
     # Relationships — not stored as columns, resolved by SQLModel via FK
