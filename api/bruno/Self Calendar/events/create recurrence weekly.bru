@@ -1,7 +1,7 @@
 meta {
-  name: create recurrence
+  name: create recurrence weekly
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
@@ -21,11 +21,11 @@ body:json {
     "address": null,
     "reminder": null,
     "obj_recurence": {
-      "type": "D",
+      "type": "W",
       "interval": 1,
-      "days": null,
-      "endType": "N",
-      "count": null,
+      "days": "1111100",
+      "endType": "C",
+      "count": 25,
       "until": null
     }
   }

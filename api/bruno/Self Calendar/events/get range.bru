@@ -1,18 +1,18 @@
 meta {
   name: get range
   type: http
-  seq: 4
+  seq: 6
 }
 
 get {
-  url: http://{{server_ip}}:{{server_port}}/event/range/{{calendar_id}}?from_date=00&to_date=111
+  url: http://{{server_ip}}:{{server_port}}/event/range/{{calendar_id}}?from_date=1600000000&to_date=1800000000
   body: none
   auth: inherit
 }
 
 params:query {
-  from_date: 00
-  to_date: 111
+  from_date: 1600000000
+  to_date: 1800000000
 }
 
 settings {

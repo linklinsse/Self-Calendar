@@ -1,0 +1,41 @@
+meta {
+  name: create recurrence Monthly
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://{{server_ip}}:{{server_port}}/event
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "calendar_id": "{{calendar_id}}",
+    "title": "My Event",
+    "description": "My description",
+    "date_start": 1700000000,
+    "date_end": 1700003600,
+    "category_id": null,
+    "address": null,
+    "reminder": null,
+    "obj_recurence": {
+      "type": "M",
+      "interval": 12,
+      "days": null,
+      "endType": "U",
+      "count": null,
+      "until": 1800000000
+    }
+  }
+}
+
+vars:post-response {
+  event_id: res.body.id
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

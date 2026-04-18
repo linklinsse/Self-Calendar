@@ -30,11 +30,12 @@ def create_event(
     if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "W"):
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    db_event = ObjEventModel.model_validate(new_event)
-
     if (new_event.obj_recurence != None):
-        db_event_recurence = obj_event_recurente_service.create_event_recurence(new_event.recurence, session)
-        db_event.recurence_id = db_event_recurence.id
+        db_event_recurence = obj_event_recurente_service.create_event_recurence(new_event.obj_recurence, session)
+        new_event.recurence_id = db_event_recurence.id
+        new_event.obj_recurence = db_event_recurence
+
+    db_event = ObjEventModel.model_validate(new_event)
 
     session.add(db_event)
     session.commit()
