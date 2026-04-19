@@ -9,22 +9,12 @@
    * That's 4 logical items, clean on any phone width.
    */
   import ViewSwitcher from './ui/ViewSwitcher.svelte';
-  import { sidebarOpen, cursor, openAddPanel } from '../lib/stores/index.js';
-
-  function goToday() { cursor.set(new Date()); }
+  import { sidebarOpen, openAddPanel } from '../lib/stores/index.js';
 </script>
 
 <nav class="bottom-nav" aria-label="Mobile navigation">
 
-  <!-- Sidebar / filter toggle -->
-  <button class="bn-btn" onclick={() => $sidebarOpen = !$sidebarOpen} aria-label="Menu and filters">
-    <svg width="20" height="15" viewBox="0 0 20 15" fill="none" aria-hidden="true">
-      <rect y="0"   width="20" height="2" rx="1" fill="currentColor"/>
-      <rect y="6.5" width="15" height="2" rx="1" fill="currentColor"/>
-      <rect y="13"  width="20" height="2" rx="1" fill="currentColor"/>
-    </svg>
-    <span>Menu</span>
-  </button>
+  <div></div>
 
   <!-- View switcher (compact M/W/D) -->
   <ViewSwitcher compact={true} />
@@ -34,14 +24,6 @@
     <span aria-hidden="true">＋</span>
   </button>
 
-  <!-- Today -->
-  <button class="bn-btn" onclick={goToday} aria-label="Go to today">
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <circle cx="9" cy="9" r="7"  stroke="currentColor" stroke-width="1.6"/>
-      <circle cx="9" cy="9" r="2"  fill="currentColor"/>
-    </svg>
-    <span>Today</span>
-  </button>
 
 </nav>
 

@@ -31,6 +31,7 @@ class EventRecurenceType(str, Enum):
     DAILY = "D"
     WEEKLY = "W"
     MONTHLY = "M"
+    YEARLY = "Y"
 
 class EventRecurenceEndType(str, Enum):
     NEVER = "N"

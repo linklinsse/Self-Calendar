@@ -18,6 +18,7 @@
 import { MOCK_MODE } from '../config.js';
 import { api } from './api.js';
 import { sampleEvents } from '../sampleData.js';
+import { toInputDate, parseInputDate } from '../utils.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,9 +36,88 @@ import { sampleEvents } from '../sampleData.js';
  * @property {string}        [adresse]     — location / address (API field)
  * @property {string}        [description]
  * @property {string}        [reminder]
- * @property {string}        [recurrence_id]
+ * @property {Object|null}   [recurrence]  — internal recurrence rule (see below)
  * @property {string}        color         — derived from category, not stored in API
  */
+
+// ─── Recurrence conversion helpers ───────────────────────────────────────────
+//
+// Internal format (used by the form and utils.js):
+//   { type: 'daily'|'weekly'|'monthly'|'yearly', interval: number,
+//     days: number[],        ← JS day indices 0=Sun…6=Sat
+//     endType: 'never'|'count'|'until', count: number, until: 'YYYY-MM-DD' }
+//
+// API format (obj_recurence):
+//   { type: 'D'|'W'|'M'|'Y', interval: number,
+//     days: '1111100',        ← 7-char bitmask Mon-first
+//     endType: 'N'|'C'|'U',  count: number|null, until: unix|null }
+
+const TYPE_TO_API    = { daily:'D', weekly:'W', monthly:'M', yearly:'Y' };
+const TYPE_FROM_API  = { D:'daily', W:'weekly', M:'monthly', Y:'yearly' };
+const END_TO_API     = { never:'N', count:'C', until:'U' };
+const END_FROM_API   = { N:'never', C:'count', U:'until' };
+
+/**
+ * Convert internal recurrence to API obj_recurence shape.
+ * @param {Object|null} rec — internal recurrence
+ * @returns {Object|null}
+ */
+function toApiRecurrence(rec) {
+  if (!rec) return null;
+
+  // Internal days (0=Sun…6=Sat) → Mon-first bitmask
+  // Internal day d maps to bitmask position (d + 6) % 7
+  const bits = Array(7).fill('0');
+  for (const d of (rec.days ?? [])) bits[(d + 6) % 7] = '1';
+
+  // until: 'YYYY-MM-DD' string → unix timestamp
+  let until = null;
+  if (rec.endType === 'until' && rec.until) {
+    until = Math.floor(parseInputDate(rec.until).getTime() / 1000);
+  }
+
+  return {
+    type:     TYPE_TO_API[rec.type]    ?? 'D',
+    interval: rec.interval ?? 1,
+    days:     bits.join(''),
+    endType:  END_TO_API[rec.endType]  ?? 'N',
+    count:    rec.endType === 'count'  ? (rec.count ?? 1) : null,
+    until,
+  };
+}
+
+/**
+ * Convert API obj_recurence to internal recurrence shape.
+ * @param {Object|null} apiRec
+ * @returns {Object|null}
+ */
+function fromApiRecurrence(apiRec) {
+  if (!apiRec) return null;
+
+  // Mon-first bitmask → internal days array (0=Sun…6=Sat)
+  // Bitmask position i maps to internal day (i + 1) % 7
+  const days = [];
+  if (typeof apiRec.days === 'string') {
+    for (let i = 0; i < 7; i++) {
+      if (apiRec.days[i] === '1') days.push((i + 1) % 7);
+    }
+  }
+
+  // until: unix timestamp → 'YYYY-MM-DD' string
+  let until = null;
+  if (apiRec.until != null) {
+    until = toInputDate(new Date(apiRec.until * 1000));
+  }
+
+  return {
+    type:     TYPE_FROM_API[apiRec.type]    ?? 'daily',
+    interval: apiRec.interval ?? 1,
+    days,
+    endType:  END_FROM_API[apiRec.endType]  ?? 'never',
+    count:    apiRec.count ?? 5,
+    until,
+  };
+}
 
 // ─── Serialisation helpers ────────────────────────────────────────────────────
 
@@ -47,6 +127,7 @@ import { sampleEvents } from '../sampleData.js';
  * @returns {CalEvent}
  */
 function deserialise(raw) {
+  const { obj_recurence, ...rest } = raw;
   const startDate = new Date(raw.date_start * 1000);
   const endDate   = new Date(raw.date_end   * 1000);
 
@@ -60,13 +141,14 @@ function deserialise(raw) {
   const endMM   = String(endDate.getMinutes()).padStart(2, '0');
 
   return {
-    ...raw,
+    ...rest,
     startDate,
     endDate,
     allDay,
-    start: allDay ? null : `${startHH}:${startMM}`,
-    end:   allDay ? null : `${endHH}:${endMM}`,
-    color: raw.color ?? '#b8c9f4',
+    start:      allDay ? null : `${startHH}:${startMM}`,
+    end:        allDay ? null : `${endHH}:${endMM}`,
+    color:      raw.color ?? '#b8c9f4',
+    recurrence: fromApiRecurrence(obj_recurence ?? null),
   };
 }
 
@@ -96,9 +178,9 @@ function serialise(ev) {
     date_start:    Math.floor(startDate.getTime() / 1000),
     date_end:      Math.floor(endDate.getTime()   / 1000),
     category_id:   ev.category_id ?? null,
-    adresse:       ev.adresse ?? null,
+    address:       ev.adresse ?? null,
     reminder:      ev.reminder ?? null,
-    recurrence_id: ev.recurrence_id ?? null,
+    obj_recurence: toApiRecurrence(ev.recurrence ?? null),
   };
 }
 

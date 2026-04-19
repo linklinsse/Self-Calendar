@@ -109,6 +109,7 @@
   /* ── Scrollable middle (calendars + categories) ──────────── */
   .sidebar-scroll {
     flex: 1;
+    min-height: 0; /* prevent flex item from overflowing and pushing bottom section off screen */
     overflow-y: auto;
     overflow-x: hidden;
     padding: 0 14px;

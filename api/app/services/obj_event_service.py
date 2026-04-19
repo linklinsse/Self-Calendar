@@ -1,5 +1,5 @@
 from typing import List
-from sqlmodel import Session, select
+from sqlmodel import Session, select, and_, or_
 
 from app.common.contexts.logged_user_context import get_logged_user_context
 from app.common.errors import AppErrorCode, raise_app_error
@@ -74,10 +74,23 @@ def get_all_event_between(
     if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "R"):
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
+
     statement = select(ObjEventModel).where(
         ObjEventModel.calendar_id == calendar_id,
-        ObjEventModel.date_end >= from_date,
-        ObjEventModel.date_start <= to_date,
+        or_(
+            # Non-recurring: must overlap the requested window
+            and_(
+                ObjEventModel.recurence_id == None,
+                ObjEventModel.date_end >= from_date,
+                ObjEventModel.date_start <= to_date,
+            ),
+            # Recurring: fetch all that started before the window ends;
+            # recurrence expansion + filtering happens in the app layer
+            and_(
+                ObjEventModel.recurence_id != None,
+                ObjEventModel.date_start <= to_date,
+            ),
+        ),
     )
 
     if category_id is not None:
@@ -111,6 +124,7 @@ def edit_event(
 
     Requires at least "W" (Write) permission on the parent calendar.
     """
+
     db_event = session.get(ObjEventModel, event_id)
     if not db_event:
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
@@ -121,10 +135,11 @@ def edit_event(
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
     if (edited_event.obj_recurence != None):
-        db_event_recurence = obj_event_recurente_service.create_event_recurence(db_event.recurence, session)
+        db_event_recurence = obj_event_recurente_service.create_event_recurence(edited_event.obj_recurence, session)
         edited_event.recurence_id = db_event_recurence.id
+        edited_event.obj_recurence = None
 
-    if (db_event.recurence != None):
+    if (db_event.obj_recurence != None):
         obj_event_recurente_service.delete_event_recurence(db_event.recurence_id, session)
 
     update_data = edited_event.model_dump(exclude_unset=True)

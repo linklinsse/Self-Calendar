@@ -240,24 +240,25 @@
     .time-grid  { grid-template-columns: 40px repeat(7,1fr); }
     .gutter-head { min-width: 40px; }
 
-    /* Fixed-height col-head: never grows due to allday events */
-    .col-head { height: 54px; min-height: 0; overflow: hidden; padding: 4px 2px 3px; }
+    /* col-head: auto height so all-day title pills can render */
+    .col-head { height: auto; min-height: 54px; overflow: hidden; padding: 4px 2px 3px; }
     .col-dow  { font-size: 9px; }
     .col-num  { font-size: 15px; width: 26px; height: 26px; }
 
-    /* Replace text pills with colored dots so the header stays fixed-height */
-    .allday-row { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 2px; max-height: 10px; overflow: hidden; }
+    /* All-day pills: small text pills matching MonthView mobile style */
+    .allday-row { flex-direction: column; gap: 2px; max-height: 28px; overflow: hidden; }
     .allday-pill {
-      width: 6px; height: 6px; border-radius: 50%;
-      padding: 0; font-size: 0; line-height: 0;
-      flex-shrink: 0; box-shadow: none;
+      width: 100%; border-radius: 3px;
+      padding: 1px 3px; font-size: 8px; font-weight: 600; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: left; box-shadow: none;
     }
 
-    /* Timed event blocks: compact title like month view pills */
-    .ev-title { font-size: 9px; }
-    .ev-block.short .ev-title { font-size: 9px; }
+    /* Timed event blocks: match MonthView mobile pill exactly */
+    .ev-title { font-size: 9px !important; font-weight: 600; line-height: 1.25; }
+    .ev-block.short .ev-title { font-size: 9px; font-weight: 600; line-height: 1.25; }
     .ev-time  { display: none; }
-    .ev-block { padding: 2px 3px; border-radius: 3px; }
+    .ev-block { padding: 1px 2px 1px 3px;}
   }
 
   .time-gutter { border-right: 1px solid var(--bdr-soft); }
@@ -281,7 +282,7 @@
   /* Timed event blocks */
   .ev-block {
     position: absolute;
-    border-radius: 5px; padding: 3px 6px;
+    border-radius: 5px; font-weight: 600;
     overflow: hidden; z-index: 1; text-align: left;
     cursor: pointer; transition: opacity .12s, filter .12s;
     min-width: 0;
@@ -294,8 +295,8 @@
   .ev-block.clipped-end   { border-top-left-radius: 0;    border-top-right-radius: 0; }
 
   .ev-title {
-    display: block; font-size: 12px; font-weight: 700;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block; font-size: 8px; font-weight: 700;
+    white-space: nowrap; overflow: hidden;
     line-height: 1.2;
   }
   .ev-block.short .ev-title { font-size: 11px; font-weight: 700; }
