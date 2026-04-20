@@ -1,5 +1,7 @@
 from typing import List
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from typing import Annotated
+from sys import maxsize
 
 from app.common.db_connection import SessionDep
 from app.schemas.obj_event_schema import (
@@ -23,25 +25,27 @@ async def create(
     return obj_event_service.create_event(new_event, session)
 
 
-@router.get("/range/{calendar_id}", response_model=List[ObjEventSchemaComplete])
+@router.get("/range", response_model=List[ObjEventSchemaComplete])
 async def get_all(
-    calendar_id: str,
-    from_date: int,
-    to_date: int,
     session: SessionDep,
-    category_id: str | None = None,
+    calendar_ids: Annotated[list[str] | None, Query()] = [],
+    from_date: int | None = 0,
+    to_date: int | None = maxsize,
+    category_ids: Annotated[list[str] | None, Query()] = None
 ) -> List[ObjEventSchemaComplete]:
     """Return events in a calendar that overlap a date range.
 
     Query params:
-        from_date:   Range start as a Unix timestamp.
-        to_date:     Range end as a Unix timestamp.
-        category_id: Optional — filter results to a specific category.
+        calendar_ids:  Calendar list.
+        from_date:     Optional — Range start as a Unix timestamp.
+        to_date:       Optional — Range end as a Unix timestamp.
+        category_ids:  Optional — filter results to a specific category.
 
     Requires at least "R" (read) permission.
     """
+
     return obj_event_service.get_all_event_between(
-        calendar_id, from_date, to_date, category_id, session
+        calendar_ids, from_date, to_date, category_ids, session
     )
 
 

@@ -198,16 +198,19 @@ export async function fetchEvents(filters = {}) {
   // — do NOT pass through deserialise which expects API unix timestamps.
   if (MOCK_MODE) return [...sampleEvents];
 
-  const { calendarId, from, to, categoryId } = filters;
-  if (!calendarId || !from || !to) return [];
+  const { calendarIds, from, to, categoryId } = filters;
+  if (!calendarIds || !from || !to) return [];
 
   const params = new URLSearchParams({
     from_date: String(Math.floor(from.getTime() / 1000)),
     to_date:   String(Math.floor(to.getTime()   / 1000)),
   });
+  for (const cal of filters.calendarIds) {
+    params.append('calendar_ids', cal)
+  }
   if (categoryId) params.set('category_id', categoryId);
 
-  const data = await api.get(`/event/range/${calendarId}?${params}`);
+  const data = await api.get(`/event/range?${params}`);
   return (data ?? []).map(deserialise);
 }
 

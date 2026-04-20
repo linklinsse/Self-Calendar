@@ -5,14 +5,16 @@ meta {
 }
 
 get {
-  url: http://{{server_ip}}:{{server_port}}/event/range/{{calendar_id}}?from_date=1600000000&to_date=1800000000
+  url: http://{{server_ip}}:{{server_port}}/event/range?calendar_ids={{calendar_id}}
   body: none
   auth: inherit
 }
 
 params:query {
-  from_date: 1600000000
-  to_date: 1800000000
+  calendar_ids: {{calendar_id}}
+  ~category_ids: 94e94993-3ee2-4ba9-b7e1-b9659a40590d
+  ~to_date: 1800000000
+  ~from_date: 1800600000
 }
 
 settings {

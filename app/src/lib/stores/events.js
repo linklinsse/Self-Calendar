@@ -73,15 +73,11 @@ export async function loadEvents(range = {}) {
     if (!calList.length) { events.set([]); return; }
 
     // In MOCK_MODE fetchEvents ignores filters and returns sample data
-    const results = await Promise.all(
-      calList.map(cal =>
-        eventSvc.fetchEvents({ calendarId: cal.id, from, to })
-      )
-    );
+    const results = await eventSvc.fetchEvents({ calendarIds: calList.map(cal => cal.id), from, to });
 
     // Deduplicate by id in case a calendar appears in multiple requests
     const seen = new Set();
-    const all  = results.flat().filter(e => {
+    const all  = results.filter(e => {
       if (seen.has(e.id)) return false;
       seen.add(e.id);
       return true;

@@ -45,10 +45,10 @@ def create_event(
 
 
 def get_all_event_between(
-    calendar_id: str,
-    from_date: int,
-    to_date: int,
-    category_id: str | None,
+    calendar_ids: List[str],
+    from_date: int | None,
+    to_date: int | None,
+    category_ids: str | None,
     session: Session,
 ) -> List[ObjEventSchemaComplete]:
     """Return all events in a calendar that overlap a given time range.
@@ -59,24 +59,26 @@ def get_all_event_between(
     end after the range boundaries).
 
     Args:
-        calendar_id:  The calendar to query.
+        calendar_ids:  The calendar to query.
         from_date:    Range start as a Unix timestamp (inclusive).
         to_date:      Range end as a Unix timestamp (inclusive).
-        category_id:  Optional filter — only return events of this category.
+        category_ids:  Optional filter — only return events of this category.
         session:      Active database session.
 
     Requires at least "R" (read) permission.
     """
-    db_calendar = session.get(ObjCalendarModel, calendar_id)
-    if not db_calendar:
+
+    db_calendars = session.exec(select(ObjCalendarModel).where(ObjCalendarModel.id.in_(calendar_ids))).all()
+    if len(db_calendars) == 0:
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "R"):
-        raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
+    for db_calendar in db_calendars:
+        if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "R"):
+            raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
 
     statement = select(ObjEventModel).where(
-        ObjEventModel.calendar_id == calendar_id,
+        ObjEventModel.calendar_id.in_(calendar_ids),
         or_(
             # Non-recurring: must overlap the requested window
             and_(
@@ -93,8 +95,8 @@ def get_all_event_between(
         ),
     )
 
-    if category_id is not None:
-        statement = statement.where(ObjEventModel.category_id == category_id)
+    if category_ids is not None:
+        statement = statement.where(ObjEventModel.category_id.in_(category_ids))
 
     return session.exec(statement).all()
 
