@@ -1,7 +1,16 @@
-Add button to jump to month&year
-creating event today as default => 
-    - click on hour => day & hour set 
-    - click on day => day set
 
-Theme Yellow
-Theme unicorn
+Features:
+- Recurence event have a predicted endind for optimisation
+- Recurence event make possible to delete a single one
+- Add button to jump to month&year
+- Creating event today as default => 
+    - Click on hour => day & hour set 
+    - Click on day => day set
+
+Design:
+- Event title not verry visible => possibility: title white + no transparent backgound ?
+- Event color selection hidden by default
+- Hour selection make clock by default
+- Caterories changes icon selections
+- Add Theme Yellow
+- Add Theme unicorn
