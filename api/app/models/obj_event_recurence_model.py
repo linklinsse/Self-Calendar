@@ -1,6 +1,6 @@
 from uuid import uuid4
 from typing import ClassVar, List
-from sqlmodel import Field, Relationship, SQLModel, Column, LargeBinary
+from sqlmodel import Field, Relationship, SQLModel
 
 class ObjEventRecurenceModel(SQLModel, table=True):
     """Database model for a calendar event recurence."""
@@ -14,7 +14,11 @@ class ObjEventRecurenceModel(SQLModel, table=True):
     endType: str = Field(nullable=False, min_length=1, max_length=1, default='N')
     count: int | None  = Field(nullable=True)
     until: int | None  = Field(nullable=True)
+    estimated_end_date: int | None = Field(nullable=True)
 
     obj_event: List["ObjEventModel"] = Relationship(
+        back_populates="obj_recurence"
+    )
+    obj_exceptions: List["ObjEventRecurenceExceptionModel"] = Relationship(
         back_populates="obj_recurence"
     )

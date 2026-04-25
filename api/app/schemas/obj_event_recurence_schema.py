@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated
 
 from app.schemas.common_fields import CommonFieldTitle
+from app.schemas.obj_event_recurence_exception_schema import ObjEventRecurenceExceptionSchema
 from app.common.enums import EventRecurenceEndType, EventRecurenceType
 
 
@@ -15,6 +16,8 @@ class ObjEventRecurenceSchemaComplete(BaseModel):
     endType: EventRecurenceEndType
     count: int | None = Field(default=None)
     until: int | None = Field(default=None)
+    estimated_end_date: int | None = Field(default=None)
+    obj_exceptions: list[ObjEventRecurenceExceptionSchema] = Field(default_factory=list)
 
 
 class ObjEventRecurenceSchemaCreate(BaseModel):
@@ -26,6 +29,8 @@ class ObjEventRecurenceSchemaCreate(BaseModel):
     endType: EventRecurenceEndType
     count: int | None = Field(default=None)
     until: int | None = Field(default=None)
+    estimated_end_date: int | None = Field(default=None)
+    obj_exceptions: list[ObjEventRecurenceExceptionSchema] = Field(default_factory=list)
 
 
 class ObjEventRecurenceSchemaEdit(BaseModel):
@@ -38,3 +43,5 @@ class ObjEventRecurenceSchemaEdit(BaseModel):
     endType: EventRecurenceEndType
     count: int | None = Field(default=None)
     until: int | None = Field(default=None)
+    estimated_end_date: int | None = Field(default=None)
+    obj_exceptions: list[ObjEventRecurenceExceptionSchema] = Field(default_factory=list)

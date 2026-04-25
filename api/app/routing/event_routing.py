@@ -67,3 +67,8 @@ async def patch(
 async def delete(event_id: str, session: SessionDep):
     """Delete an event. Requires at least "W" (Write) permission."""
     return obj_event_service.delete_event(event_id, session)
+
+@router.delete("/{event_id}/{date}")
+async def add_exception_event_recurence(event_id: str, date: int, session: SessionDep):
+    """Delete an event recurence. Requires at least "W" (Write) permission."""
+    return obj_event_service.add_exception_event_recurence(event_id, date, session)

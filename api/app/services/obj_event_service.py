@@ -6,12 +6,14 @@ from app.common.errors import AppErrorCode, raise_app_error
 from app.common.utils.verify_user_right_calendar import verify_user_right_calendar
 from app.models.obj_calendar_model import ObjCalendarModel
 from app.models.obj_event_model import ObjEventModel
+from app.models.obj_event_recurence_model import ObjEventRecurenceModel
 from app.schemas.obj_event_schema import (
     ObjEventSchemaComplete,
     ObjEventSchemaCreate,
     ObjEventSchemaEdit,
 )
 from app.services import obj_event_recurente_service
+
 
 
 def create_event(
@@ -31,7 +33,11 @@ def create_event(
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
     if (new_event.obj_recurence != None):
-        db_event_recurence = obj_event_recurente_service.create_event_recurence(new_event.obj_recurence, session)
+        db_event_recurence = obj_event_recurente_service.create_event_recurence(
+            new_event.obj_recurence,
+            new_event.date_start,
+            session
+        )
         new_event.recurence_id = db_event_recurence.id
         new_event.obj_recurence = db_event_recurence
 
@@ -91,8 +97,16 @@ def get_all_event_between(
             and_(
                 ObjEventModel.recurence_id != None,
                 ObjEventModel.date_start <= to_date,
+                or_(
+                    ObjEventRecurenceModel.estimated_end_date == None,  # endType == 'N' (never)
+                    ObjEventRecurenceModel.estimated_end_date >= from_date,
+                ),
             ),
         ),
+    ).join(
+        ObjEventRecurenceModel,
+        ObjEventModel.recurence_id == ObjEventRecurenceModel.id,
+        isouter=True,  # keep non-recurring events (recurence_id == None)
     )
 
     if category_ids is not None:
@@ -137,7 +151,11 @@ def edit_event(
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
     if (edited_event.obj_recurence != None):
-        db_event_recurence = obj_event_recurente_service.create_event_recurence(edited_event.obj_recurence, session)
+        db_event_recurence = obj_event_recurente_service.create_event_recurence(
+            edited_event.obj_recurence,
+            edited_event.date_start,
+            session
+        )
         edited_event.recurence_id = db_event_recurence.id
         edited_event.obj_recurence = None
 
@@ -171,3 +189,25 @@ def delete_event(event_id: str, session: Session) -> None:
 
     session.delete(db_event)
     session.commit()
+
+
+def add_exception_event_recurence(event_id: str,  date: int, session: Session) -> None:
+    """Permanently delete an event recurence.
+
+    Requires at least "W" (Write) permission on the parent calendar.
+    """
+
+    db_event = session.get(ObjEventModel, event_id)
+    if not db_event:
+        raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
+
+    if not verify_user_right_calendar(
+        get_logged_user_context(), db_event.obj_calendar, "W"
+    ):
+        raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
+
+    return obj_event_recurente_service.add_exception_event_recurence(
+        db_event.recurence_id,
+        date,
+        session
+    )
