@@ -10,7 +10,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { sampleEvents }            from '../sampleData.js';
 import * as eventSvc               from '../services/event.service.js';
-import { showToast, modalEventId, panelEvent } from './ui.js';
+import { showToast, modalEventId, modalOccurrenceDate, panelEvent } from './ui.js';
 import { calendars }               from './calendars.js';
 import { categories }              from './categories.js';
 
@@ -130,12 +130,43 @@ export async function saveEvent(formData) {
 export async function deleteEvent(id) {
   const ev = get(events).find(e => e.id === id);
   modalEventId.set(null);
+  modalOccurrenceDate.set(null);
   try {
     await eventSvc.deleteEvent(id);
     events.update(list => list.filter(e => e.id !== id));
     if (ev) showToast(`"${ev.title}" deleted`);
   } catch (e) {
     showToast('Could not delete event: ' + e.message, 'error');
+  }
+}
+
+/**
+ * Exclude a single occurrence of a recurring event by adding an exception.
+ * Updates local state optimistically so the occurrence disappears immediately.
+ *
+ * @param {number|string} eventId
+ * @param {Date} occurrenceDate
+ */
+export async function excludeOccurrence(eventId, occurrenceDate) {
+  const ev = get(events).find(e => e.id === eventId);
+  modalEventId.set(null);
+  modalOccurrenceDate.set(null);
+  try {
+    await eventSvc.excludeOccurrence(eventId, occurrenceDate);
+    // Optimistically add the exception to local state so the occurrence
+    // disappears without a reload.
+    const unixDate = Math.floor(occurrenceDate.getTime() / 1000);
+    events.update(list => list.map(e => {
+      if (e.id !== eventId) return e;
+      const existing = e.recurrence_exceptions ?? [];
+      return {
+        ...e,
+        recurrence_exceptions: [...existing, { id: `local-${unixDate}`, date: unixDate }],
+      };
+    }));
+    if (ev) showToast(`One occurrence of "${ev.title}" removed`);
+  } catch (e) {
+    showToast('Could not remove occurrence: ' + e.message, 'error');
   }
 }
 

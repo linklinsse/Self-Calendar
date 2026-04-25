@@ -145,10 +145,11 @@ function deserialise(raw) {
     startDate,
     endDate,
     allDay,
-    start:      allDay ? null : `${startHH}:${startMM}`,
-    end:        allDay ? null : `${endHH}:${endMM}`,
-    color:      raw.color ?? '#b8c9f4',
-    recurrence: fromApiRecurrence(obj_recurence ?? null),
+    start:                 allDay ? null : `${startHH}:${startMM}`,
+    end:                   allDay ? null : `${endHH}:${endMM}`,
+    color:                 raw.color ?? '#b8c9f4',
+    recurrence:            fromApiRecurrence(obj_recurence ?? null),
+    recurrence_exceptions: obj_recurence?.obj_exceptions ?? [],
   };
 }
 
@@ -261,4 +262,16 @@ export async function updateEvent(id, payload) {
 export async function deleteEvent(id) {
   if (MOCK_MODE) return;
   return api.delete(`/event/${id}`);
+}
+
+/**
+ * Exclude a single occurrence of a recurring event (adds an exception).
+ * @param {string|number} eventId
+ * @param {Date} occurrenceDate — the start date of the occurrence to exclude
+ * @returns {Promise<void>}
+ */
+export async function excludeOccurrence(eventId, occurrenceDate) {
+  if (MOCK_MODE) return;
+  const unixDate = Math.floor(occurrenceDate.getTime() / 1000);
+  return api.delete(`/event/${eventId}/${unixDate}`);
 }

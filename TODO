@@ -1,10 +1,8 @@
 
 Features:
-- Recurence event have a predicted endind for optimisation
-- Recurence event make possible to delete a single one
 - Add button to jump to month&year
-- Creating event today as default => 
-    - Click on hour => day & hour set 
+- Creating event today as default =>
+    - Click on hour => day & hour set
     - Click on day => day set
 
 Design:

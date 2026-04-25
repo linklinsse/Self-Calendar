@@ -8,8 +8,8 @@
 
   import { fly, fade } from 'svelte/transition';
   import {
-    modalEventId, events, calendars, categories,
-    openEditPanel, openDuplicatePanel, deleteEvent,
+    modalEventId, modalOccurrenceDate, events, calendars, categories,
+    openEditPanel, openDuplicatePanel, deleteEvent, excludeOccurrence,
   } from '../../lib/stores/index.js';
   import {
     MONTH_ABBR, DAY_NAMES, formatTime,
@@ -51,7 +51,10 @@
 
   let canEdit = $derived(cal ? (cal.right === 'write' || cal.right === 'admin' || !cal.right) : true);
 
-  function close() { $modalEventId = null; }
+  // Recurrence delete choice popup
+  let showRecurChoice = $state(false);
+
+  function close() { $modalEventId = null; $modalOccurrenceDate = null; showRecurChoice = false; }
 
   function onBackdropClick(e) {
     if (e.target === e.currentTarget) close();
@@ -70,7 +73,22 @@
   }
 
   function onDelete() {
+    if (ev.recurrence_id || ev.recurrence) {
+      showRecurChoice = true;
+    } else {
+      deleteEvent(ev.id);
+    }
+  }
+
+  function onDeleteAll() {
     deleteEvent(ev.id);
+    showRecurChoice = false;
+  }
+
+  function onDeleteOccurrence() {
+    const occDate = $modalOccurrenceDate ?? ev.startDate;
+    excludeOccurrence(ev.id, occDate instanceof Date ? occDate : new Date(occDate));
+    showRecurChoice = false;
   }
 </script>
 
@@ -166,6 +184,22 @@
         <div class="actions">
           <button class="btn-duplicate" onclick={onDuplicate} title="Duplicate this event">⎘ Duplicate</button>
           <button class="btn-ghost"     onclick={close}>Close</button>
+        </div>
+      {/if}
+
+      <!-- Recurrence delete choice -->
+      {#if showRecurChoice}
+        <div class="recur-choice" in:fly={{ y: 8, duration: 180 }}>
+          <p class="recur-choice-label">Delete recurring event</p>
+          <div class="recur-choice-btns">
+            <button class="btn-choice-occ" onclick={onDeleteOccurrence}>
+              This occurrence only
+            </button>
+            <button class="btn-choice-all" onclick={onDeleteAll}>
+              All occurrences
+            </button>
+          </div>
+          <button class="btn-choice-cancel" onclick={() => showRecurChoice = false}>Cancel</button>
         </div>
       {/if}
 
@@ -288,4 +322,33 @@
     font-size: var(--fs-sm, 15px); transition: all .16s;
   }
   .btn-ghost:hover { border-color: var(--acc-dim); color: var(--acc); }
+
+  /* ── Recurrence delete choice ───────────────────────────── */
+  .recur-choice {
+    margin-top: 12px; padding: 16px;
+    background: var(--bg-raised); border: 1px solid var(--bdr);
+    border-radius: var(--r-m); display: flex; flex-direction: column; gap: 10px;
+  }
+  .recur-choice-label {
+    font-size: var(--fs-xs, 13px); font-weight: 600;
+    color: var(--t2); text-transform: uppercase; letter-spacing: .07em;
+  }
+  .recur-choice-btns { display: flex; gap: 8px; }
+  .btn-choice-occ {
+    flex: 1; padding: 10px 12px; border-radius: var(--r-s);
+    border: 1px solid var(--bdr); color: var(--t1);
+    font-size: var(--fs-sm, 15px); transition: all .14s;
+  }
+  .btn-choice-occ:hover { border-color: var(--acc-dim); color: var(--acc); background: var(--acc-bg); }
+  .btn-choice-all {
+    flex: 1; padding: 10px 12px; border-radius: var(--r-s);
+    border: 1px solid rgba(244,100,100,.22);
+    color: #f47070; font-size: var(--fs-sm, 15px); transition: all .14s;
+  }
+  .btn-choice-all:hover { background: rgba(244,100,100,.08); border-color: rgba(244,100,100,.4); }
+  .btn-choice-cancel {
+    align-self: center; font-size: var(--fs-xs, 13px); color: var(--t3);
+    text-decoration: underline; text-underline-offset: 2px; transition: color .13s;
+  }
+  .btn-choice-cancel:hover { color: var(--t2); }
 </style>

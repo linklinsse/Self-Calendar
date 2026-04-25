@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import {
     cursor, currentView, visibleEvents,
-    openAddPanel, modalEventId,
+    openAddPanel, modalEventId, modalOccurrenceDate,
   } from '../../lib/stores/index.js';
   import {
     buildMonthGrid, DAY_ABBR_MON, sameDay, isToday,
@@ -103,7 +103,7 @@
   const MAX_DOTS =  5;
 
   function onCellClick(d)     { cursor.set(new Date(d)); $currentView = 'day'; }
-  function onOccClick(occ, e) { e.stopPropagation(); $modalEventId = occ.ev.id; }
+  function onOccClick(occ, e) { e.stopPropagation(); $modalOccurrenceDate = occ.startDate; $modalEventId = occ.ev.id; }
   function goToWeek(rowIndex) { cursor.set(new Date(grid[rowIndex * 7])); $currentView = 'week'; }
 </script>
 
@@ -234,7 +234,7 @@
               margin-left: {isStart ? '3px' : '0'};
               margin-right: {isEnd   ? '3px' : '0'};
             "
-            onclick={e => { e.stopPropagation(); $modalEventId = occ.ev.id }}
+            onclick={e => { e.stopPropagation(); $modalOccurrenceDate = occ.startDate; $modalEventId = occ.ev.id }}
           >
             {#if isStart}
               <span class="banner-title">{occ.ev.title}</span>

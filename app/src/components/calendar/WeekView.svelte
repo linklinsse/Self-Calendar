@@ -11,7 +11,7 @@
 
   import { onMount } from 'svelte';
   import {
-    cursor, visibleEvents, openAddPanel, modalEventId,
+    cursor, visibleEvents, openAddPanel, modalEventId, modalOccurrenceDate,
   } from '../../lib/stores/index.js';
   import {
     weekDays, DAY_ABBR_MON, sameDay, isToday,
@@ -127,7 +127,7 @@
             <button
               class="allday-pill"
               style="background:{occ.ev.color}; color:#1a0812"
-              onclick={e => { e.stopPropagation(); $modalEventId = occ.ev.id }}
+              onclick={e => { e.stopPropagation(); $modalOccurrenceDate = occ.startDate; $modalEventId = occ.ev.id }}
               aria-label="{occ.ev.title}"
             >{occ.ev.title}</button>
           {/each}
@@ -168,7 +168,7 @@
               class:clipped-start={item.occ._clip === 'start'}
               class:clipped-end={item.occ._clip === 'end'}
               style="{evStyle(item.occ, item.col, item.cols)} background:{item.occ.ev.color}44; border-left:3px solid {item.occ.ev.color};"
-              onclick={e => { e.stopPropagation(); $modalEventId = item.occ.ev.id }}
+              onclick={e => { e.stopPropagation(); $modalOccurrenceDate = item.occ.startDate; $modalEventId = item.occ.ev.id }}
               aria-label="{item.occ.ev.title}"
             >
               <span class="ev-title" style="color:{item.occ.ev.color}">{item.occ.ev.title}</span>

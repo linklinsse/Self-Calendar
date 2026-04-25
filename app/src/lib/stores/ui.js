@@ -68,6 +68,14 @@ export function closePanel() { panelEvent.set(null); }
  */
 export const modalEventId = writable(null);
 
+/**
+ * The specific occurrence date that was clicked to open the modal.
+ * Required to target the right occurrence when excluding a recurrence exception.
+ * null when the event is non-recurring.
+ * @type {import('svelte/store').Writable<Date|null>}
+ */
+export const modalOccurrenceDate = writable(null);
+
 // ── Toast notifications ───────────────────────────────────────
 
 /**

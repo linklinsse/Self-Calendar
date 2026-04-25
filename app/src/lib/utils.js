@@ -214,9 +214,13 @@ export function expandEventsForRange(events, rangeStart, rangeEnd) {
         out.push({ ev, startDate: new Date(s), endDate: new Date(e) });
       }
     } else {
-      // Recurring: expand occurrences within range
+      // Recurring: expand occurrences within range, skipping exceptions.
+      const exceptions = new Set((ev.recurrence_exceptions ?? []).map(ex => ex.date));
       const occurrences = getOccurrencesInRange(ev, rangeStart, rangeEnd);
       for (const occStart of occurrences) {
+        // Compare by day boundary (midnight unix) to match how exceptions are stored
+        const occUnix = Math.floor(midnight(occStart).getTime() / 1000);
+        if (exceptions.has(occUnix)) continue;
         const occEnd = new Date(occStart.getTime() + spanMs);
         out.push({ ev, startDate: occStart, endDate: occEnd });
       }
