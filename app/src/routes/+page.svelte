@@ -6,7 +6,7 @@
    */
   import { onMount }        from 'svelte';
   import { activeThemeId, applyTheme, resolveTheme } from '../lib/themes/index.js';
-  import { currentView }    from '../lib/stores/ui.js';
+  import { currentView, cursor }    from '../lib/stores/ui.js';
   import { DEFAULT_VIEW }   from '../lib/config.js';
   import {
     isLoggedIn, panelEvent, modalEventId,
@@ -23,6 +23,7 @@
   onMount(async () => {
     await restoreSession();
     currentView.set(DEFAULT_VIEW);
+    cursor.set(new Date());
   });
 
   // Re-apply whenever the theme id changes (ThemePicker)

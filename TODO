@@ -6,9 +6,9 @@ Features:
     - Click on day => day set
 
 Design:
+- Event color is not send
 - Event title not verry visible => possibility: title white + no transparent backgound ?
 - Event color selection hidden by default
-- Hour selection make clock by default
 - Caterories changes icon selections
 - Add Theme Yellow
 - Add Theme unicorn

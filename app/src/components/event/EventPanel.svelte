@@ -18,7 +18,7 @@
     timeToMinutes, minutesToTime,
     describeRecurrence,
   } from '../../lib/utils.js';
-  import { HOUR_FORMAT } from '../../lib/config.js';
+  import { HOUR_FORMAT, FIRST_DAY_OF_WEEK } from '../../lib/config.js';
 
   // ── Form state ──────────────────────────────────────────────
   let form          = $state({});
@@ -26,6 +26,7 @@
   let formCategory  = $state('');
   let lastSyncedCat = $state('');
   let showRecur     = $state(false);
+  let showColor     = $state(false);
 
   // Re-initialise form only when a genuinely different event is opened.
   // Guarded by a panel key so store updates don't wipe in-progress edits.
@@ -110,7 +111,12 @@
   }
 
   // Recurrence helpers
-  const DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  // Ordered starting from FIRST_DAY_OF_WEEK; jsDay is the JS getDay() value (0=Sun…6=Sat).
+  const ALL_DOW_ABBR = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const DOW_ITEMS = Array.from({ length: 7 }, (_, i) => {
+    const jsDay = (FIRST_DAY_OF_WEEK + i) % 7;
+    return { label: ALL_DOW_ABBR[jsDay], jsDay };
+  });
   function initRecurrence() {
     form.recurrence = { type:'daily', interval:1, days:[], endType:'never', count:5, until: toInputDate(new Date()) };
   }
@@ -248,11 +254,11 @@
               <div class="field">
                 <label>On days</label>
                 <div class="dow-row">
-                  {#each DOW_LABELS as lbl, idx}
+                  {#each DOW_ITEMS as { label, jsDay }}
                     <button type="button" class="dow-btn"
-                      class:on={form.recurrence.days?.includes(idx)}
-                      onclick={() => toggleDay(idx)}
-                      aria-pressed={form.recurrence.days?.includes(idx)}>{lbl}</button>
+                      class:on={form.recurrence.days?.includes(jsDay)}
+                      onclick={() => toggleDay(jsDay)}
+                      aria-pressed={form.recurrence.days?.includes(jsDay)}>{label}</button>
                   {/each}
                 </div>
               </div>
@@ -344,31 +350,35 @@
       <div class="field">
         <div class="color-header">
           <label>Colour</label>
-          {#if colorOverridden}
-            <button class="reset-color" type="button" onclick={resetColor}>↺ Reset to category</button>
-          {:else}
-            <span class="color-hint">Matches category</span>
-          {/if}
+          <button class="color-toggle" type="button" onclick={() => showColor = !showColor}>
+            <span class="preview-dot-sm" style="background:{form.color}"></span>
+            {showColor ? 'Hide' : 'Custom colour'}
+          </button>
         </div>
-        <div class="swatches" role="group" aria-label="Event colour">
-          {#each allSwatches as hex (hex)}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div class="swatch" class:selected={form.color === hex} class:is-default={hex === defaultColor}
-              style="background:{hex}" role="radio" aria-checked={form.color === hex} tabindex="0"
-              onclick={() => form.color = hex}
-              onkeydown={e => e.key === 'Enter' && (form.color = hex)}>
-              {#if hex === defaultColor}<span class="def-marker" aria-hidden="true"></span>{/if}
-            </div>
-          {/each}
-          <label class="custom-swatch" title="Custom colour">
-            <input type="color" value={form.color} oninput={e => form.color = e.target.value} />
-            <span aria-hidden="true">🎨</span>
-          </label>
-        </div>
-        <div class="color-preview">
-          <span class="preview-dot" style="background:{form.color}"></span>
-          <span class="preview-hex">{form.color}</span>
-        </div>
+        {#if showColor}
+          <div class="swatches" role="group" aria-label="Event colour">
+            {#each allSwatches as hex (hex)}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div class="swatch" class:selected={form.color === hex} class:is-default={hex === defaultColor}
+                style="background:{hex}" role="radio" aria-checked={form.color === hex} tabindex="0"
+                onclick={() => form.color = hex}
+                onkeydown={e => e.key === 'Enter' && (form.color = hex)}>
+                {#if hex === defaultColor}<span class="def-marker" aria-hidden="true"></span>{/if}
+              </div>
+            {/each}
+            <label class="custom-swatch" title="Custom colour">
+              <input type="color" value={form.color} oninput={e => form.color = e.target.value} />
+              <span aria-hidden="true">🎨</span>
+            </label>
+          </div>
+          <div class="color-preview">
+            <span class="preview-dot" style="background:{form.color}"></span>
+            <span class="preview-hex">{form.color}</span>
+            {#if colorOverridden}
+              <button class="reset-color" type="button" onclick={resetColor}>↺ Reset to category</button>
+            {/if}
+          </div>
+        {/if}
       </div>
 
     </div>
@@ -507,6 +517,9 @@
 
   /* Colour picker */
   .color-header { display:flex; align-items:center; justify-content:space-between; }
+  .color-toggle { display:flex; align-items:center; gap:6px; font-size:var(--fs-xs,13px); color:var(--acc-dim); text-decoration:underline; text-underline-offset:2px; }
+  .color-toggle:hover { color:var(--acc); }
+  .preview-dot-sm { display:inline-block; width:12px; height:12px; border-radius:50%; flex-shrink:0; }
   .reset-color  { font-size:var(--fs-xs,13px); color:var(--acc-dim); text-decoration:underline; text-underline-offset:2px; }
   .reset-color:hover { color:var(--acc); }
   .color-hint   { font-size:var(--fs-xs,13px); color:var(--t3); font-style:italic; }
