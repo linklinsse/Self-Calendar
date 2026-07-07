@@ -4,13 +4,9 @@
  * NOTE: The Self Calendar API (openapi.json) does not expose a /categories
  * endpoint. Categories are referenced by `category_id` on events and are
  * managed locally on the client. This service therefore always falls back
- * to sampleData in MOCK_MODE and operates on localStorage in live mode.
  *
  * Each category is scoped to a calendar via `calendar_id`.
  */
-
-import { MOCK_MODE } from '../config.js';
-import { sampleCategories } from '../sampleData.js';
 
 // ─── Local storage key ────────────────────────────────────────────────────────
 const LS_KEY = 'sc_categories';
@@ -45,9 +41,8 @@ function saveToStorage(cats) {
  * @returns {Promise<Category[]>}
  */
 export async function fetchCategories() {
-  if (MOCK_MODE) return sampleCategories.map(c => ({ on: true, ...c }));
   const stored = loadFromStorage();
-  const data = stored ?? sampleCategories;
+  const data = stored ?? [];
   return data.map(c => ({ on: true, ...c }));
 }
 
@@ -58,10 +53,8 @@ export async function fetchCategories() {
  */
 export async function createCategory(payload) {
   const cat = { id: `cat-${Date.now()}`, on: true, ...payload };
-  if (!MOCK_MODE) {
-    const stored = loadFromStorage() ?? [];
-    saveToStorage([...stored, cat]);
-  }
+  const stored = loadFromStorage() ?? [];
+  saveToStorage([...stored, cat]);
   return cat;
 }
 
@@ -72,13 +65,10 @@ export async function createCategory(payload) {
  * @returns {Promise<Category>}
  */
 export async function updateCategory(id, payload) {
-  if (!MOCK_MODE) {
-    const stored = loadFromStorage() ?? [];
-    const updated = stored.map(c => c.id === id ? { ...c, ...payload } : c);
-    saveToStorage(updated);
-    return updated.find(c => c.id === id) ?? { id, on: true, ...payload };
-  }
-  return { id, on: true, ...payload };
+  const stored = loadFromStorage() ?? [];
+  const updated = stored.map(c => c.id === id ? { ...c, ...payload } : c);
+  saveToStorage(updated);
+  return updated.find(c => c.id === id) ?? { id, on: true, ...payload };
 }
 
 /**
@@ -87,8 +77,6 @@ export async function updateCategory(id, payload) {
  * @returns {Promise<void>}
  */
 export async function deleteCategory(id) {
-  if (!MOCK_MODE) {
-    const stored = loadFromStorage() ?? [];
-    saveToStorage(stored.filter(c => c.id !== id));
-  }
+  const stored = loadFromStorage() ?? [];
+  saveToStorage(stored.filter(c => c.id !== id));
 }

@@ -7,14 +7,12 @@
  */
 
 import { writable, get } from 'svelte/store';
-import { sampleCalendars } from '../sampleData.js';
 import * as calSvc from '../services/calendar.service.js';
 import { showToast } from './ui.js';
 
 // ── Store ────────────────────────────────────────────────────
-
 /** @type {import('svelte/store').Writable<import('../services/calendar.service').Calendar[]>} */
-export const calendars = writable([...sampleCalendars]);
+export const calendars = writable([]);
 
 // ── Load ─────────────────────────────────────────────────────
 

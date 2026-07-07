@@ -8,7 +8,6 @@ services:
     ports:
       - 8686:80
     environment:
-      MOCK_MODE: 'false'
       API_BASE_URL: 'http://api:8082'
       APP_NAME: 'Self Calendar'
 

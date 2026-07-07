@@ -7,7 +7,7 @@
  * triggers a full session reset so the user is returned to the login
  * screen automatically.
  */
-import { API_BASE_URL, MOCK_MODE } from '../config.js';
+import { API_BASE_URL } from '../config.js';
 
 const TOKEN_KEY = 'sc_auth_token';
 export const setToken = t => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
@@ -51,9 +51,9 @@ async function request(path, method, body) {
 }
 
 export const api = {
-  get:    path       => MOCK_MODE ? Promise.resolve(null) : request(path, 'GET'),
-  post:   (path, b)  => MOCK_MODE ? Promise.resolve(null) : request(path, 'POST',   b),
-  put:    (path, b)  => MOCK_MODE ? Promise.resolve(null) : request(path, 'PUT',    b),
-  patch:  (path, b)  => MOCK_MODE ? Promise.resolve(null) : request(path, 'PATCH',  b),
-  delete: path       => MOCK_MODE ? Promise.resolve(null) : request(path, 'DELETE'),
+  get:    path       => request(path, 'GET'),
+  post:   (path, b)  => request(path, 'POST',   b),
+  put:    (path, b)  => request(path, 'PUT',    b),
+  patch:  (path, b)  => request(path, 'PATCH',  b),
+  delete: path       => request(path, 'DELETE'),
 };

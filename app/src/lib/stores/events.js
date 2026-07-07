@@ -8,21 +8,15 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { sampleEvents }            from '../sampleData.js';
 import * as eventSvc               from '../services/event.service.js';
 import { showToast, modalEventId, modalOccurrenceDate, panelEvent } from './ui.js';
 import { calendars }               from './calendars.js';
 import { categories }              from './categories.js';
 
-// Local-only ID counter for optimistic mock inserts.
-// Only used in MOCK_MODE — real API always returns a server-assigned id.
-let _nextId = 100;
-function nextId() { return ++_nextId; }
-
 // ── Store ─────────────────────────────────────────────────────
 
 /** @type {import('svelte/store').Writable<import('../services/event.service').CalEvent[]>} */
-export const events = writable([...sampleEvents]);
+export const events = writable([]);
 
 // ── Derived: filtered event list ──────────────────────────────
 
@@ -61,7 +55,6 @@ export const visibleEvents = derived(
 
 /**
  * Load events for all active calendars for a given date window.
- * Falls back to sample data in MOCK_MODE.
  *
  * @param {{ from?: Date, to?: Date }} [range]
  */
@@ -72,7 +65,6 @@ export async function loadEvents(range = {}) {
 
     if (!calList.length) { events.set([]); return; }
 
-    // In MOCK_MODE fetchEvents ignores filters and returns sample data
     const results = await eventSvc.fetchEvents({ calendarIds: calList.map(cal => cal.id), from, to });
 
     // Deduplicate by id in case a calendar appears in multiple requests

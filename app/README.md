@@ -74,7 +74,6 @@ src/
 └── lib/
     ├── config.js               ← All env-var configuration (API URL, theme, locale, …)
     ├── utils.js                ← Pure date/time/recurrence helpers (locale-aware)
-    ├── sampleData.js           ← All mock/seed data in one place (MOCK_MODE only)
     │
     ├── stores/                 ← Svelte reactive stores
     │   ├── index.js            ← Public store API — the only import path for components
@@ -84,7 +83,7 @@ src/
     │   ├── calendars.js        ← calendars list, toggle, CRUD
     │   └── categories.js       ← categories list, toggle, CRUD
     │
-    ├── services/               ← HTTP service layer (all MOCK_MODE-aware)
+    ├── services/               ← HTTP service layer
     │   ├── api.js              ← Base fetch client + JWT bearer token handling
     │   ├── auth.service.js     ← login / logout / getMe
     │   ├── calendar.service.js ← Calendar CRUD + user-calendar membership
@@ -146,7 +145,7 @@ Available theme keys:
 
 ## Connecting to a real backend
 
-All data flows through the service layer in `src/lib/services/`. By default `MOCK_MODE=true` serves sample data with no network calls.
+All data flows through the service layer in `src/lib/services/`.
 
 To connect a real API, create `.env.local`:
 
@@ -195,7 +194,7 @@ Internally, `event.service.js` deserialises unix timestamps into `startDate`/`en
 | `write` | View + create / edit / delete events                    |
 | `admin` | All of write + manage members + edit calendar settings  |
 
-The `right` field is set on `UserCalendar` objects returned by `/user_calendar/`. Omitting `right` (e.g. in MOCK_MODE) defaults to full access.
+The `right` field is set on `UserCalendar` objects returned by `/user_calendar/`. Omitting `right` defaults to full access.
 
 ---
 
@@ -205,7 +204,6 @@ All variables can be set in `.env.local` (gitignored) prefixed with `VITE_` for 
 
 | Variable            | Default                     | Description                                     |
 |---------------------|-----------------------------|-------------------------------------------------|
-| `MOCK_MODE`         | `true`                      | Use sample data; set `false` for real API       |
 | `API_BASE_URL`      | `http://localhost:3000/api` | Backend API root (no trailing slash)            |
 | `THEME`             | `blushNoir`                 | Default theme key                               |
 | `APP_NAME`          | `Self Calendar`             | App name shown in tab title + login screen      |

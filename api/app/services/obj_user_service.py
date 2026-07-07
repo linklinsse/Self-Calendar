@@ -32,6 +32,7 @@ def create_user(new_user: ObjUserSchemaCreate, session: Session) -> ObjUserModel
     Raises HTTP 401 if user creation is disabled via settings.
     Raises HTTP 409 (USER_ALREADY_EXISTS) if the username is already taken.
     """
+
     if not settings.USER_CREATION:
         raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
 

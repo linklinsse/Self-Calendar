@@ -5,7 +5,6 @@
 cat <<EOF > /usr/share/nginx/html/env-config.js
 window.__ENV__ = {
   API_BASE_URL:     "${API_BASE_URL}",
-  MOCK_MODE:        "${MOCK_MODE}",
   THEME:            "${THEME}",
   APP_NAME:         "${APP_NAME}",
   DEFAULT_VIEW:     "${DEFAULT_VIEW}",

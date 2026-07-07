@@ -25,13 +25,7 @@ function get(key, fallback) {
 // ── API ──────────────────────────────────────────────────────
 
 /** Backend API base URL (no trailing slash). */
-export const API_BASE_URL = get('API_BASE_URL', 'http://localhost:3000/api');
-
-/**
- * When true, the app runs entirely on sample data — no backend needed.
- * Set MOCK_MODE=false (Docker) or VITE_MOCK_MODE=false (.env.local) to use a real server.
- */
-export const MOCK_MODE = get('MOCK_MODE', 'true') !== 'false';
+export const API_BASE_URL = get('API_BASE_URL', 'http://localhost:8000');
 
 // ── Theme ─────────────────────────────────────────────────────
 

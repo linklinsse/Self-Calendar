@@ -15,9 +15,7 @@
  * and "HH:MM" strings on start / end (for timed events).
  */
 
-import { MOCK_MODE } from '../config.js';
 import { api } from './api.js';
-import { sampleEvents } from '../sampleData.js';
 import { toInputDate, parseInputDate } from '../utils.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -189,16 +187,12 @@ function serialise(ev) {
 
 /**
  * Fetch events for a calendar within a date range.
- * In MOCK_MODE returns all sample events regardless of filters.
  *
  * @param {{ calendarId: string, from: Date, to: Date, categoryId?: string }} filters
  * @returns {Promise<CalEvent[]>}
  */
 export async function fetchEvents(filters = {}) {
-  // sampleEvents already use the internal format (Date objects, start/end strings)
   // — do NOT pass through deserialise which expects API unix timestamps.
-  if (MOCK_MODE) return [...sampleEvents];
-
   const { calendarIds, from, to, categoryId } = filters;
   if (!calendarIds || !from || !to) return [];
 
@@ -221,9 +215,6 @@ export async function fetchEvents(filters = {}) {
  * @returns {Promise<CalEvent>}
  */
 export async function fetchEvent(id) {
-  if (MOCK_MODE) {
-    return sampleEvents.find(e => e.id === id) ?? null;
-  }
   const data = await api.get(`/event/${id}`);
   return deserialise(data);
 }
@@ -234,11 +225,7 @@ export async function fetchEvent(id) {
  * @returns {Promise<CalEvent>}
  */
 export async function createEvent(payload) {
-  if (MOCK_MODE) {
-    return deserialise({ id: Date.now(), ...serialise(payload),
-      date_start: Math.floor((payload.startDate ?? new Date()).getTime() / 1000),
-      date_end:   Math.floor((payload.endDate   ?? new Date()).getTime() / 1000) });
-  }  const data = await api.post('/event/', serialise(payload));
+  const data = await api.post('/event/', serialise(payload));
   return deserialise(data);
 }
 
@@ -249,7 +236,6 @@ export async function createEvent(payload) {
  * @returns {Promise<CalEvent>}
  */
 export async function updateEvent(id, payload) {
-  if (MOCK_MODE) return deserialise({ ...serialise(payload), id });
   const data = await api.patch(`/event/${id}`, serialise(payload));
   return deserialise(data);
 }
@@ -260,7 +246,6 @@ export async function updateEvent(id, payload) {
  * @returns {Promise<void>}
  */
 export async function deleteEvent(id) {
-  if (MOCK_MODE) return;
   return api.delete(`/event/${id}`);
 }
 
@@ -271,7 +256,6 @@ export async function deleteEvent(id) {
  * @returns {Promise<void>}
  */
 export async function excludeOccurrence(eventId, occurrenceDate) {
-  if (MOCK_MODE) return;
   const unixDate = Math.floor(occurrenceDate.getTime() / 1000);
   return api.delete(`/event/${eventId}/${unixDate}`);
 }

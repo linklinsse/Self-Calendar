@@ -11,7 +11,6 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { sampleCategories } from '../sampleData.js';
 import * as catSvc from '../services/category.service.js';
 import { showToast } from './ui.js';
 import { calendars } from './calendars.js';
@@ -19,7 +18,7 @@ import { calendars } from './calendars.js';
 // ── Store ─────────────────────────────────────────────────────
 
 /** @type {import('svelte/store').Writable<import('../services/category.service').Category[]>} */
-export const categories = writable([...sampleCategories]);
+export const categories = writable([]);
 
 // ── Derived: categories filtered by active calendars ──────────
 

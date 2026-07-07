@@ -15,9 +15,7 @@
  *   DELETE /user_calendar/{id}                   → void
  */
 
-import { MOCK_MODE } from '../config.js';
 import { api } from './api.js';
-import { sampleCalendars, MOCK_USER_CALENDARS } from '../sampleData.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +43,6 @@ import { sampleCalendars, MOCK_USER_CALENDARS } from '../sampleData.js';
  * @returns {Promise<Calendar[]>}
  */
 export async function fetchCalendars() {
-  if (MOCK_MODE) return sampleCalendars.map(c => ({ on: true, ...c }));
   const data = await api.get('/calendar/');
   return data.map(c => ({ on: true, ...c }));
 }
@@ -56,9 +53,6 @@ export async function fetchCalendars() {
  * @returns {Promise<Calendar>}
  */
 export async function createCalendar(payload) {
-  if (MOCK_MODE) {
-    return { id: `cal-${Date.now()}`, on: true, ...payload };
-  }
   const cal = await api.post('/calendar/', payload);
   return { on: true, ...cal };
 }
@@ -69,7 +63,6 @@ export async function createCalendar(payload) {
  * @returns {Promise<Calendar>}
  */
 export async function fetchCalendar(id) {
-  if (MOCK_MODE) return sampleCalendars.find(c => c.id === id) ?? null;
   const cal = await api.get(`/calendar/${id}`);
   return { on: true, ...cal };
 }
@@ -81,7 +74,6 @@ export async function fetchCalendar(id) {
  * @returns {Promise<Calendar>}
  */
 export async function updateCalendar(id, payload) {
-  if (MOCK_MODE) return { id, ...payload };
   return api.patch(`/calendar/${id}`, payload);
 }
 
@@ -91,7 +83,6 @@ export async function updateCalendar(id, payload) {
  * @returns {Promise<void>}
  */
 export async function deleteCalendar(id) {
-  if (MOCK_MODE) return;
   return api.delete(`/calendar/${id}`);
 }
 
@@ -103,7 +94,6 @@ export async function deleteCalendar(id) {
  * @returns {Promise<UserCalendar>}
  */
 export async function addUserCalendar(payload) {
-  if (MOCK_MODE) return { id: `lnk-${Date.now()}`, ...payload };
   return api.post('/user_calendar/', payload);
 }
 
@@ -113,7 +103,6 @@ export async function addUserCalendar(payload) {
  * @returns {Promise<UserCalendar[]>}
  */
 export async function fetchUserCalendars(calendarId) {
-  if (MOCK_MODE) return MOCK_USER_CALENDARS(calendarId);
   return api.get(`/user_calendar/all/${calendarId}`);
 }
 
@@ -123,7 +112,6 @@ export async function fetchUserCalendars(calendarId) {
  * @returns {Promise<UserCalendar>}
  */
 export async function fetchUserCalendar(lnkId) {
-  if (MOCK_MODE) return null;
   return api.get(`/user_calendar/${lnkId}`);
 }
 
@@ -134,7 +122,6 @@ export async function fetchUserCalendar(lnkId) {
  * @returns {Promise<UserCalendar>}
  */
 export async function updateUserCalendar(lnkId, payload) {
-  if (MOCK_MODE) return { id: lnkId, ...payload };
   return api.patch(`/user_calendar/${lnkId}`, payload);
 }
 
@@ -144,6 +131,5 @@ export async function updateUserCalendar(lnkId, payload) {
  * @returns {Promise<void>}
  */
 export async function deleteUserCalendar(lnkId) {
-  if (MOCK_MODE) return;
   return api.delete(`/user_calendar/${lnkId}`);
 }
