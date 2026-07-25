@@ -25,7 +25,7 @@ function get(key, fallback) {
 // ── API ──────────────────────────────────────────────────────
 
 /** Backend API base URL (no trailing slash). */
-export const API_BASE_URL = get('API_BASE_URL', 'http://localhost:8000');
+export const API_BASE_URL = get('API_BASE_URL', 'https://sc.linklinsse.dk:3637');
 
 // ── Theme ─────────────────────────────────────────────────────
 

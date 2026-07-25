@@ -1,7 +1,7 @@
 {
-  "appId":    "app.selfcalendar.app",
-  "appName":  "Self Calendar",
-  "webDir":   "dist",
+  "appId": "app.selfcalendar.app",
+  "appName": "Self Calendar",
+  "webDir": "build",
   "server": {
     "androidScheme": "https"
   },
