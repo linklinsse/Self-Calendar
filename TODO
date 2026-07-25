@@ -4,6 +4,7 @@ Features:
 - Creating event today as default =>
     - Click on hour => day & hour set
     - Click on day => day set
+- On login categories doesn't load
 
 Design:
 - Event color is not send
