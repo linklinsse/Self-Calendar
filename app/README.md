@@ -235,6 +235,16 @@ Native side (`WidgetDataFetcher.kt`): calls `GET /calendar/`, `GET /category/cal
 
 This used to work by mirroring the app's `visibleEvents` store, which broke whenever the app navigated to a narrower view (e.g. Day view would make the widget appear to lose events) — the widget fetching its own data sidesteps that entirely.
 
+### App icon / favicon
+
+The source design is `selfcalendar_favicon_26_pink.svg` (repo root of `app/`) — a design comp with two size previews of the same icon (dark rounded-square card, pink header with two "binder hole" dots, bold pink "26"). The actual usable master is `src/static/favicon.svg` (just the icon, no captions/duplicate previews), used directly as the web favicon (`app.html`: SVG primary, `favicon.png`/`apple-touch-icon.png` as PNG fallbacks for browsers/platforms that need one).
+
+Android's adaptive icon system needs the design split into two layers, not one flat image:
+- **Background** — a plain color (`res/values/ic_launcher_background.xml`, `#141414`, matching the card's own background) rather than a raster image.
+- **Foreground** — just the header + dots + "26" (no card background/border), scaled to Android's ~66/108 "safe zone" so it isn't clipped by circular/squircle/rounded-square launcher masks. Regenerated at all 5 mipmap densities (`mipmap-{m,h,xh,xxh,xxx}hdpi/ic_launcher_foreground.png`) plus the legacy pre-adaptive-icon `ic_launcher.png`/`ic_launcher_round.png` (the full flat design, for API < 26).
+
+If the design ever changes, regenerate from `favicon.svg` (full icon) and a foreground-only variant (drop the background rect, scale ~0.55 into a 108×108 canvas, center via `translate(21,27)`) — there's no bundled tool for this in the repo; it was done with a one-off Node + `sharp` script, not committed since it's a one-time asset step, not part of the build.
+
 ---
 
 ## Docker

@@ -52,11 +52,19 @@ VITE_API_BASE_URL=http://localhost:8000
 docker compose up -d --build
 ```
 
-That's it — `docker-compose.yml` builds both images from `api/Dockerfile` and `app/Dockerfile` itself, no separate build step needed. It brings up `SelfCalendar-web` (nginx-served static build, `http://localhost:8686`) and `SelfCalendar-api` (`http://localhost:8082`, called directly by the browser — the web container does not proxy it).
+That's it — `docker-compose.yml` builds both images from `api/Dockerfile` and `app/Dockerfile` itself, no separate build step needed. It brings up `SelfCalendar-web` (nginx-served static build, `http://localhost:8686`) and `SelfCalendar-api` (`http://localhost:8787`, called directly by the browser — the web container does not proxy it).
 
-`conf/.env` and `db/` at the repo root are created for you (gitignored) with a freshly generated `SECRET_KEY` and `USER_CREATION=True` so you can register your first account from the app's login screen. **Set `USER_CREATION=False` in `conf/.env` and restart the `api` container once you're done creating accounts** to close public registration. `db/prod.db` is the persisted SQLite database — back it up like any other file.
+**`conf/.env` must exist before you run `docker compose up`** — if it's missing (fresh clone, a `git clean`, accidentally deleted — it's gitignored so it's easy to lose), the api silently falls back to its built-in defaults, including a `DB_URL` that points *outside* the `./db` volume and into the container's own throwaway filesystem — every container recreation then looks like the database has been wiped, when really it was just never being persisted in the first place. If `conf/.env` doesn't exist:
 
-If you deploy this somewhere other than `localhost` (a real domain, a different host/port), update `API_BASE_URL` in `docker-compose.yml`'s `web.environment` and `CORS_ORIGINS` in `conf/.env` to match, then restart both containers.
+```bash
+cp conf/.env.template conf/.env
+# then edit conf/.env: set a real SECRET_KEY (openssl rand -hex 32),
+# and make sure CORS_ORIGINS matches web's host port below.
+```
+
+`conf/.env.template` ships with `USER_CREATION=True` so you can register your first account from the app's login screen — **set it back to `False` once you're done creating accounts.** `db/prod.db` is the persisted SQLite database — back it up like any other file.
+
+If you deploy this somewhere other than `localhost`, or change the host ports in `docker-compose.yml`'s `ports:` mappings (e.g. `api`'s `8787:8082` — the `8082` is the container's own internal port and must not change, only the host side can), update `API_BASE_URL` in `docker-compose.yml`'s `web.environment` and `CORS_ORIGINS` in `conf/.env` to match, then restart both containers.
 
 ---
 
