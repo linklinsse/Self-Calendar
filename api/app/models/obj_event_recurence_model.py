@@ -1,6 +1,14 @@
 from uuid import uuid4
-from typing import ClassVar, List
+from typing import TYPE_CHECKING, List
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    # Only needed for static analysis — SQLModel resolves these forward
+    # refs at runtime via its own registry, not via this module's imports.
+    from app.models.obj_event_model import ObjEventModel
+    from app.models.obj_event_recurence_exception_model import (
+        ObjEventRecurenceExceptionModel,
+    )
 
 class ObjEventRecurenceModel(SQLModel, table=True):
     """Database model for a calendar event recurence."""

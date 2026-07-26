@@ -1,5 +1,4 @@
 from uuid import uuid4
-from typing import ClassVar, List
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.obj_event_recurence_model import ObjEventRecurenceModel

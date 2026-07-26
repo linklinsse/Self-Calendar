@@ -16,7 +16,11 @@ here – to switch databases, update .env only.
 # ---------------------------------------------------------------------------
 
 from collections.abc import Generator
+from typing import Annotated
+
+from fastapi import Depends
 from sqlmodel import Session, SQLModel, create_engine
+
 from app.common.config import settings
 
 _connect_args: dict[str, object] = {}
@@ -43,8 +47,4 @@ def get_session() -> Generator[Session, None, None]:
 
 
 # Annotated type alias used as a FastAPI dependency in route signatures:
-
-from typing import Annotated
-from fastapi import Depends
-
 SessionDep = Annotated[Session, Depends(get_session)]

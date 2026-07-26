@@ -98,8 +98,7 @@ export async function saveEvent(formData) {
 
   try {
     if (payload.id === -1) {
-      const created = await eventSvc.createEvent(payload);
-      const newEv   = created || { ...payload, id: nextId() };
+      const newEv = await eventSvc.createEvent(payload);
       events.update(list => [...list, newEv]);
       showToast(`"${newEv.title}" added`, 'success');
     } else {

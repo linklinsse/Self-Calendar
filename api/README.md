@@ -29,7 +29,8 @@ It allows users to manage their own calendars, share them with others using a ro
 - Create, read, update and delete **calendars**
 - Share calendars with other users via a **permission system** (`R` / `W` / `O`)
 - Create, read, update and delete **events** inside calendars
-- Query events within a **date range** with optional category filtering
+- **Recurring events** (daily/weekly/monthly/yearly) with per-occurrence exceptions
+- Query events within a **date range**, across multiple calendars, with optional category filtering
 - Manage user–calendar memberships (`/user_calendar`)
 - Category management per calendar (`/category`)
 
@@ -42,6 +43,7 @@ It allows users to manage their own calendars, share them with others using a ro
 | Framework   | [FastAPI](https://fastapi.tiangolo.com/) ≥ 0.128     |
 | ORM         | [SQLModel](https://sqlmodel.tiangolo.com/) ≥ 0.0.33  |
 | Database    | SQLite (development) — swappable via `DB_URL` in `.env` |
+| Recurrence dates | [python-dateutil](https://dateutil.readthedocs.io/) (month/year interval math) |
 | Python      | 3.12+                                                |
 | Package mgr | [uv](https://github.com/astral-sh/uv)                |
 | Linter      | [Ruff](https://docs.astral.sh/ruff/)                 |
@@ -58,7 +60,8 @@ api/
 │   ├── common/
 │   │   ├── config.py                       # Typed settings loaded from .env
 │   │   ├── db_connection.py                # Engine, session factory, SessionDep
-│   │   ├── enums.py                        # CalendarRight enum (R / W / O)
+│   │   ├── enums.py                        # CalendarRight, EventRecurenceType/EndType enums
+│   │   ├── errors.py                       # Central error catalogue — raise_app_error(AppErrorCode.X)
 │   │   ├── security.py                     # OAuth2 scheme, JWT encode/decode, password hashing
 │   │   ├── contexts/
 │   │   │   └── logged_user_context.py      # Request-scoped user context (ContextVar)
@@ -66,6 +69,8 @@ api/
 │   │   │   └── db_session_injector.py      # Tombstone — decorator removed, see file for rationale
 │   │   ├── dependencies/
 │   │   │   └── verify_logged_user_dependency.py  # Decodes token, populates user context
+│   │   ├── middleware/
+│   │   │   └── rate_limit_middleware.py    # Per-IP failure counter for /auth/login, /auth/register
 │   │   └── utils/
 │   │       └── verify_user_right_calendar.py     # Permission level check helper
 │   ├── models/                             # SQLModel table definitions (DB layer)
@@ -73,6 +78,8 @@ api/
 │   │   ├── obj_calendar_model.py
 │   │   ├── lnk_user_calendar_model.py
 │   │   ├── obj_event_model.py
+│   │   ├── obj_event_recurence_model.py
+│   │   ├── obj_event_recurence_exception_model.py
 │   │   └── obj_category_model.py
 │   ├── schemas/                            # Pydantic schemas (request / response bodies)
 │   │   ├── common_fields.py
@@ -81,21 +88,23 @@ api/
 │   │   ├── obj_calendar_schema.py
 │   │   ├── lnk_user_calendar_schema.py
 │   │   ├── obj_event_schema.py
-│   │   ├── obj_category_schema.py
-│   │   └── obj_event_recurrence_schema.py
+│   │   ├── obj_event_recurence_schema.py
+│   │   ├── obj_event_recurence_exception_schema.py
+│   │   └── obj_category_schema.py
 │   ├── services/                           # Business logic
 │   │   ├── auth_service.py
 │   │   ├── obj_user_service.py
 │   │   ├── obj_calendar_service.py
 │   │   ├── lnk_user_calendar_service.py
 │   │   ├── obj_event_service.py
+│   │   ├── obj_event_recurente_service.py
 │   │   └── obj_category_service.py
 │   └── routing/                            # FastAPI routers (HTTP handlers)
 │       ├── auth_routing.py
 │       ├── user_routing.py
 │       ├── calendar_routing.py
 │       ├── user_calendar_routing.py
-│       ├── event_routing.py
+│       ├── event_routing.py                # Includes recurrence exception delete
 │       └── category_routing.py
 ├── bruno/                                  # Bruno API collection (local HTTP client)
 ├── Dockerfile
@@ -120,6 +129,8 @@ Each user–calendar pair is stored in the `lnk_user_calendar` table with a `rig
 Permissions are ordered: `R < W < O`. A check for level `W` will also pass for an `O` user.
 
 When a user creates a calendar, they are automatically assigned the `O` (Owner) role.
+
+Every calendar object returned by the API (`POST/GET/PATCH /calendar/...`) includes a `user_right` field with the calling user's permission level on that calendar, so clients can conditionally show owner-only UI (e.g. calendar settings, member management) without an extra request.
 
 ---
 
@@ -209,21 +220,40 @@ Authorization: Bearer <token>
 
 ### Events
 
-| Method | Path                           | Permission | Description                  |
-|--------|--------------------------------|------------|------------------------------|
-| POST   | `/event/`                      | W          | Create an event              |
-| GET    | `/event/range/{calendar_id}`   | R          | Get events in a date range   |
-| GET    | `/event/{id}`                  | R          | Get a single event           |
-| PATCH  | `/event/{id}`                  | W          | Update an event              |
-| DELETE | `/event/{id}`                  | W          | Delete an event              |
+| Method | Path                           | Permission | Description                          |
+|--------|--------------------------------|------------|----------------------------------------|
+| POST   | `/event/`                      | W          | Create an event (optionally recurring) |
+| GET    | `/event/range`                 | R          | Get events in a date range, across one or more calendars |
+| GET    | `/event/{id}`                  | R          | Get a single event                    |
+| PATCH  | `/event/{id}`                  | W          | Update an event                       |
+| DELETE | `/event/{id}`                  | W          | Delete an event (and its recurrence, if any) |
+| DELETE | `/event/{id}/{date}`           | W          | Exclude one occurrence of a recurring event (adds an exception, does not delete the series) |
 
-Query parameters for `GET /event/range/{calendar_id}`:
+Query parameters for `GET /event/range` (repeat `calendar_ids`/`category_ids` for multiple values):
 
-| Parameter     | Type    | Required | Description                  |
-|---------------|---------|----------|------------------------------|
-| `from_date`   | integer | Yes      | Range start (Unix timestamp) |
-| `to_date`     | integer | Yes      | Range end (Unix timestamp)   |
-| `category_id` | string  | No       | Filter by category           |
+| Parameter      | Type                 | Required | Description                        |
+|----------------|----------------------|----------|-------------------------------------|
+| `calendar_ids` | string (repeatable)  | No       | Restrict to these calendars (default: none, i.e. no results) |
+| `from_date`    | integer              | No       | Range start (Unix timestamp, default: 0) |
+| `to_date`      | integer              | No       | Range end (Unix timestamp, default: unbounded) |
+| `category_ids` | string (repeatable)  | No       | Filter by category                 |
+
+#### Recurring events
+
+Pass `obj_recurence` on create/edit to make an event recurring:
+
+```json
+{
+  "type": "D | W | M | Y",
+  "interval": 1,
+  "days": "1111100",
+  "endType": "N | C | U",
+  "count": 5,
+  "until": 1735689600
+}
+```
+
+`days` is a 7-character Monday-first bitmask (weekly recurrence only). `endType` is `N` (never), `C` (after `count` occurrences), or `U` (until a given Unix timestamp). Editing an event's `obj_recurence` replaces the recurrence rule wholesale (the old one is deleted, a new one is created) — editing any other field leaves an existing recurrence untouched.
 
 ### Categories
 
@@ -299,8 +329,6 @@ make docker-build # Build Docker image
 
 ## Known Limitations & TODOs
 
-- **Categories have no permission enforcement** — `obj_category_service.py` has the permission checks scaffolded but commented out pending a refactor of the `verify_user_right_calendar` call signature for that context.
-- **Recurrences are not implemented** — `ObjEventRecurrenceSchema` and `recurrence_id` fields exist in the event model but no recurrence service or routing exists yet.
-- **No cascade deletes** — deleting a calendar does not automatically remove its events or membership records. Either add `ON DELETE CASCADE` to the FK definitions or handle it explicitly in `delete_calendar`.
-- **`user_right` on `ObjCalendarModel`** — declared as `ClassVar` (non-column). It should be populated in the service layer and surfaced through a dedicated response schema before returning calendar objects to clients.
+- **`ObjEventModel.category_id` is not a real foreign key** — a category can be deleted (directly, via `DELETE /category/{id}`) while events still reference its id (dangling reference, no integrity check). Note: deleting a whole *calendar* does cascade-delete its categories and events together, so this only applies to deleting a category on its own.
+- **Recurrence editing always replaces the rule wholesale** — `edit_event` deletes the old `ObjEventRecurenceModel` row and creates a new one whenever `obj_recurence` is provided, rather than patching it in place. Functionally correct but churns rows; `obj_event_recurente_service.update_event_recurence` exists commented-out as a starting point for a real partial-update.
 - **`SECRET_KEY` default is insecure** — the fallback value `"change-me"` must be overridden in any non-local environment via the `.env` file.

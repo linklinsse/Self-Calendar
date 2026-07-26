@@ -1,25 +1,36 @@
 /**
- * category.service.js — Category service (local / mock only).
+ * category.service.js — Category HTTP service.
  *
- * NOTE: The Self Calendar API (openapi.json) does not expose a /categories
- * endpoint. Categories are referenced by `category_id` on events and are
- * managed locally on the client. This service therefore always falls back
+ * Endpoints (OpenAPI):
+ *   POST   /category/                          body → Category
+ *   GET    /category/calendar/{calendar_id}          → Category[]
+ *   GET    /category/{id}                             → Category
+ *   PATCH  /category/{id}                       body → Category
+ *   DELETE /category/{id}                              → void
  *
- * Each category is scoped to a calendar via `calendar_id`.
+ * The API only stores `title` and `color` per category (see
+ * ObjCategorySchemaBase) — there is no `icon` column server-side. `icon`
+ * is therefore kept as a small local-only overlay (id → emoji), merged
+ * onto the server record on read. Everything else (label, color,
+ * calendar_id) is authoritative on the server so categories are
+ * consistent across devices/logins, same as calendars.
  */
 
-// ─── Local storage key ────────────────────────────────────────────────────────
-const LS_KEY = 'sc_categories';
+import { api } from './api.js';
 
-function loadFromStorage() {
+// ─── Local icon overlay ─────────────────────────────────────────────────────
+const ICON_LS_KEY = 'sc_category_icons';
+const DEFAULT_ICON = '🌸';
+
+function loadIcons() {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+    const raw = localStorage.getItem(ICON_LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
 }
 
-function saveToStorage(cats) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(cats)); } catch { /* ignore */ }
+function saveIcons(icons) {
+  try { localStorage.setItem(ICON_LS_KEY, JSON.stringify(icons)); } catch { /* ignore */ }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,46 +40,76 @@ function saveToStorage(cats) {
  * @property {string}  id
  * @property {string}  calendar_id  — the calendar this category belongs to
  * @property {string}  label        — display name, e.g. "Work"
- * @property {string}  icon         — emoji, e.g. "💼"
+ * @property {string}  icon         — emoji, e.g. "💼" (client-only)
  * @property {string}  color        — hex colour, e.g. "#b8c9f4"
  * @property {boolean} on           — local filter visibility toggle (not persisted)
  */
 
+/** Map an API category record (`title`/`color`) to the client shape (`label`/`icon`/`color`). */
+function toClient(apiCat, icons) {
+  return {
+    id: apiCat.id,
+    calendar_id: apiCat.calendar_id,
+    label: apiCat.title,
+    color: apiCat.color,
+    icon: icons[apiCat.id] ?? DEFAULT_ICON,
+  };
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 /**
- * Fetch all categories.
+ * Fetch all categories across the given calendars (there is no
+ * "all my categories" endpoint — categories are listed per calendar).
+ * @param {string[]} calendarIds
  * @returns {Promise<Category[]>}
  */
-export async function fetchCategories() {
-  const stored = loadFromStorage();
-  const data = stored ?? [];
-  return data.map(c => ({ on: true, ...c }));
+export async function fetchCategories(calendarIds) {
+  const icons = loadIcons();
+  const lists = await Promise.all(
+    (calendarIds ?? []).map(id => api.get(`/category/calendar/${id}`))
+  );
+  return lists.flat().map(c => toClient(c, icons));
 }
 
 /**
  * Create a new category.
- * @param {{ calendar_id: string, label: string, icon: string, color: string }} payload
+ * @param {{ calendar_id: string, label: string, icon?: string, color: string }} payload
  * @returns {Promise<Category>}
  */
 export async function createCategory(payload) {
-  const cat = { id: `cat-${Date.now()}`, on: true, ...payload };
-  const stored = loadFromStorage() ?? [];
-  saveToStorage([...stored, cat]);
-  return cat;
+  const created = await api.post('/category/', {
+    calendar_id: payload.calendar_id,
+    title: payload.label,
+    color: payload.color,
+  });
+  const icons = loadIcons();
+  icons[created.id] = payload.icon ?? DEFAULT_ICON;
+  saveIcons(icons);
+  return toClient(created, icons);
 }
 
 /**
  * Update an existing category.
  * @param {string} id
- * @param {{ label?: string, icon?: string, color?: string, calendar_id?: string }} payload
+ * @param {{ label?: string, icon?: string, color?: string }} payload
  * @returns {Promise<Category>}
  */
 export async function updateCategory(id, payload) {
-  const stored = loadFromStorage() ?? [];
-  const updated = stored.map(c => c.id === id ? { ...c, ...payload } : c);
-  saveToStorage(updated);
-  return updated.find(c => c.id === id) ?? { id, on: true, ...payload };
+  const body = {};
+  if (payload.label !== undefined) body.title = payload.label;
+  if (payload.color !== undefined) body.color = payload.color;
+
+  const updated = Object.keys(body).length
+    ? await api.patch(`/category/${id}`, body)
+    : await api.get(`/category/${id}`);
+
+  const icons = loadIcons();
+  if (payload.icon !== undefined) {
+    icons[id] = payload.icon;
+    saveIcons(icons);
+  }
+  return toClient(updated, icons);
 }
 
 /**
@@ -77,6 +118,8 @@ export async function updateCategory(id, payload) {
  * @returns {Promise<void>}
  */
 export async function deleteCategory(id) {
-  const stored = loadFromStorage() ?? [];
-  saveToStorage(stored.filter(c => c.id !== id));
+  await api.delete(`/category/${id}`);
+  const icons = loadIcons();
+  delete icons[id];
+  saveIcons(icons);
 }

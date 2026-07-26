@@ -49,7 +49,7 @@
     return `${sLabel} – ${eLabel}${timeRange ? ' · ' + timeRange : ''}`;
   }
 
-  let canEdit = $derived(cal ? (cal.right === 'write' || cal.right === 'admin' || !cal.right) : true);
+  let canEdit = $derived(cal ? (cal.right === 'W' || cal.right === 'O') : true);
 
   // Recurrence delete choice popup
   let showRecurChoice = $state(false);
@@ -73,7 +73,7 @@
   }
 
   function onDelete() {
-    if (ev.recurrence_id || ev.recurrence) {
+    if (ev.recurrence) {
       showRecurChoice = true;
     } else {
       deleteEvent(ev.id);
@@ -130,7 +130,7 @@
         {#if ev.allDay}
           <span class="badge">All day</span>
         {/if}
-        {#if cal && cal.right === 'read'}
+        {#if cal && cal.right === 'R'}
           <span class="badge muted">Read only</span>
         {/if}
       </div>

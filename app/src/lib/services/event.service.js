@@ -3,12 +3,14 @@
  *
  * Endpoints (OpenAPI):
  *   POST  /event/                                → CalEvent
- *   GET   /event/range/{calendar_id}
- *         ?from_date=<unix>&to_date=<unix>
- *         [&category_id=<id>]                   → CalEvent[]
+ *   GET   /event/range
+ *         ?calendar_ids=<id>&calendar_ids=<id>...
+ *         &from_date=<unix>&to_date=<unix>
+ *         [&category_ids=<id>&category_ids=<id>...]  → CalEvent[]
  *   GET   /event/{event_id}                      → CalEvent
  *   PATCH /event/{event_id}   body               → CalEvent
  *   DELETE /event/{event_id}                     → void
+ *   DELETE /event/{event_id}/{date}               → void (exclude one recurrence occurrence)
  *
  * API date fields are Unix timestamps (integers).
  * Internally the app keeps Date objects on startDate / endDate
@@ -188,22 +190,24 @@ function serialise(ev) {
 /**
  * Fetch events for a calendar within a date range.
  *
- * @param {{ calendarId: string, from: Date, to: Date, categoryId?: string }} filters
+ * @param {{ calendarIds: string[], from: Date, to: Date, categoryIds?: string[] }} filters
  * @returns {Promise<CalEvent[]>}
  */
 export async function fetchEvents(filters = {}) {
   // — do NOT pass through deserialise which expects API unix timestamps.
-  const { calendarIds, from, to, categoryId } = filters;
+  const { calendarIds, from, to, categoryIds } = filters;
   if (!calendarIds || !from || !to) return [];
 
   const params = new URLSearchParams({
     from_date: String(Math.floor(from.getTime() / 1000)),
     to_date:   String(Math.floor(to.getTime()   / 1000)),
   });
-  for (const cal of filters.calendarIds) {
+  for (const cal of calendarIds) {
     params.append('calendar_ids', cal)
   }
-  if (categoryId) params.set('category_id', categoryId);
+  for (const cat of categoryIds ?? []) {
+    params.append('category_ids', cat)
+  }
 
   const data = await api.get(`/event/range?${params}`);
   return (data ?? []).map(deserialise);

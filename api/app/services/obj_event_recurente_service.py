@@ -1,9 +1,12 @@
 
+from datetime import datetime, timedelta
+
+from dateutil.relativedelta import relativedelta
+from fastapi import HTTPException, status
 from sqlmodel import Session, select
-from datetime import datetime
 
 from app.models.obj_event_recurence_model import ObjEventRecurenceModel
-from app.schemas.obj_event_recurence_schema import ObjEventRecurenceSchemaCreate, ObjEventRecurenceSchemaEdit
+from app.schemas.obj_event_recurence_schema import ObjEventRecurenceSchemaCreate
 from app.models.obj_event_recurence_exception_model import ObjEventRecurenceExceptionModel
 
 def create_event_recurence(
@@ -12,7 +15,7 @@ def create_event_recurence(
     session: Session,
 ) -> ObjEventRecurenceModel:
     db_recurence = ObjEventRecurenceModel.model_validate(new_recurence)
-    db_recurence.estimated_end_date = compute_estimated_end(ObjEventRecurenceModel, date_start)
+    db_recurence.estimated_end_date = compute_estimated_end(db_recurence, date_start)
     session.add(db_recurence)
     session.commit()
     session.refresh(db_recurence)
@@ -49,6 +52,12 @@ def delete_event_recurence(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recurence not found",
         )
+
+    # recurrence_id on the exception rows is NOT NULL, so these must be
+    # removed before the recurrence itself (see delete_calendar for the
+    # same pattern / rationale).
+    for db_exception in list(recurence.obj_exceptions):
+        session.delete(db_exception)
 
     session.delete(recurence)
     session.commit()
@@ -88,9 +97,13 @@ def compute_estimated_end(
     n = recurrence.count * recurrence.interval  # total units to advance
 
     match recurrence.type:
-        case 'D': dt += timedelta(days=n)
-        case 'W': dt += timedelta(weeks=n)
-        case 'M': dt += relativedelta(months=n)
-        case 'Y': dt += relativedelta(years=n)
+        case 'D':
+            dt += timedelta(days=n)
+        case 'W':
+            dt += timedelta(weeks=n)
+        case 'M':
+            dt += relativedelta(months=n)
+        case 'Y':
+            dt += relativedelta(years=n)
 
     return int(dt.timestamp())

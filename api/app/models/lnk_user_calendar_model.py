@@ -1,4 +1,3 @@
-from app.common.enums import CalendarRight
 from uuid import uuid4
 from sqlmodel import Field, Relationship, SQLModel
 

@@ -40,7 +40,9 @@ export async function restoreSession() {
     const user = await authSvc.getMe();
     if (user) {
       currentUser.set(user);
-      await Promise.all([loadCalendars(), loadCategories()]);
+      // Categories are fetched per-calendar, so calendars must load first.
+      await loadCalendars();
+      await loadCategories();
       // Events are loaded by CalendarBody.$effect on mount — no extra call needed.
     }
   } catch { /* token expired or invalid — remain logged out */ }
@@ -53,7 +55,9 @@ export async function registerUser(username, password) {
   try {
     const user = await authSvc.register(username, password);
     currentUser.set(user);
-    await Promise.all([loadCalendars(), loadCategories()]);
+    // Categories are fetched per-calendar, so calendars must load first.
+    await loadCalendars();
+    await loadCategories();
     // Events are loaded by CalendarBody.$effect on mount.
   } finally { authLoading.set(false); }
 }
@@ -64,7 +68,9 @@ export async function loginUser(username, password) {
   try {
     const user = await authSvc.login(username, password);
     currentUser.set(user);
-    await Promise.all([loadCalendars(), loadCategories()]);
+    // Categories are fetched per-calendar, so calendars must load first.
+    await loadCalendars();
+    await loadCategories();
     // Events are loaded by CalendarBody.$effect on mount — no extra call needed.
     const d = new Date();
     const days = weekDays(d);

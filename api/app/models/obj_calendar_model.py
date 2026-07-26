@@ -1,6 +1,12 @@
-from typing import ClassVar, List
+from typing import TYPE_CHECKING, List
 from uuid import uuid4
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    # Only needed for static analysis — SQLModel resolves these forward
+    # refs at runtime via its own registry, not via this module's imports.
+    from app.models.lnk_user_calendar_model import LnkUserCalendarModel
+    from app.models.obj_event_model import ObjEventModel
 
 
 class ObjCalendarModel(SQLModel, table=True):
@@ -20,9 +26,3 @@ class ObjCalendarModel(SQLModel, table=True):
     obj_events: List["ObjEventModel"] = Relationship(
         back_populates="obj_calendar"
     )
-
-    # ClassVar: not a database column — computed at runtime from lnk_users
-    # and injected into the response to expose the current user's permission
-    # level (e.g. "R", "W", "O") without an extra query.
-    # TODO: populate this field in the service layer before returning the model.
-    user_right: ClassVar[str]

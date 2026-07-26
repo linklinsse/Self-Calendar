@@ -32,7 +32,7 @@ def create_event(
     if not verify_user_right_calendar(get_logged_user_context(), db_calendar, "W"):
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
-    if (new_event.obj_recurence != None):
+    if new_event.obj_recurence is not None:
         db_event_recurence = obj_event_recurente_service.create_event_recurence(
             new_event.obj_recurence,
             new_event.date_start,
@@ -88,17 +88,17 @@ def get_all_event_between(
         or_(
             # Non-recurring: must overlap the requested window
             and_(
-                ObjEventModel.recurence_id == None,
+                ObjEventModel.recurence_id.is_(None),
                 ObjEventModel.date_end >= from_date,
                 ObjEventModel.date_start <= to_date,
             ),
             # Recurring: fetch all that started before the window ends;
             # recurrence expansion + filtering happens in the app layer
             and_(
-                ObjEventModel.recurence_id != None,
+                ObjEventModel.recurence_id.is_not(None),
                 ObjEventModel.date_start <= to_date,
                 or_(
-                    ObjEventRecurenceModel.estimated_end_date == None,  # endType == 'N' (never)
+                    ObjEventRecurenceModel.estimated_end_date.is_(None),  # endType == 'N' (never)
                     ObjEventRecurenceModel.estimated_end_date >= from_date,
                 ),
             ),
@@ -150,17 +150,26 @@ def edit_event(
     ):
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
-    if (edited_event.obj_recurence != None):
+    # Only touch the existing recurrence when the request actually replaces
+    # it — deleting it unconditionally here would strip recurrence off an
+    # event whenever an unrelated field (e.g. the title) is edited.
+    if edited_event.obj_recurence is not None:
+        # date_start is optional on a PATCH — fall back to the event's
+        # existing start so compute_estimated_end() always gets an int.
+        recurence_date_start = (
+            edited_event.date_start
+            if edited_event.date_start is not None
+            else db_event.date_start
+        )
         db_event_recurence = obj_event_recurente_service.create_event_recurence(
             edited_event.obj_recurence,
-            edited_event.date_start,
+            recurence_date_start,
             session
         )
+        if db_event.obj_recurence is not None:
+            obj_event_recurente_service.delete_event_recurence(db_event.recurence_id, session)
         edited_event.recurence_id = db_event_recurence.id
         edited_event.obj_recurence = None
-
-    if (db_event.obj_recurence != None):
-        obj_event_recurente_service.delete_event_recurence(db_event.recurence_id, session)
 
     update_data = edited_event.model_dump(exclude_unset=True)
     for key, value in update_data.items():

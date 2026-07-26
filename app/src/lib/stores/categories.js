@@ -1,8 +1,9 @@
 /**
  * stores/categories.js — Category list state and CRUD.
  *
- * Categories are scoped to a calendar via `calendar_id`.
- * There is no /categories API endpoint; data lives locally.
+ * Categories are scoped to a calendar via `calendar_id` and fetched from
+ * the server per calendar (there is no "all my categories" endpoint), so
+ * `loadCategories()` must run after the `calendars` store is populated.
  *
  * Key exported derived helpers:
  *   categoriesForCalendars(calendarIds) — returns only categories
@@ -38,9 +39,11 @@ export const visibleCategories = derived(
 
 // ── Load ──────────────────────────────────────────────────────
 
+/** Loads categories for every calendar currently in the `calendars` store. */
 export async function loadCategories() {
   try {
-    const data = await catSvc.fetchCategories();
+    const calendarIds = get(calendars).map(c => c.id);
+    const data = await catSvc.fetchCategories(calendarIds);
     if (data) categories.set(data.map(c => ({ on: true, ...c })));
   } catch (e) {
     showToast('Could not load categories: ' + e.message, 'error');

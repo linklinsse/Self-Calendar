@@ -4,12 +4,10 @@ Features:
 - Creating event today as default =>
     - Click on hour => day & hour set
     - Click on day => day set
-- On login categories doesn't load
 
 Design:
 - Event color is not send
 - Event title not verry visible => possibility: title white + no transparent backgound ?
 - Event color selection hidden by default
 - Caterories changes icon selections
-- Add Theme Yellow
 - Add Theme unicorn

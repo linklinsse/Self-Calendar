@@ -87,8 +87,11 @@ src/
     │   ├── api.js              ← Base fetch client + JWT bearer token handling
     │   ├── auth.service.js     ← login / logout / getMe
     │   ├── calendar.service.js ← Calendar CRUD + user-calendar membership
-    │   ├── category.service.js ← Category CRUD (localStorage in live mode, no server endpoint)
+    │   ├── category.service.js ← Category CRUD via /category (title/color/calendar_id);
+    │   │                          icon is a client-only overlay in localStorage (no server column)
     │   └── event.service.js    ← Event CRUD with unix-timestamp serialisation
+    │
+    ├── widgetSync.js           ← Pushes visible events to the native Android home-screen widget (Capacitor)
     │
     └── themes/                 ← Theme definitions
         ├── index.js            ← Theme registry + activeThemeId store + applyTheme()
@@ -97,10 +100,7 @@ src/
         ├── sageDusk.js         ← Dark mint / forest
         ├── midnightInk.js      ← Deep indigo / lavender
         ├── oceanBreeze.js      ← Dark teal
-        ├── sunsetAmber.js      ← Dark amber / warm
-        ├── lightClean.js       ← Light neutral
-        ├── sunshineYellow.js   ← Light yellow
-        └── blossomPink.js      ← Light pink
+        └── electricYellow.js   ← Electric yellow
 ```
 
 ---
@@ -125,10 +125,7 @@ Available theme keys:
 | `sageDusk`        | 🌿 Mint      | Dark forest           |
 | `midnightInk`     | 💜 Lavender  | Deep indigo           |
 | `oceanBreeze`     | 🩵 Teal      | Dark ocean            |
-| `sunsetAmber`     | 🟠 Amber     | Dark warm             |
-| `lightClean`      | ⚪ Neutral   | Light minimal         |
-| `sunshineYellow`  | 🌞 Yellow    | Light sunny           |
-| `blossomPink`     | 🌺 Pink      | Light blossom         |
+| `electricYellow`  | ⚡ Yellow    | Electric              |
 
 ### Add a custom theme
 
@@ -158,14 +155,14 @@ VITE_API_BASE_URL=https://api.yourdomain.com
 
 | Service                     | Endpoints                                                                         |
 |-----------------------------|-----------------------------------------------------------------------------------|
-| `auth.service.js`           | `POST /auth/login` → `{ access_token }` · `GET /auth/me` → user object           |
+| `auth.service.js`           | `POST /auth/login` → `{ access_token }` · `POST /auth/register` · `GET /auth/me` |
 | `calendar.service.js`       | `GET/POST /calendar/` · `GET/PATCH/DELETE /calendar/{id}`                         |
 |                             | `GET/POST /user_calendar/` · `GET/PATCH/DELETE /user_calendar/{id}`               |
-| `category.service.js`       | No server endpoint — stored in `localStorage` on the client                       |
-| `event.service.js`          | `POST /event/` · `GET /event/range/{calendar_id}?from_date&to_date`               |
-|                             | `GET/PATCH/DELETE /event/{id}`                                                    |
+| `category.service.js`       | `GET /category/calendar/{calendar_id}` · `POST /category/` · `PATCH/DELETE /category/{id}` |
+| `event.service.js`          | `POST /event/` · `GET /event/range?calendar_ids=&category_ids=&from_date=&to_date=` |
+|                             | `GET/PATCH/DELETE /event/{id}` · `DELETE /event/{id}/{date}` (exclude one occurrence) |
 
-> **Note:** There is no registration endpoint. User accounts must be created server-side.
+> **Note:** Registration is gated server-side by the `USER_CREATION` setting — if disabled, `POST /auth/register` returns 401 and accounts must be created directly in the database.
 
 ### Authentication
 
@@ -188,13 +185,17 @@ Internally, `event.service.js` deserialises unix timestamps into `startDate`/`en
 
 ### Calendar membership (`right` field)
 
-| Value   | Permissions                                             |
-|---------|---------------------------------------------------------|
-| `read`  | View events only                                        |
-| `write` | View + create / edit / delete events                    |
-| `admin` | All of write + manage members + edit calendar settings  |
+| Value | Permissions                                             |
+|-------|-----------------------------------------------------------|
+| `R`   | View events only                                        |
+| `W`   | View + create / edit / delete events                    |
+| `O`   | All of `W` + manage members + edit calendar settings    |
 
-The `right` field is set on `UserCalendar` objects returned by `/user_calendar/`. Omitting `right` defaults to full access.
+These are the API's `CalendarRight` codes (Read/Write/Owner) — used both on `UserCalendar` objects from `/user_calendar/` and as `right` on `Calendar` objects from `/calendar/` (mapped client-side from the API's `user_right` field), representing the current user's own permission on that calendar. UI that gates owner-only actions (e.g. the calendar-settings gear in `CalendarList.svelte`, edit/delete in `EventModal.svelte`) checks against `'O'`/`'W'` directly.
+
+### Categories: what's synced vs. local-only
+
+`category.service.js` persists `label` (→ API `title`), `color`, and `calendar_id` through `/category/` so categories are consistent across devices/logins, same as calendars. The `icon` field has no server-side column — it's kept in a small `localStorage` overlay (keyed by category id) and merged back in on read. A category created on one device will show up elsewhere with its label/color intact but the default icon until re-picked.
 
 ---
 
@@ -225,6 +226,10 @@ make sync      # sync latest build to native platforms only
 ```
 
 Requires Android Studio (Android) and Xcode (iOS/macOS only).
+
+### Android home-screen widget
+
+`src/lib/widgetSync.js` pushes a rolling 3-month window of visible events (date + colour only) to a native `WidgetBridge` Capacitor plugin whenever the visible event set changes. It's a no-op on web/iOS (`Capacitor.isNativePlatform()` guard) and fails silently if the plugin isn't registered, so it's safe to leave wired up even when working on non-widget features.
 
 ---
 

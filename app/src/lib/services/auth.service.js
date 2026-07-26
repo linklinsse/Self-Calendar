@@ -1,13 +1,10 @@
 /**
- * auth.service.js — Authentication via OAuth2 password flow.
+ * auth.service.js — Authentication.
  *
- * Login:  POST /token   (form-encoded)  → { access_token, token_type }
- * Me:     GET  /user/me                 → ObjUserSchemaComplete
- * Logout: client-side only (clear token)
- *
- * Note: The API exposes GET /auth/login which likely initiates an OAuth
- * redirect. For username/password flow we POST to the tokenUrl "token"
- * as declared in the OpenAPI securitySchemes.
+ * Login:    POST /auth/login    (JSON body: username/password) → raw JWT string
+ * Register: POST /auth/register (JSON body: username/password) → user object, then auto-login
+ * Me:       GET  /auth/me                                      → { id, username }
+ * Logout:   client-side only (clear token)
  */
 
 import { api, setToken } from './api.js';
@@ -54,8 +51,8 @@ export async function logout() {
 export async function getMe() {
   try {
     const u = await api.get('/auth/me');
-    // Normalise: API returns { id, login, hashed_password } — expose as { id, login, name }
-    return { ...u, name: u.login };
+    // Normalise: API returns { id, username } — expose as { id, username, name }
+    return { ...u, name: u.username };
   } catch {
     return null;
   }

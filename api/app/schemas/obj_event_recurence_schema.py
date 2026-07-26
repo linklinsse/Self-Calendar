@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Annotated
 
-from app.schemas.common_fields import CommonFieldTitle
 from app.schemas.obj_event_recurence_exception_schema import ObjEventRecurenceExceptionSchema
 from app.common.enums import EventRecurenceEndType, EventRecurenceType
 

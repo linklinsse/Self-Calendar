@@ -6,7 +6,7 @@
    * Clicking a day: sets cursor + switches to day view.
    */
 
-  import { cursor, currentView } from '../../lib/stores.js';
+  import { cursor, currentView } from '../../lib/stores/index.js';
   import { buildMonthGrid, MONTH_ABBR, DOW_LETTERS, sameDay, isToday }
     from '../../lib/utils.js';
 

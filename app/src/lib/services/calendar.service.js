@@ -20,13 +20,15 @@ import { api } from './api.js';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /**
- * @typedef {'read' | 'write' | 'admin'} CalendarRight
+ * @typedef {'R' | 'W' | 'O'} CalendarRight
+ * Read / Write / Owner — matches the API's CalendarRight enum.
  *
  * @typedef {Object} Calendar
  * @property {string}  id
  * @property {string}  title        — display name (API field, replaces old `name`)
  * @property {string}  [description]
  * @property {string}  [color]      — hex, e.g. "#f4b8c8"
+ * @property {CalendarRight} [right] — current user's permission on this calendar (API field: user_right)
  * @property {boolean} on           — local filter toggle (not persisted)
  *
  * @typedef {Object} UserCalendar
@@ -36,6 +38,11 @@ import { api } from './api.js';
  * @property {CalendarRight} right
  */
 
+/** Map an API calendar record (`user_right`) to the client shape (`right`). */
+function toClient(apiCal) {
+  return { ...apiCal, right: apiCal.user_right };
+}
+
 // ─── Calendar CRUD ────────────────────────────────────────────────────────────
 
 /**
@@ -44,7 +51,7 @@ import { api } from './api.js';
  */
 export async function fetchCalendars() {
   const data = await api.get('/calendar/');
-  return data.map(c => ({ on: true, ...c }));
+  return data.map(c => ({ on: true, ...toClient(c) }));
 }
 
 /**
@@ -54,7 +61,7 @@ export async function fetchCalendars() {
  */
 export async function createCalendar(payload) {
   const cal = await api.post('/calendar/', payload);
-  return { on: true, ...cal };
+  return { on: true, ...toClient(cal) };
 }
 
 /**
@@ -64,7 +71,7 @@ export async function createCalendar(payload) {
  */
 export async function fetchCalendar(id) {
   const cal = await api.get(`/calendar/${id}`);
-  return { on: true, ...cal };
+  return { on: true, ...toClient(cal) };
 }
 
 /**
@@ -74,7 +81,8 @@ export async function fetchCalendar(id) {
  * @returns {Promise<Calendar>}
  */
 export async function updateCalendar(id, payload) {
-  return api.patch(`/calendar/${id}`, payload);
+  const cal = await api.patch(`/calendar/${id}`, payload);
+  return toClient(cal);
 }
 
 /**
