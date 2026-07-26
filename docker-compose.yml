@@ -9,12 +9,15 @@ services:
       "autoheal": "true"
     restart: always
     ports:
-      - 8686:8686
+      # Host:container — container is nginx, always listening on 80
+      # regardless of the host port (nothing in the Dockerfile changes that).
+      - 8686:80
     environment:
       # Must be reachable from the *browser*, not just other containers —
       # this is baked into a client-side env-config.js at container start,
-      # not read server-side. See api's `ports` below.
-      API_BASE_URL: 'http://localhost:8082'
+      # not read server-side. Must match api's HOST port below (8787), not
+      # its container-internal port.
+      API_BASE_URL: 'http://localhost:8787'
       APP_NAME: 'Self Calendar'
     depends_on:
       - api
