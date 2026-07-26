@@ -9,7 +9,7 @@ services:
       "autoheal": "true"
     restart: always
     ports:
-      - 8686:80
+      - 8686:8686
     environment:
       # Must be reachable from the *browser*, not just other containers —
       # this is baked into a client-side env-config.js at container start,
@@ -29,7 +29,7 @@ services:
       "autoheal": "true"
     restart: always
     ports:
-      - 8082:8082
+      - 8787:8082
     volumes:
       # Paths on the right are relative to the container's WORKDIR (/work,
       # set in api/Dockerfile) — that's what app/common/config.py and the
