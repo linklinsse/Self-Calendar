@@ -1,0 +1,4 @@
+# docker-compose runtime state (see docker-compose.yml volume mounts)
+/conf/.env
+/db/*
+!/db/.gitkeep

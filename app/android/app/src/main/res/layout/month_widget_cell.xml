@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Event rows are 3 fixed, statically-declared slots (+ one overflow line)
+  toggled via setViewVisibility from MonthWidgetProvider, not built with
+  RemoteViews#addView() per event. A day cell is already 2 levels deep in
+  dynamically-composed RemoteViews (month_widget -> month_widget_row ->
+  month_widget_cell); a 3rd level (one more RemoteViews object per event,
+  added into this cell) reliably lost width — children measured near-0dp
+  regardless of match_parent/weight. Static children of this same file
+  size correctly (see day_number), so the event rows live here instead.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/cell_root"
     android:layout_width="0dp"
@@ -6,22 +16,73 @@
     android:layout_weight="1"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    android:paddingTop="2dp">
+    android:paddingTop="2dp"
+    android:paddingStart="1dp"
+    android:paddingEnd="1dp">
 
-    <TextView
-        android:id="@+id/day_number"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:gravity="center"
-        android:textSize="11sp"
-        android:textColor="@color/widget_text" />
+    <FrameLayout
+        android:layout_width="18dp"
+        android:layout_height="18dp">
+
+        <!-- Today's accent-colored circle — a themed bitmap set from
+             MonthWidgetProvider, cleared (0) on non-today cells. -->
+        <ImageView
+            android:id="@+id/day_number_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/day_number"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textSize="10sp"
+            android:textColor="@color/widget_text" />
+
+    </FrameLayout>
 
     <LinearLayout
-        android:id="@+id/dots_container"
-        android:layout_width="wrap_content"
-        android:layout_height="8dp"
-        android:layout_marginTop="2dp"
-        android:orientation="horizontal"
-        android:gravity="center" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:id="@+id/event_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="1dp">
+            <ImageView android:id="@+id/event_accent_1" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
+            <TextView android:id="@+id/event_title_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:textSize="7sp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/event_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="1dp">
+            <ImageView android:id="@+id/event_accent_2" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
+            <TextView android:id="@+id/event_title_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:textSize="7sp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/event_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="1dp">
+            <ImageView android:id="@+id/event_accent_3" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
+            <TextView android:id="@+id/event_title_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:textSize="7sp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/overflow_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="7sp"
+            android:textStyle="bold"
+            android:paddingStart="2dp"
+            android:textColor="@color/widget_text_muted" />
+
+    </LinearLayout>
 
 </LinearLayout>

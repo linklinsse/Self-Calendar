@@ -1,25 +1,46 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
-import { visibleEvents } from './stores/index.js';
-import { expandEventsForRange } from './utils.js';
+import { currentUser } from './stores/index.js';
+import { activeThemeId, resolveTheme } from './themes/index.js';
+import { getToken } from './services/api.js';
+import { API_BASE_URL } from './config.js';
 
 const WidgetBridge = registerPlugin('WidgetBridge');
 
+/**
+ * Keeps the native Android home-screen widget in sync with the app's
+ * *theme* and *credentials* only. Events are deliberately NOT pushed from
+ * here — the widget used to mirror the app's `visibleEvents` store, which
+ * is scoped to whatever view is currently open (e.g. narrows to a single
+ * day in Day view), so switching views in the app made the widget appear
+ * to "lose" events. The widget now fetches its own events straight from
+ * the API on its own schedule (see WidgetDataFetcher.kt), independent of
+ * anything happening in the app's UI.
+ */
 export function initWidgetSync() {
   if (!Capacitor.isNativePlatform()) return;
 
-  visibleEvents.subscribe(async (events) => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-    const occs = expandEventsForRange(events, start, end);
-
-    const payload = occs.map(o => ({
-      date: o.startDate.toISOString().slice(0, 10),
-      color: o.ev.color
-    }));
+  activeThemeId.subscribe(async (id) => {
+    const theme = resolveTheme(id);
+    const payload = {
+      bg:        theme.bgSurface,
+      text:      theme.text1,
+      textMuted: theme.text2,
+      accent:    theme.accent,
+    };
 
     try {
-      await WidgetBridge.updateEvents({ events: JSON.stringify(payload) });
+      await WidgetBridge.updateTheme({ theme: JSON.stringify(payload) });
+    } catch (e) {
+      // not on native or plugin not ready yet — ignore
+    }
+  });
+
+  currentUser.subscribe(async (user) => {
+    try {
+      await WidgetBridge.updateAuth({
+        token: user ? (getToken() ?? '') : '',
+        apiBaseUrl: API_BASE_URL,
+      });
     } catch (e) {
       // not on native or plugin not ready yet — ignore
     }

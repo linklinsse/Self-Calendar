@@ -178,11 +178,11 @@ Alternative docs (ReDoc) are at `http://localhost:8000/redoc`.
 # Build the image
 make docker-build
 
-# Run the container
-docker run -p 8082:8082 fastapi-app
+# Run the container (needs a real conf/.env — see Configuration below)
+docker run -p 8082:8082 -v $(pwd)/conf:/work/conf -v $(pwd)/db:/work/db selfcalendar-api
 ```
 
-The API will be available at `http://localhost:8082`.
+The API will be available at `http://localhost:8082`. For running the api together with the app, prefer `docker compose up -d --build` from the repo root — see the root [`README.md`](../README.md#quick-start-docker--prod-style).
 
 ---
 

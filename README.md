@@ -16,7 +16,7 @@ This file is the entry point. For implementation detail, see the sub-project doc
 Self-Calendar/
 ├── api/            FastAPI backend (Python 3.12, uv, SQLModel, SQLite)
 ├── app/            SvelteKit frontend (Svelte 5, Vite, Capacitor for Android/iOS)
-├── docker-compose.yml   Prod-style compose file wiring app (nginx, :8686) + api (:8082)
+├── docker-compose.yml   Builds + runs app (nginx, :8686) + api (:8082) together
 ├── TODO            Freeform running task/idea list (not an issue tracker)
 └── review.md       Project-review notes maintained by the assistant
 ```
@@ -49,10 +49,14 @@ VITE_API_BASE_URL=http://localhost:8000
 ## Quick start (Docker / prod-style)
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-Brings up `SelfCalendar-web` (nginx-served static build, port `8686`) and `SelfCalendar-api` (port `8082` internally, reverse-proxied by `web`). The api container expects `./conf` (env file) and `./db/prod.db` to exist on the host — see `docker-compose.yml`.
+That's it — `docker-compose.yml` builds both images from `api/Dockerfile` and `app/Dockerfile` itself, no separate build step needed. It brings up `SelfCalendar-web` (nginx-served static build, `http://localhost:8686`) and `SelfCalendar-api` (`http://localhost:8082`, called directly by the browser — the web container does not proxy it).
+
+`conf/.env` and `db/` at the repo root are created for you (gitignored) with a freshly generated `SECRET_KEY` and `USER_CREATION=True` so you can register your first account from the app's login screen. **Set `USER_CREATION=False` in `conf/.env` and restart the `api` container once you're done creating accounts** to close public registration. `db/prod.db` is the persisted SQLite database — back it up like any other file.
+
+If you deploy this somewhere other than `localhost` (a real domain, a different host/port), update `API_BASE_URL` in `docker-compose.yml`'s `web.environment` and `CORS_ORIGINS` in `conf/.env` to match, then restart both containers.
 
 ---
 

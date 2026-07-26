@@ -91,7 +91,7 @@ src/
     │   │                          icon is a client-only overlay in localStorage (no server column)
     │   └── event.service.js    ← Event CRUD with unix-timestamp serialisation
     │
-    ├── widgetSync.js           ← Pushes visible events to the native Android home-screen widget (Capacitor)
+    ├── widgetSync.js           ← Pushes theme + auth (not events) to the native Android home-screen widget (Capacitor)
     │
     └── themes/                 ← Theme definitions
         ├── index.js            ← Theme registry + activeThemeId store + applyTheme()
@@ -229,18 +229,24 @@ Requires Android Studio (Android) and Xcode (iOS/macOS only).
 
 ### Android home-screen widget
 
-`src/lib/widgetSync.js` pushes a rolling 3-month window of visible events (date + colour only) to a native `WidgetBridge` Capacitor plugin whenever the visible event set changes. It's a no-op on web/iOS (`Capacitor.isNativePlatform()` guard) and fails silently if the plugin isn't registered, so it's safe to leave wired up even when working on non-widget features.
+The month-grid widget (`android/app/src/main/java/app/selfcalendar/app/widget/`) fetches its own events directly from the API — it does not depend on anything in the app's in-memory/view-scoped state. `src/lib/widgetSync.js` only pushes two things to the native `WidgetBridge` Capacitor plugin: the active **theme** (`updateTheme`, whenever the user changes it) and the **JWT + API base URL** (`updateAuth`, whenever login state changes). Both calls are no-ops on web/iOS (`Capacitor.isNativePlatform()` guard) and fail silently if the plugin isn't registered.
+
+Native side (`WidgetDataFetcher.kt`): calls `GET /calendar/`, `GET /category/calendar/{id}` (for event colors), and `GET /event/range` itself using the synced token, then expands recurring events into per-day occurrences with a Kotlin port of `utils.js`'s `getOccurrencesInRange`/`_nextOccurrence`. Triggered on widget placement, the periodic `updatePeriodMillis` refresh (`month_widget_info.xml`), the widget's own prev/next month buttons, and on login/logout — each time for whichever month the widget is currently showing. On any fetch failure (offline, no token yet, expired token) it just keeps showing the last successfully fetched data rather than clearing the widget.
+
+This used to work by mirroring the app's `visibleEvents` store, which broke whenever the app navigated to a narrower view (e.g. Day view would make the widget appear to lose events) — the widget fetching its own data sidesteps that entirely.
 
 ---
 
 ## Docker
 
-A multi-stage Dockerfile is included. It builds the static assets and serves them with nginx.
+A multi-stage Dockerfile is included. It builds the static assets and serves them with nginx. `docker-entrypoint.sh` injects `API_BASE_URL`/`THEME`/etc. into `env-config.js` at container start (read by `config.js`), so the same image works against any backend without rebuilding.
 
 ```bash
 docker build -t self-calendar .
-docker run -p 8080:80 self-calendar
+docker run -p 8080:80 -e API_BASE_URL=http://localhost:8082 -e APP_NAME="Self Calendar" self-calendar
 # → http://localhost:8080
 ```
+
+For running the app together with the api, prefer `docker compose up -d --build` from the repo root — see the root [`README.md`](../README.md#quick-start-docker--prod-style).
 
 ---

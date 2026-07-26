@@ -1,5 +1,8 @@
 services:
   web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
     image: selfcalendar-web:latest
     container_name: SelfCalendar-web
     labels:
@@ -8,15 +11,28 @@ services:
     ports:
       - 8686:80
     environment:
-      API_BASE_URL: 'http://api:8082'
+      # Must be reachable from the *browser*, not just other containers —
+      # this is baked into a client-side env-config.js at container start,
+      # not read server-side. See api's `ports` below.
+      API_BASE_URL: 'http://localhost:8082'
       APP_NAME: 'Self Calendar'
+    depends_on:
+      - api
 
   api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
     image: selfcalendar-api:latest
     container_name: SelfCalendar-api
     labels:
       "autoheal": "true"
     restart: always
+    ports:
+      - 8082:8082
     volumes:
-      - ./conf:/work/app/conf
-      - ./db/prod.db:/work/app/prod.db
+      # Paths on the right are relative to the container's WORKDIR (/work,
+      # set in api/Dockerfile) — that's what app/common/config.py and the
+      # DB_URL in conf/.env resolve "./conf/.env" and "./db/..." against.
+      - ./conf:/work/conf
+      - ./db:/work/db
