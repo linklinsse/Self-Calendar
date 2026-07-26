@@ -8,6 +8,10 @@
   added into this cell) reliably lost width — children measured near-0dp
   regardless of match_parent/weight. Static children of this same file
   size correctly (see day_number), so the event rows live here instead.
+
+  Each row's own background is set dynamically (solid for all-day events,
+  tinted for timed — mirrors the two event pill styles in MonthView.svelte),
+  so a little padding is baked in here to give that fill room to breathe.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/cell_root"
@@ -51,27 +55,33 @@
             android:id="@+id/event_row_1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="1dp">
+            android:layout_marginBottom="1dp"
+            android:paddingStart="2dp" android:paddingEnd="2dp"
+            android:paddingTop="1dp" android:paddingBottom="1dp">
             <ImageView android:id="@+id/event_accent_1" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
-            <TextView android:id="@+id/event_title_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:textSize="7sp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+            <TextView android:id="@+id/event_title_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
         </FrameLayout>
 
         <FrameLayout
             android:id="@+id/event_row_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="1dp">
+            android:layout_marginBottom="1dp"
+            android:paddingStart="2dp" android:paddingEnd="2dp"
+            android:paddingTop="1dp" android:paddingBottom="1dp">
             <ImageView android:id="@+id/event_accent_2" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
-            <TextView android:id="@+id/event_title_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:textSize="7sp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+            <TextView android:id="@+id/event_title_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
         </FrameLayout>
 
         <FrameLayout
             android:id="@+id/event_row_3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="1dp">
+            android:layout_marginBottom="1dp"
+            android:paddingStart="2dp" android:paddingEnd="2dp"
+            android:paddingTop="1dp" android:paddingBottom="1dp">
             <ImageView android:id="@+id/event_accent_3" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
-            <TextView android:id="@+id/event_title_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:textSize="7sp" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+            <TextView android:id="@+id/event_title_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
         </FrameLayout>
 
         <TextView

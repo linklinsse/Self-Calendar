@@ -86,21 +86,22 @@ object WidgetDataFetcher {
     ): Map<String, List<WidgetEvent>> {
         val isoFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val map = HashMap<String, MutableList<WidgetEvent>>()
+        val gridStartMs = midnight(gridStart).timeInMillis
+        val gridEndMs = midnight(gridEnd).timeInMillis
 
         for (ev in events) {
             val color = ev.categoryId?.let { categoryColors[it] } ?: DEFAULT_EVENT_COLOR
             val allDay = (ev.dateEnd - ev.dateStart) % 86400L == 0L
+            val s = unixToCalendar(ev.dateStart)
+            val e = unixToCalendar(ev.dateEnd)
+            val spanMs = midnight(e).timeInMillis - midnight(s).timeInMillis
+            val spanDays = (spanMs / 86_400_000L).toInt() // 0 = single day, N = spans N+1 days
 
             val occurrenceStarts: List<Calendar> = if (ev.recurrence == null) {
-                val s = unixToCalendar(ev.dateStart)
-                val e = unixToCalendar(ev.dateEnd)
-                if (midnight(e).timeInMillis >= midnight(gridStart).timeInMillis &&
-                    midnight(s).timeInMillis <= midnight(gridEnd).timeInMillis
-                ) listOf(s) else emptyList()
+                if (midnight(e).timeInMillis >= gridStartMs && midnight(s).timeInMillis <= gridEndMs) {
+                    listOf(s)
+                } else emptyList()
             } else {
-                val s = unixToCalendar(ev.dateStart)
-                val e = unixToCalendar(ev.dateEnd)
-                val spanMs = midnight(e).timeInMillis - midnight(s).timeInMillis
                 val exceptions = ev.recurrence.exceptionDates
                     .map { midnight(unixToCalendar(it)).timeInMillis }
                     .toSet()
@@ -111,9 +112,21 @@ object WidgetDataFetcher {
             for (occStart in occurrenceStarts) {
                 val startMinutes = if (allDay) null
                     else occStart.get(Calendar.HOUR_OF_DAY) * 60 + occStart.get(Calendar.MINUTE)
-                val dateStr = isoFmt.format(occStart.time)
-                map.getOrPut(dateStr) { mutableListOf() }
-                    .add(WidgetEvent(ev.title, color, allDay, startMinutes))
+
+                // Place the event on every day it spans (clipped to the
+                // grid), not just its first day — a per-day list can't draw
+                // a connected banner the way MonthView.svelte does, but a
+                // multi-day event should still show up on every day it
+                // actually covers rather than disappearing after day one.
+                var dayCursor = midnight(occStart)
+                for (d in 0..spanDays) {
+                    if (dayCursor.timeInMillis in gridStartMs..gridEndMs) {
+                        val dateStr = isoFmt.format(dayCursor.time)
+                        map.getOrPut(dateStr) { mutableListOf() }
+                            .add(WidgetEvent(ev.title, color, allDay, startMinutes))
+                    }
+                    dayCursor = (dayCursor.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, 1) }
+                }
             }
         }
 
@@ -226,7 +239,11 @@ object WidgetDataFetcher {
         val map = HashMap<String, String>()
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
-            map[obj.getString("id")] = obj.optString("color", DEFAULT_EVENT_COLOR)
+            // isNull() treats both "missing" and JSON null as "no color" —
+            // optString(key, fallback) can return the literal string "null"
+            // instead of the fallback when the value is JSON null.
+            val color = if (obj.isNull("color")) DEFAULT_EVENT_COLOR else obj.getString("color")
+            map[obj.getString("id")] = color
         }
         return map
     }

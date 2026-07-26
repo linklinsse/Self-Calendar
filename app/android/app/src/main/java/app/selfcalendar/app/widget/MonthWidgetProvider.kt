@@ -273,11 +273,20 @@ class MonthWidgetProvider : AppWidgetProvider() {
                     val ev = shown[i]
                     cell.setViewVisibility(EVENT_ROW_IDS[i], View.VISIBLE)
                     cell.setTextViewText(EVENT_TITLE_IDS[i], ev.title)
-                    cell.setTextColor(EVENT_TITLE_IDS[i], theme.text)
-                    try {
-                        cell.setInt(EVENT_ACCENT_IDS[i], "setColorFilter", Color.parseColor(ev.color))
-                    } catch (e: Exception) {
-                        cell.setInt(EVENT_ACCENT_IDS[i], "setColorFilter", Color.GRAY)
+
+                    val evColor = try { Color.parseColor(ev.color) } catch (e: Exception) { Color.GRAY }
+                    if (ev.allDay) {
+                        // Mirrors .ev-pill--allday: solid fill, fixed dark text, no border.
+                        cell.setInt(EVENT_ROW_IDS[i], "setBackgroundColor", evColor)
+                        cell.setViewVisibility(EVENT_ACCENT_IDS[i], View.GONE)
+                        cell.setTextColor(EVENT_TITLE_IDS[i], TODAY_TEXT_COLOR)
+                    } else {
+                        // Mirrors .ev-pill: ~26% tinted fill (CSS `color42`),
+                        // color text, colored left accent bar.
+                        cell.setInt(EVENT_ROW_IDS[i], "setBackgroundColor", withAlpha(evColor, 0x42))
+                        cell.setViewVisibility(EVENT_ACCENT_IDS[i], View.VISIBLE)
+                        cell.setInt(EVENT_ACCENT_IDS[i], "setColorFilter", evColor)
+                        cell.setTextColor(EVENT_TITLE_IDS[i], evColor)
                     }
                 } else {
                     cell.setViewVisibility(EVENT_ROW_IDS[i], View.GONE)
@@ -378,6 +387,11 @@ class MonthWidgetProvider : AppWidgetProvider() {
             val r = sizePx / 2f
             canvas.drawCircle(r, r, r, paint)
             return bmp
+        }
+
+        /** Same color with a new alpha byte (0-255) — e.g. the CSS `color42` (~26%) tint used for timed-event pills. */
+        private fun withAlpha(color: Int, alpha: Int): Int {
+            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
         }
 
         private fun isSameDay(a: Calendar, b: Calendar): Boolean {

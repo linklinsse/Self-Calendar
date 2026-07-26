@@ -24,8 +24,7 @@ import { calendars, loadCalendars,
          removeCalendar as deleteCalendarBase }                   from './calendars.js';
 import { categories, loadCategories,
          removeCategoriesByCalendar }                             from './categories.js';
-import { events, loadEvents, removeEventsByCalendar }             from './events.js';
-import { weekDays } from '$lib/utils.js';
+import { events, removeEventsByCalendar }                         from './events.js';
 
 // ── Auth compound ops ─────────────────────────────────────────
 
@@ -72,11 +71,6 @@ export async function loginUser(username, password) {
     await loadCalendars();
     await loadCategories();
     // Events are loaded by CalendarBody.$effect on mount — no extra call needed.
-    const d = new Date();
-    const days = weekDays(d);
-    const from = new Date(days[0]); from.setHours(0, 0, 0, 0);
-    const to   = new Date(days[6]); to.setHours(23, 59, 59, 999);
-    loadEvents({from, to})
   } finally { authLoading.set(false); }
 }
 
