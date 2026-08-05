@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Root is a FrameLayout so the background can be a themed, dynamically
+  colored rounded-rect bitmap (set from MonthWidgetProvider) instead of a
+  static drawable resource — RemoteViews has no reliable way to recolor an
+  arbitrary shape drawable to an arbitrary hex color below API 31.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="6dp">
+
+            <TextView
+                android:id="@+id/btn_prev_month"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:gravity="center"
+                android:text="‹"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text" />
+
+            <TextView
+                android:id="@+id/month_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text" />
+
+            <TextView
+                android:id="@+id/btn_next_month"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:gravity="center"
+                android:text="›"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView android:id="@+id/dow_1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="M" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+            <TextView android:id="@+id/dow_2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+            <TextView android:id="@+id/dow_3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="W" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+            <TextView android:id="@+id/dow_4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+            <TextView android:id="@+id/dow_5" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="F" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+            <TextView android:id="@+id/dow_6" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="S" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+            <TextView android:id="@+id/dow_7" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="S" android:textSize="10sp" android:textColor="@color/widget_text_muted" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/days_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+
+</FrameLayout>

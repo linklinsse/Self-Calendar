@@ -1,0 +1,14 @@
+# docker-compose runtime state (see docker-compose.yml volume mounts)
+/conf/.env
+/db/*
+!/db/.gitkeep
+
+# docker-compose's own variable-substitution file (see .env.example) —
+# distinct from /conf/.env above (the api's runtime settings).
+/.env
+
+# Build artifacts that shouldn't be committed (a Gradle --output flag run on
+# Windows once got captured literally as "app/android/D:DevEnv")
+*.apk
+D:*
+tmp

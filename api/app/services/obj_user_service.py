@@ -1,0 +1,92 @@
+from sqlalchemy.exc import IntegrityError
+from sqlmodel import Session, select
+
+from app.common.contexts.logged_user_context import get_logged_user_context
+from app.common.errors import raise_app_error, AppErrorCode
+from app.models.obj_user_model import ObjUserModel
+from app.schemas.obj_user_schema import ObjUserSchemaChangePassword, ObjUserSchemaCreate
+from app.common.security import hash_password, verify_password
+from app.common.config import settings
+
+
+def get_user(user_id: str, session: Session) -> ObjUserModel:
+    """Fetch a user by primary key.
+
+    Raises HTTP 404 (USER_NOT_FOUND) if no user exists with the given ID.
+    """
+    db_user = session.get(ObjUserModel, user_id)
+    if not db_user:
+        raise_app_error(AppErrorCode.USER_NOT_FOUND)
+    return db_user
+
+
+def find_user_by_username(username: str, session: Session) -> ObjUserModel | None:
+    """Look up a user by their username. Returns None if not found."""
+    return session.exec(
+        select(ObjUserModel).where(ObjUserModel.username == username)
+    ).first()
+
+
+def create_user(new_user: ObjUserSchemaCreate, session: Session) -> ObjUserModel:
+    """Register a new user account.
+
+    Raises HTTP 403 (REGISTRATION_DISABLED) if user creation is disabled.
+    Raises HTTP 409 (USER_ALREADY_EXISTS) if the username is already taken.
+    """
+
+    # Previously reused INVALID_CREDENTIALS, which told anyone hitting a
+    # server with USER_CREATION=False — the state the README tells operators
+    # to end up in — that their username and password were wrong. There is
+    # nothing to hide here: whether registration is open is already
+    # advertised by GET /auth/config so the client can hide the Register tab.
+    if not settings.USER_CREATION:
+        raise_app_error(AppErrorCode.REGISTRATION_DISABLED)
+
+    if find_user_by_username(new_user.username, session):
+        raise_app_error(AppErrorCode.USER_ALREADY_EXISTS)
+
+    db_user = ObjUserModel(
+        username=new_user.username,
+        hashed_password=hash_password(new_user.password),
+    )
+
+    session.add(db_user)
+    try:
+        session.commit()
+    except IntegrityError:
+        # Two concurrent registrations for the same username: the
+        # check-then-insert above is a TOCTOU race, so the DB-level
+        # UNIQUE constraint is the actual source of truth here.
+        session.rollback()
+        raise_app_error(AppErrorCode.USER_ALREADY_EXISTS)
+    session.refresh(db_user)
+
+    return db_user
+
+
+def update_user_password(
+    password_data: ObjUserSchemaChangePassword, session: Session
+) -> ObjUserModel:
+    """Change the password of the currently authenticated user.
+
+    The target user is always derived from the request-scoped context —
+    clients cannot supply a user_id to act on behalf of another account.
+
+    Raises HTTP 401 if the old password is incorrect or no user is in context.
+    """
+    logged_user = get_logged_user_context()
+    if not logged_user:
+        raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
+
+    if not verify_password(password_data.old_password, logged_user.hashed_password):
+        raise_app_error(AppErrorCode.INVALID_CREDENTIALS)
+
+    logged_user.hashed_password = hash_password(password_data.new_password)
+    # Invalidate every token issued before this change.
+    logged_user.token_version += 1
+
+    session.add(logged_user)
+    session.commit()
+    session.refresh(logged_user)
+
+    return logged_user
