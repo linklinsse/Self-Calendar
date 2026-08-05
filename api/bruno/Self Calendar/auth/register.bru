@@ -1,0 +1,23 @@
+meta {
+  name: register
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://{{server_ip}}:{{server_port}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "test",
+    "password": "test"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,50 @@
+Database migrations (Alembic).
+
+The application runs `alembic upgrade head` at startup (see
+create_db_and_tables in app/common/db_connection.py), so a normal deploy
+needs nothing here. These are the manual commands.
+
+  uv run alembic current                    # what the database is at
+  uv run alembic history --verbose          # what exists
+  uv run alembic upgrade head               # apply everything outstanding
+  uv run alembic downgrade -1               # step back one
+  uv run alembic upgrade head --sql         # print SQL instead of running it
+
+Adding a migration
+------------------
+1. Change the model in app/models/.
+2. uv run alembic revision --autogenerate -m "what it does"
+3. READ THE GENERATED FILE. Autogenerate is a first draft, not an answer.
+   It routinely needs adjusting, and it cannot see two things at all:
+     - Data. If a new constraint could be violated by rows already in the
+       database, the migration has to repair them first, or it will fail on
+       real data after the operator has taken the service down. See
+       be83bce50e32 for the pattern.
+     - Renames. A renamed column is emitted as a drop plus an add, which
+       silently discards the data. Rewrite it as alter_column.
+4. Apply it against a copy of a real database, not just an empty one.
+
+SQLite notes
+------------
+SQLite cannot ALTER most things in place, so env.py sets
+`render_as_batch=True` — Alembic rebuilds the table instead. Two
+consequences:
+
+  - Name every constraint explicitly. An unnamed constraint cannot be
+    dropped again on SQLite, which makes downgrade() unwritable.
+  - Batch operations are not transactional in the way you might assume.
+    Back up the database file before upgrading anything you care about.
+
+The database URL
+----------------
+alembic.ini deliberately has no sqlalchemy.url. env.py takes it from the
+application's settings (conf/.env), so there is exactly one answer to "which
+database" — otherwise it is entirely possible to migrate one file while the
+app serves another.
+
+Existing databases
+------------------
+A database created before Alembic existed has tables but no alembic_version.
+Startup detects that and stamps it at the baseline revision (1ec329c28cf4,
+which is exactly what the old create_all() produced) before upgrading, so an
+existing deployment is not mistaken for a fresh one.
