@@ -94,6 +94,13 @@ jobs:
 
       - name: Build ${{ matrix.name }} image
         uses: docker/build-push-action@v6
+        env:
+          # Otherwise build-push-action uploads its own
+          # "<repo>~<random>.dockerbuild" artifact per matrix leg for the
+          # Actions build-summary UI. We don't use that UI, and the release
+          # job's download-artifact step has failed against these — they're
+          # a different artifact shape than a plain upload-artifact zip.
+          DOCKER_BUILD_SUMMARY: false
         with:
           context: ${{ matrix.context }}
           push: false
@@ -242,6 +249,11 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+          # Only the three artefacts this workflow actually uploads —
+          # explicit rather than "everything in the run", so an incidental
+          # future artifact (like build-push-action's own summary upload,
+          # see the images job) can't break this download again.
+          pattern: "{image-*,apk}"
 
       - name: List what is being published
         run: ls -lh artifacts/
