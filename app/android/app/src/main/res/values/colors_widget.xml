@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_bg">#FFFFFF</color>
+    <color name="widget_text">#1A0812</color>
+    <color name="widget_text_muted">#9A8A90</color>
+    <color name="widget_border">#EAE2E5</color>
+    <color name="widget_accent">#F4B8C8</color>
+    <color name="widget_today_text">#1A0812</color>
+</resources>

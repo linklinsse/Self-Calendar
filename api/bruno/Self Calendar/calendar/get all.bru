@@ -1,0 +1,20 @@
+meta {
+  name: get all
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{server_ip}}:{{server_port}}/calendar
+  body: none
+  auth: inherit
+}
+
+vars:post-response {
+  : 
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,20 @@
+meta {
+  name: delete ocurence
+  type: http
+  seq: 10
+}
+
+delete {
+  url: http://{{server_ip}}:{{server_port}}/event/{{event_id}}/{{date}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  date: 1700003600
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

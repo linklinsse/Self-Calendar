@@ -1,0 +1,89 @@
+# Tests that only ever run locally decay. Both sub-projects are checked
+# here on every push and pull request; they are independent codebases, so
+# they get independent jobs and neither blocks the other's feedback.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  api:
+    name: API — ruff + pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # --extra google-import pulls in the Google client libraries the
+      # importer needs. Without it, tests/test_import_google_calendar.py
+      # skips itself and the importer's parsing logic goes unchecked.
+      - name: Install dependencies
+        run: uv sync --locked --dev --extra google-import
+
+      # Advisory for now: `ruff check` currently reports ~84 pre-existing
+      # findings (mostly import ordering and line length against the
+      # line-length = 80 already configured in pyproject.toml). Clearing
+      # those is its own change; blocking on them here would just mean CI is
+      # red from the day it is switched on and nobody reads it. Drop
+      # continue-on-error once the backlog is cleared.
+      - name: Lint (advisory)
+        run: uv run ruff check
+        continue-on-error: true
+
+      # conftest.py points DB_URL at a throwaway temp file and sets a
+      # non-placeholder SECRET_KEY before importing the app, so no conf/.env
+      # is needed here — see the note at the top of tests/conftest.py.
+      - name: Test
+        run: uv run pytest -q
+
+      # The conformance fixture is generated from the canonical Python
+      # implementation and committed. If regenerating changes it, Python and
+      # the committed fixture have diverged — meaning someone changed the
+      # rules without regenerating, and the JS conformance test is being
+      # checked against a stale expectation.
+      - name: Conformance fixture is up to date
+        run: |
+          uv run python scripts/generate_conformance_fixture.py
+          git diff --exit-code ../app/src/lib/__fixtures__/recurrence-conformance.json
+
+  app:
+    name: App — svelte-check + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Advisory for the same reason as ruff above: svelte-check currently
+      # reports ~461 errors across 33 files, almost all "implicitly has an
+      # 'any' type" on a JS codebase being checked with TS rules. Real
+      # signal, but a pre-existing backlog. Drop continue-on-error once it
+      # is cleared (or relax the tsconfig if full typing is not the goal).
+      - name: Type-check (advisory)
+        run: npm run check
+        continue-on-error: true
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

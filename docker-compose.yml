@@ -1,0 +1,55 @@
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: selfcalendar-web:latest
+    container_name: SelfCalendar-web
+    labels:
+      "autoheal": "true"
+    restart: always
+    ports:
+      # Host:container — container is nginx, always listening on 80
+      # regardless of the host port (nothing in the Dockerfile changes that).
+      - "${WEB_PORT:-8686}:80"
+    environment:
+      # Must be reachable from the *browser*, not just other containers —
+      # this is baked into a client-side env-config.js at container start,
+      # not read server-side. All values come from the repo-root .env file
+      # (copy .env.example to .env, gitignored) — see .env.example.
+      #
+      # Deliberately NOT auto-derived from API_PORT below (e.g.
+      # "${API_BASE_URL:-http://localhost:${API_PORT:-8787}}") — nested
+      # ${VAR:-${OTHER}} substitution isn't handled consistently across
+      # Docker Compose versions; some don't balance the inner braces
+      # correctly and leave a stray "}" in the resolved value. If you
+      # change API_PORT, you must also set API_BASE_URL explicitly to
+      # match — see .env.example.
+      API_BASE_URL: '${API_BASE_URL:-http://localhost:8787}'
+      APP_NAME: '${APP_NAME:-Self Calendar}'
+      THEME: '${THEME:-}'
+      DEFAULT_VIEW: '${DEFAULT_VIEW:-}'
+      FIRST_DAY_OF_WEEK: '${FIRST_DAY_OF_WEEK:-}'
+      LOCALE: '${LOCALE:-}'
+      HOUR_FORMAT: '${HOUR_FORMAT:-}'
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    image: selfcalendar-api:latest
+    container_name: SelfCalendar-api
+    labels:
+      "autoheal": "true"
+    restart: always
+    ports:
+      - "${API_PORT:-8787}:8082"
+    volumes:
+      # Paths on the right are relative to the container's WORKDIR (/work,
+      # set in api/Dockerfile) — that's what app/common/config.py and the
+      # DB_URL in conf/.env resolve "./conf/.env" and "./db/..." against.
+      - ./conf:/work/conf
+      - ./db:/work/db

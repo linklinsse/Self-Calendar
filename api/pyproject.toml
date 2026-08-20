@@ -1,0 +1,78 @@
+[project]
+name = "api"
+version = "1.0.0"
+description = "Self Calendar api"
+# SPDX identifier only. No license-files entry: the LICENSE lives at the
+# repository root, one level above this project, and pointing a build backend
+# outside its own root is not portable.
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.128.8",
+    "pwdlib[bcrypt]>=0.3.0",
+    "pydantic-settings>=2.12.0",
+    "pyjwt>=2.13.0",
+    "python-dateutil>=2.9.0",
+    "sqlmodel>=0.0.33",
+    "alembic>=1.18.0",
+]
+
+[project.optional-dependencies]
+google-import = [
+    "google-api-python-client>=2.198.0",
+    "google-auth-oauthlib>=1.4.0",
+]
+
+[tool.ruff]
+line-length = 80
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+]
+show-fixes = true
+
+[tool.ruff.format]
+# Style de guillemets
+quote-style = "double"
+# Indentation
+indent-style = "space"
+# Virgule trailing dans les listes/dicts
+skip-magic-trailing-comma = false
+# Fin de ligne
+line-ending = "auto"
+# Gestion doc
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+# Configuration isort (tri des imports)
+combine-as-imports = true
+force-wrap-aliases = true
+
+[tool.ruff.lint.per-file-ignores]
+# Env vars and the test-only hasher must be set before app.app is imported,
+# so these imports are deliberately below that setup code.
+"tests/conftest.py" = ["E402"]
+
+[tool.mypy]
+strict = true
+exclude = [
+    ".venv",
+    ".git",
+    ".ruff_cache",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.3.0",
+    "pytest>=9.1.1",
+    "ruff>=0.15.1",
+]
