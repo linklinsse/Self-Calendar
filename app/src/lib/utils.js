@@ -21,15 +21,28 @@ export const DAY_NAMES = [
   'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday',
 ];
 
-// Ordered day abbreviations starting from FIRST_DAY_OF_WEEK.
-// e.g. FIRST_DAY_OF_WEEK=1 → ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
-//      FIRST_DAY_OF_WEEK=0 → ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-const ALL_DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+// Sunday-first weekday labels in the configured LOCALE (e.g. LOCALE=fr-FR →
+// ['dim.','lun.','mar.',...] / ['D','L','M',...]). 2023-01-01 is a fixed,
+// known Sunday used purely as a labelling anchor — read in UTC so the host
+// machine's own timezone can't shift it onto a different weekday.
+function localeWeekdayLabels(style) {
+  const fmt = new Intl.DateTimeFormat(LOCALE, { weekday: style, timeZone: 'UTC' });
+  return Array.from({ length: 7 }, (_, i) =>
+    fmt.format(new Date(Date.UTC(2023, 0, 1 + i)))
+  );
+}
+const ALL_DAY_ABBR   = localeWeekdayLabels('short');
+const ALL_DAY_NARROW = localeWeekdayLabels('narrow');
+
+// Ordered day abbreviations/letters starting from FIRST_DAY_OF_WEEK.
+// e.g. FIRST_DAY_OF_WEEK=1 → Mon,Tue,Wed,Thu,Fri,Sat,Sun (or the LOCALE
+// equivalent — with LOCALE=fr-FR this is what makes DOW_LETTERS come out as
+// L,M,M,J,V,S,D instead of hardcoded English initials).
 export const DAY_ABBR_MON = Array.from({ length: 7 }, (_, i) =>
   ALL_DAY_ABBR[(FIRST_DAY_OF_WEEK + i) % 7]
 );
 export const DOW_LETTERS = Array.from({ length: 7 }, (_, i) =>
-  ALL_DAY_ABBR[(FIRST_DAY_OF_WEEK + i) % 7][0]
+  ALL_DAY_NARROW[(FIRST_DAY_OF_WEEK + i) % 7]
 );
 
 // ── Date normalisation ────────────────────────────────────────

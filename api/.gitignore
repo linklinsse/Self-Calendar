@@ -63,8 +63,11 @@ venv.bak/
 .pypirc
 
 # Custom
-dev.db
+dev.db*
+prod.db*
 
-# Google Calendar import script secrets
-scripts/credentials.json
-scripts/token.json
+# Google Calendar import script secrets — covers the --credentials/--token
+# defaults (credentials.json/token.json) and any per-account variants
+# (credential.json, credential_2.json, token_<username>.json, ...).
+scripts/credential*.json
+scripts/token*.json

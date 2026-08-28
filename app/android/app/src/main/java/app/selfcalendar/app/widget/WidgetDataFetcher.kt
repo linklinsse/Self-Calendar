@@ -37,6 +37,7 @@ private const val HTTP_TIMEOUT_MS = 6000
  * server now expands, and this file just draws what it is given.
  */
 private data class ApiOccurrence(
+    val id: String, // the underlying event's id — shared by every occurrence of a recurring event
     val title: String,
     val dateStart: Long, // unix seconds
     val dateEnd: Long,
@@ -168,6 +169,8 @@ object WidgetDataFetcher {
         val gridStartMs = midnight(gridStart).timeInMillis
         val gridEndMs = midnight(gridEnd).timeInMillis
 
+        val spanningSlots = assignSpanningSlots(occurrences)
+
         for (occ in occurrences) {
             val color = occ.categoryId?.let { categoryColors[it] } ?: DEFAULT_EVENT_COLOR
             val s = unixToCalendar(occ.dateStart)
@@ -190,6 +193,8 @@ object WidgetDataFetcher {
             val startMinutes = if (allDay) null
                 else s.get(Calendar.HOUR_OF_DAY) * 60 + s.get(Calendar.MINUTE)
 
+            val slot = spanningSlots[occurrenceKey(occ)]
+
             // Place the event on every day it spans (clipped to the grid),
             // not just its first day — a per-day list can't draw a connected
             // banner the way MonthView.svelte does, but a multi-day event
@@ -200,7 +205,7 @@ object WidgetDataFetcher {
                 if (dayCursor.timeInMillis in gridStartMs..gridEndMs) {
                     val dateStr = isoFmt.format(dayCursor.time)
                     map.getOrPut(dateStr) { mutableListOf() }
-                        .add(WidgetEvent(occ.title, color, allDay, startMinutes))
+                        .add(WidgetEvent(occ.title, color, allDay, startMinutes, slot))
                 }
                 dayCursor = (dayCursor.clone() as Calendar).apply {
                     add(Calendar.DAY_OF_MONTH, 1)
@@ -212,6 +217,52 @@ object WidgetDataFetcher {
             list.sortWith(compareBy({ !it.allDay }, { it.startMinutes ?: Int.MAX_VALUE }))
         }
         return map
+    }
+
+    /** Identifies one occurrence for slot lookup — id alone isn't enough since a
+     * recurring event's every occurrence shares it; paired with its own start
+     * it's unique. */
+    private fun occurrenceKey(occ: ApiOccurrence) = "${occ.id}-${occ.dateStart}"
+
+    /**
+     * Give every multi-day (spanning) occurrence a row index that stays the
+     * same on every day it covers, via classic greedy interval-packing
+     * (sorted by start, each occurrence takes the lowest row whose previous
+     * occupant has already ended).
+     *
+     * Without this, MonthWidgetProvider.buildCell picked each day's rows
+     * independently — a multi-day event landed in whatever row was next free
+     * *that day*, which shifted depending on which other events happened to
+     * share it. The same event could render on row 1 on Monday and row 2 on
+     * Tuesday, so scanning across its own span never looked like one
+     * continuous event.
+     *
+     * Single-day occurrences aren't included: they fill whatever rows are
+     * left after the reserved ones, and don't need a stable identity since
+     * they only ever appear on one day.
+     */
+    private fun assignSpanningSlots(occurrences: List<ApiOccurrence>): Map<String, Int> {
+        data class Range(val occ: ApiOccurrence, val startMs: Long, val endMs: Long)
+
+        val spanning = occurrences.mapNotNull { occ ->
+            val startMs = midnight(unixToCalendar(occ.dateStart)).timeInMillis
+            val endMs = midnight(unixToCalendar(occ.dateEnd)).timeInMillis
+            if (endMs > startMs) Range(occ, startMs, endMs) else null
+        }.sortedWith(compareBy({ it.startMs }, { it.occ.id }))
+
+        val slotEndMs = mutableListOf<Long>()
+        val result = HashMap<String, Int>()
+        for (range in spanning) {
+            var slot = slotEndMs.indexOfFirst { it < range.startMs }
+            if (slot == -1) {
+                slot = slotEndMs.size
+                slotEndMs.add(range.endMs)
+            } else {
+                slotEndMs[slot] = range.endMs
+            }
+            result[occurrenceKey(range.occ)] = slot
+        }
+        return result
     }
 
     private fun midnight(cal: Calendar): Calendar {
@@ -283,6 +334,7 @@ object WidgetDataFetcher {
             val event = obj.getJSONObject("event")
             result.add(
                 ApiOccurrence(
+                    id = event.getString("id"),
                     title = event.optString("title", ""),
                     dateStart = obj.getLong("date_start"),
                     dateEnd = obj.getLong("date_end"),

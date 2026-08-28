@@ -113,7 +113,7 @@ export async function exportToSystemCalendar(ev) {
   await CalendarBridge.createEvent({
     title: ev.title ?? '',
     description: buildDescription(ev),
-    location: ev.address ?? '',
+    location: ev.adresse ?? '',
     startMs,
     endMs,
     allDay: ev.allDay === true,

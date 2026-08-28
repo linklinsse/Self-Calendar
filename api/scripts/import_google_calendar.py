@@ -46,7 +46,7 @@ Notes / deliberate simplifications:
 
 import argparse
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -133,7 +133,7 @@ def get_credentials(credentials_path: Path, token_path: Path) -> Credentials:
             flow = InstalledAppFlow.from_client_secrets_file(
                 str(credentials_path), SCOPES
             )
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=0, prompt="select_account")
         token_path.write_text(creds.to_json())
 
     return creds
@@ -159,11 +159,27 @@ def resolve_timezone(name: str | None) -> ZoneInfo | timezone:
         return timezone.utc
 
 
-def parse_google_datetime(field: dict, cal_tz: ZoneInfo | timezone) -> int:
-    """Convert a Google {'dateTime': ...} or {'date': ...} field to a unix epoch."""
+def parse_google_datetime(
+    field: dict, cal_tz: ZoneInfo | timezone, is_end: bool = False
+) -> int:
+    """Convert a Google {'dateTime': ...} or {'date': ...} field to a unix epoch.
+
+    For a date-only ("all-day") field, Google's own convention makes the end
+    date *exclusive*: a one-day event on the 5th is start.date=5th,
+    end.date=6th. Self Calendar's own convention is the opposite — the last
+    day is inclusive, matching what the date-range picker in the event form
+    shows the user and writes back (see serialise() in event.service.js,
+    which never adds a day to whatever end date the user picked). Importing
+    Google's end date as-is therefore rendered every all-day event, single-
+    or multi-day, exactly one calendar day too long. is_end shifts a
+    date-only end field back by one day to match; dateTime fields carry a
+    real instant and need no adjustment either way.
+    """
     if "dateTime" in field:
         return int(datetime.fromisoformat(field["dateTime"]).timestamp())
     dt = datetime.strptime(field["date"], "%Y-%m-%d").replace(tzinfo=cal_tz)
+    if is_end:
+        dt -= timedelta(days=1)
     return int(dt.timestamp())
 
 
@@ -376,7 +392,7 @@ def expand_via_instances(
                     inst,
                     category_id,
                     parse_google_datetime(start, cal_tz),
-                    parse_google_datetime(end, cal_tz),
+                    parse_google_datetime(end, cal_tz, is_end=True),
                 ),
                 session,
             )
@@ -476,7 +492,7 @@ def run_import(
             continue
 
         date_start = parse_google_datetime(start, cal_tz)
-        date_end = parse_google_datetime(end, cal_tz)
+        date_end = parse_google_datetime(end, cal_tz, is_end=True)
         category_id = ensure_category(item.get("colorId"))
 
         if "recurrence" in item:
@@ -542,7 +558,7 @@ def run_import(
                 item,
                 category_id,
                 parse_google_datetime(start, cal_tz),
-                parse_google_datetime(end, cal_tz),
+                parse_google_datetime(end, cal_tz, is_end=True),
             ),
             session,
         )
