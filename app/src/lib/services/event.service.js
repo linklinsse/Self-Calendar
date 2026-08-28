@@ -130,7 +130,7 @@ function fromApiRecurrence(apiRec) {
  * @param {Object} raw
  * @returns {CalEvent}
  */
-function deserialise(raw) {
+export function deserialise(raw) {
   const { obj_recurence, ...rest } = raw;
   const startDate = new Date(raw.date_start * 1000);
   const endDate   = new Date(raw.date_end   * 1000);
@@ -162,6 +162,13 @@ function deserialise(raw) {
     // make "inherit the category" indistinguishable from "the user picked
     // this exact colour", and there would be no way back to inheriting.
     color:                 raw.color ?? null,
+    // API field is `address`; the form and display components read the
+    // French spelling `adresse` (see the CalEvent typedef above). Without
+    // this, `adresse` was always undefined on a loaded event — the location
+    // never showed, and since serialise() always sends `address` back
+    // (never omitted), every edit of an existing event silently wiped
+    // whatever address it had.
+    adresse:               raw.address ?? null,
     recurrence:            fromApiRecurrence(obj_recurence ?? null),
     recurrence_exceptions: obj_recurence?.obj_exceptions ?? [],
   };
@@ -172,7 +179,7 @@ function deserialise(raw) {
  * @param {object} ev
  * @returns {Object}
  */
-function serialise(ev) {
+export function serialise(ev) {
   const startDate = ev.startDate instanceof Date ? new Date(ev.startDate) : new Date(ev.startDate);
   const endDate   = ev.endDate   instanceof Date ? new Date(ev.endDate)   : new Date(ev.endDate ?? ev.startDate);
 

@@ -182,7 +182,12 @@
       {#if ev.adresse}
         <div class="detail-row">
           <span class="ico" aria-hidden="true">📍</span>
-          <span>{ev.adresse}</span>
+          <a
+            class="ev-address"
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.adresse)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >{ev.adresse}</a>
         </div>
       {/if}
 
@@ -318,6 +323,11 @@
     margin-bottom: 11px; line-height: 1.5;
   }
   .ico { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .ev-address {
+    color: inherit; text-decoration: none; border-bottom: 1px dotted var(--t3);
+  }
+  .ev-address:hover, .ev-address:focus-visible { color: var(--t1); border-bottom-style: solid; }
 
   /* ── Description ────────────────────────────────────────── */
   .ev-desc {

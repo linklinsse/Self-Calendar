@@ -59,6 +59,32 @@ def test_timed_values_carry_their_own_offset():
     )
 
 
+def test_all_day_end_date_is_shifted_back_a_day():
+    """Google's end.date for an all-day event is exclusive (a one-day event
+    on the 4th has start.date=4th, end.date=5th). Self Calendar's own
+    convention treats date_end as the inclusive last day, matching what the
+    event form's date-range picker shows. Importing Google's end date
+    verbatim rendered every all-day event one calendar day too long — a
+    single-day event on the 4th showed on both the 4th and the 5th."""
+    start = importer.parse_google_datetime({"date": "2026-03-04"}, PARIS)
+    end = importer.parse_google_datetime({"date": "2026-03-05"}, PARIS, is_end=True)
+    assert end == start  # single-day event: start and (adjusted) end are the same midnight
+
+    multi_end = importer.parse_google_datetime(
+        {"date": "2026-03-07"}, PARIS, is_end=True
+    )
+    assert multi_end == epoch(datetime(2026, 3, 6, 0, 0, tzinfo=PARIS))
+
+
+def test_timed_end_dates_are_not_shifted():
+    """is_end only matters for date-only fields — dateTime values are exact
+    instants either way."""
+    field = {"dateTime": "2026-03-04T09:00:00+01:00"}
+    assert importer.parse_google_datetime(
+        field, PARIS, is_end=True
+    ) == importer.parse_google_datetime(field, PARIS, is_end=False)
+
+
 def test_resolve_timezone_falls_back_to_utc():
     assert importer.resolve_timezone(None) is timezone.utc
     assert importer.resolve_timezone("Not/AZone") is timezone.utc

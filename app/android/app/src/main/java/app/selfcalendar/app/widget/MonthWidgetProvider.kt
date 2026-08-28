@@ -31,6 +31,14 @@ data class WidgetEvent(
     val color: String,
     val allDay: Boolean,
     val startMinutes: Int?, // null for all-day / unparseable "HH:MM"
+    // Stable row index for a multi-day event, shared across every day it
+    // spans (see WidgetDataFetcher.buildEventsByDate). Null for a single-day
+    // event, which instead fills whatever row is free after the reserved
+    // slots. Without this, each day picked the multi-day event's row
+    // independently (by whatever else happened to share that day), so the
+    // same event could land on row 1 one day and row 2 the next — it never
+    // read as one continuous event when scanning across its span.
+    val slot: Int?,
 )
 
 /**
@@ -222,6 +230,7 @@ class MonthWidgetProvider : AppWidgetProvider() {
                     } else {
                         obj.put("start", JSONObject.NULL)
                     }
+                    if (ev.slot != null) obj.put("slot", ev.slot) else obj.put("slot", JSONObject.NULL)
                     arr.put(obj)
                 }
             }
@@ -267,10 +276,32 @@ class MonthWidgetProvider : AppWidgetProvider() {
             }
 
             val dayEvents = eventsByDate[dateStr].orEmpty()
-            val shown = dayEvents.take(MAX_SHOWN_PER_DAY)
+
+            // Multi-day events carry a `slot` — the same row index on every
+            // day they span (see WidgetDataFetcher.buildEventsByDate) — so
+            // they go in that fixed row first. Rows spanning events reserve
+            // but don't occupy on *this* particular day stay reserved (drawn
+            // empty, not collapsed) so a later row doesn't shift up and make
+            // a still-ongoing event look like it moved. Single-day events
+            // then fill whatever rows are left, in their existing order.
+            val rows = arrayOfNulls<WidgetEvent>(MAX_SHOWN_PER_DAY)
+            var reservedRows = 0
+            for (ev in dayEvents) {
+                val slot = ev.slot ?: continue
+                if (slot < MAX_SHOWN_PER_DAY) rows[slot] = ev
+                reservedRows = maxOf(reservedRows, slot + 1)
+            }
+            var nextFree = reservedRows
+            for (ev in dayEvents) {
+                if (ev.slot != null) continue
+                if (nextFree >= MAX_SHOWN_PER_DAY) break
+                rows[nextFree] = ev
+                nextFree++
+            }
+
             for (i in EVENT_ROW_IDS.indices) {
-                if (i < shown.size) {
-                    val ev = shown[i]
+                val ev = rows[i]
+                if (ev != null) {
                     cell.setViewVisibility(EVENT_ROW_IDS[i], View.VISIBLE)
                     cell.setTextViewText(EVENT_TITLE_IDS[i], ev.title)
 
@@ -288,11 +319,17 @@ class MonthWidgetProvider : AppWidgetProvider() {
                         cell.setInt(EVENT_ACCENT_IDS[i], "setColorFilter", evColor)
                         cell.setTextColor(EVENT_TITLE_IDS[i], evColor)
                     }
+                } else if (i < reservedRows) {
+                    // Reserved for a spanning event not present today —
+                    // INVISIBLE (not GONE) keeps its row height so lower
+                    // rows don't shift.
+                    cell.setViewVisibility(EVENT_ROW_IDS[i], View.INVISIBLE)
                 } else {
                     cell.setViewVisibility(EVENT_ROW_IDS[i], View.GONE)
                 }
             }
-            val remaining = dayEvents.size - shown.size
+            val shownCount = rows.count { it != null }
+            val remaining = dayEvents.size - shownCount
             if (remaining > 0) {
                 cell.setViewVisibility(R.id.overflow_text, View.VISIBLE)
                 cell.setTextViewText(R.id.overflow_text, "+$remaining")
@@ -337,8 +374,12 @@ class MonthWidgetProvider : AppWidgetProvider() {
                     // optString(key, fallback) is unreliable for a JSON-null value.
                     val startMinutes = if (allDay || obj.isNull("start")) null
                         else parseStartMinutes(obj.optString("start"))
+                    // isNull() also covers a cache written before "slot"
+                    // existed (missing key), which safely falls back to
+                    // "not a spanning event" rather than crashing.
+                    val slot = if (obj.isNull("slot")) null else obj.optInt("slot")
                     map.getOrPut(date) { mutableListOf() }
-                        .add(WidgetEvent(title, color, allDay, startMinutes))
+                        .add(WidgetEvent(title, color, allDay, startMinutes, slot))
                 }
             } catch (e: Exception) { }
 
