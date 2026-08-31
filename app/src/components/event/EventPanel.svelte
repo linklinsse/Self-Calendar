@@ -16,7 +16,7 @@
   import {
     toInputDate, parseInputDate,
     timeToMinutes, minutesToTime,
-    describeRecurrence,
+    describeRecurrence, DOW_LETTERS,
   } from '../../lib/utils.js';
   import { HOUR_FORMAT, FIRST_DAY_OF_WEEK } from '../../lib/config.js';
 
@@ -112,11 +112,12 @@
   }
 
   // Recurrence helpers
-  // Ordered starting from FIRST_DAY_OF_WEEK; jsDay is the JS getDay() value (0=Sun…6=Sat).
-  const ALL_DOW_ABBR = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  // Ordered starting from FIRST_DAY_OF_WEEK, same as DOW_LETTERS itself, so
+  // DOW_LETTERS[i] is already the right locale label for this position —
+  // jsDay is the JS getDay() value (0=Sun…6=Sat) `days` is stored/compared by.
   const DOW_ITEMS = Array.from({ length: 7 }, (_, i) => {
     const jsDay = (FIRST_DAY_OF_WEEK + i) % 7;
-    return { label: ALL_DOW_ABBR[jsDay], jsDay };
+    return { label: DOW_LETTERS[i], jsDay };
   });
   function initRecurrence() {
     form.recurrence = { type:'daily', interval:1, days:[], endType:'never', count:5, until: toInputDate(new Date()) };

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One multi-day event title, positioned by MonthWidgetProvider.addBannerSegment
+  via setViewLayoutWidth/setViewLayoutMargin (API 31+) so it spans its true
+  run of days across the week instead of one day cell's width. layout_width
+  here is a placeholder overridden per-instance; layout_gravity anchors it to
+  the row's top-start corner so the start/top margins act as an absolute
+  position. No background — it renders on top of the per-cell colored bar
+  drawn in month_widget_cell.xml (event_bg_N), which already bleeds
+  correctly across the days this event spans.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/banner_title"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|start"
+    android:gravity="center_vertical"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:textSize="7sp"
+    android:textStyle="bold"
+    android:maxLines="1"
+    android:ellipsize="end"
+    android:textColor="#1A0812" />

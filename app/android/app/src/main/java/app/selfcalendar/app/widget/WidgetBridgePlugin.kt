@@ -23,6 +23,26 @@ class WidgetBridgePlugin : Plugin() {
     }
 
     /**
+     * Pushes the app's configured LOCALE + FIRST_DAY_OF_WEEK (config.js) so
+     * the widget's day-of-week header and month grid match the web app
+     * instead of always rendering hardcoded English, Monday-first labels
+     * (see MonthWidgetProvider.weekdayLabels / buildMonthGrid).
+     */
+    @PluginMethod
+    fun updateLocale(call: PluginCall) {
+        val locale = call.getString("locale") ?: ""
+        val firstDayOfWeek = call.getInt("firstDayOfWeek") ?: 1
+        val prefs = context.getSharedPreferences("widget_data", android.content.Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("locale", locale)
+            .putInt("first_day_of_week", firstDayOfWeek)
+            .apply()
+
+        renderAllWidgets()
+        call.resolve()
+    }
+
+    /**
      * Pushes the JWT + API base URL the widget needs to fetch its own data
      * (see WidgetDataFetcher). Called on login/logout — an empty token
      * means logged out, in which case cached events are cleared instead of

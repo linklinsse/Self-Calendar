@@ -7,7 +7,7 @@
    * so navigating to a new week / month / day always loads the right data.
    */
 
-  import { currentView, cursor, loadEvents } from '../../lib/stores/index.js';
+  import { currentView, cursor, calendars, loadEvents } from '../../lib/stores/index.js';
   import { weekDays } from '../../lib/utils.js';
 
   import MonthView from './MonthView.svelte';
@@ -40,9 +40,17 @@
     return { from, to };
   }
 
-  // Re-fetch whenever the user navigates to a different date or switches view
+  // Re-fetch whenever the user navigates to a different date/view, or the
+  // calendar list itself changes. `$calendars` is read here only to create
+  // that reactive dependency — loadEvents() reads the store's value itself.
+  // Without it, this effect only tracked $currentView/$cursor: on login,
+  // AppShell (and this component) mounts the instant currentUser is set,
+  // which happens *before* loginUser()'s loadCalendars() has resolved —
+  // this ran once against an empty calendar list and never re-ran once
+  // calendars actually loaded, since nothing it depended on changed again.
   $effect(() => {
     const range = getRange($currentView, $cursor);
+    void $calendars;
     loadEvents(range);
   });
 </script>

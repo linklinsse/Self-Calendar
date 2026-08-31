@@ -15,6 +15,7 @@ class ObjCategorySchemaCreate(ObjCategorySchemaBase):
 class ObjCategorySchemaEdit(BaseModel):
     title: CommonFieldTitle | None = None
     color: CommonFieldColor
+    calendar_id: str | None = None
 
 
 class ObjCategorySchemaComplete(ObjCategorySchemaBase):

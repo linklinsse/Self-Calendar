@@ -24,8 +24,11 @@ import { sidebarOpen, filterDrawerOpen, panelEvent,
 import { calendars, loadCalendars,
          removeCalendar as deleteCalendarBase }                   from './calendars.js';
 import { categories, loadCategories,
-         removeCategoriesByCalendar }                             from './categories.js';
-import { events, removeEventsByCalendar }                         from './events.js';
+         removeCategoriesByCalendar,
+         removeCategory as deleteCategoryBase,
+         updateCategory as updateCategoryBase }                   from './categories.js';
+import { events, removeEventsByCalendar,
+         clearCategoryFromEvents, moveCategoryEvents }             from './events.js';
 
 // ── Auth compound ops ─────────────────────────────────────────
 
@@ -120,6 +123,29 @@ export async function removeCalendar(id) {
   await deleteCalendarBase(id);
   removeEventsByCalendar(id);
   removeCategoriesByCalendar(id);
+}
+
+// ── Category: cascade delete/update ────────────────────────────
+
+/** Delete a category AND clear it from any locally-cached events — mirrors
+ * delete_category's own server-side cascade so those events don't drop out
+ * of every view until the next reload (see clearCategoryFromEvents). */
+export async function removeCategory(id) {
+  await deleteCategoryBase(id);
+  clearCategoryFromEvents(id);
+}
+
+/** Update a category, cascading a calendar change to every event under it
+ * — the backend moves those events' calendar_id along with the category's
+ * own (see obj_category_service.update_category); this keeps the local
+ * cache in sync instead of going stale until the next reload. */
+export async function updateCategory(id, payload) {
+  const before = get(categories).find(c => c.id === id);
+  const updated = await updateCategoryBase(id, payload);
+  if (updated && before && updated.calendar_id !== before.calendar_id) {
+    moveCategoryEvents(id, updated.calendar_id);
+  }
+  return updated;
 }
 
 // ── Event panel ───────────────────────────────────────────────

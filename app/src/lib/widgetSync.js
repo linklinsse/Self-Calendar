@@ -3,7 +3,7 @@ import { currentUser } from './stores/index.js';
 import { activeThemeId, resolveTheme } from './themes/index.js';
 import { getToken } from './services/api.js';
 import { fetchRefreshToken } from './services/auth.service.js';
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL, LOCALE, FIRST_DAY_OF_WEEK } from './config.js';
 
 const WidgetBridge = registerPlugin('WidgetBridge');
 
@@ -47,6 +47,13 @@ export async function syncWidgetAuth() {
 
 export function initWidgetSync() {
   if (!Capacitor.isNativePlatform()) return;
+
+  // LOCALE/FIRST_DAY_OF_WEEK are fixed for this build/deployment (see
+  // config.js), not per-user, so a one-shot push on startup is enough —
+  // unlike theme/auth there's no store to subscribe to.
+  WidgetBridge.updateLocale({ locale: LOCALE, firstDayOfWeek: FIRST_DAY_OF_WEEK }).catch(() => {
+    // not on native or plugin not ready yet — ignore
+  });
 
   activeThemeId.subscribe(async (id) => {
     const theme = resolveTheme(id);

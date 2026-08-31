@@ -36,14 +36,16 @@
             </intent-filter>
 
 		<!-- Deep links. `day` is used by the home-screen widget to jump to a
-		     date; `event` is what we write into an exported event's description
-		     so the user can get back from their system calendar to the event
-		     here. Both are handled in src/routes/+layout.svelte. -->
+		     date; `new` is the widget's own create-event button; `event` is
+		     what we write into an exported event's description so the user
+		     can get back from their system calendar to the event here. All
+		     three are handled in src/routes/+layout.svelte. -->
 		<intent-filter>
     			<action android:name="android.intent.action.VIEW" />
     			<category android:name="android.intent.category.DEFAULT" />
     			<category android:name="android.intent.category.BROWSABLE" />
     			<data android:scheme="selfcalendar" android:host="day" />
+    			<data android:scheme="selfcalendar" android:host="new" />
     			<data android:scheme="selfcalendar" android:host="event" />
 		</intent-filter>
 
