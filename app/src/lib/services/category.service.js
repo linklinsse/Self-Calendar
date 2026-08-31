@@ -92,13 +92,14 @@ export async function createCategory(payload) {
 /**
  * Update an existing category.
  * @param {string} id
- * @param {{ label?: string, icon?: string, color?: string }} payload
+ * @param {{ label?: string, icon?: string, color?: string, calendar_id?: string }} payload
  * @returns {Promise<Category>}
  */
 export async function updateCategory(id, payload) {
   const body = {};
   if (payload.label !== undefined) body.title = payload.label;
   if (payload.color !== undefined) body.color = payload.color;
+  if (payload.calendar_id !== undefined) body.calendar_id = payload.calendar_id;
 
   const updated = Object.keys(body).length
     ? await api.patch(`/category/${id}`, body)

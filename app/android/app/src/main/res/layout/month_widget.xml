@@ -58,6 +58,18 @@
                 android:textStyle="bold"
                 android:textColor="@color/widget_text" />
 
+            <TextView
+                android:id="@+id/btn_add_event"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text"
+                android:contentDescription="@string/widget_add_event" />
+
         </LinearLayout>
 
         <LinearLayout

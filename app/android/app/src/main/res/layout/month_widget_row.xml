@@ -1,7 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/week_row"
+<!--
+  One calendar week. week_row holds the 7 day cells (added via addView from
+  MonthWidgetProvider, as before). banner_overlay sits on top of it and
+  carries only multi-day event *titles* — the colored bar itself is still
+  drawn per-cell (see month_widget_cell.xml's event_bg_N), since that part
+  already bleeds correctly across adjacent days. What used to be truncated
+  was the title, confined to whichever single day cell happened to be the
+  event's visual start. On API 31+ (RemoteViews.setViewLayoutWidth /
+  setViewLayoutMargin — see MonthWidgetProvider.addBannerSegment) each
+  title gets pixel-accurate width and position spanning its true run of
+  days, instead of one day cell's worth of space. Below API 31, or before
+  the widget host has reported a usable width, banner_overlay stays empty
+  and titles fall back to the per-cell (single-column) rendering.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="0dp"
-    android:layout_weight="1"
-    android:orientation="horizontal" />
+    android:layout_weight="1">
+
+    <LinearLayout
+        android:id="@+id/week_row"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal" />
+
+    <FrameLayout
+        android:id="@+id/banner_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false" />
+
+</FrameLayout>

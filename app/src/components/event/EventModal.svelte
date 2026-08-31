@@ -7,6 +7,7 @@
    */
 
   import { fly, fade } from 'svelte/transition';
+  import { Capacitor } from '@capacitor/core';
   import {
     modalEventId, modalOccurrenceDate, events, calendars, categories,
     openEditPanel, openDuplicatePanel, deleteEvent, excludeOccurrence,
@@ -25,6 +26,16 @@
   let cal      = $derived(ev ? $calendars .find(c => c.id === ev.calendar_id) : null);
   let cat      = $derived(ev ? $categories.find(c => c.id === ev.category_id) : null);
   let catColor = $derived(cat ? cat.color : (ev?.color ?? '#888'));
+
+  // geo: on native so Android/iOS offer every installed maps app via their
+  // "open with" chooser — a Google Maps https:// link is a verified App
+  // Link and opens straight into Google Maps with no chooser. In a plain
+  // browser (web/PWA) geo: isn't handled, so keep the Maps web fallback there.
+  let addressHref = $derived(ev?.adresse
+    ? (Capacitor.isNativePlatform()
+        ? `geo:0,0?q=${encodeURIComponent(ev.adresse)}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.adresse)}`)
+    : null);
 
   // Export-to-device-calendar. Hidden entirely off native, and on a device
   // with no calendar app installed — an action that can only fail is worse
@@ -184,7 +195,7 @@
           <span class="ico" aria-hidden="true">📍</span>
           <a
             class="ev-address"
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.adresse)}`}
+            href={addressHref}
             target="_blank"
             rel="noopener noreferrer"
           >{ev.adresse}</a>

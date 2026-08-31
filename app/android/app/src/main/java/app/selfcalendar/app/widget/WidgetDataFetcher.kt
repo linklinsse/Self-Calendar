@@ -11,7 +11,9 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 /**
@@ -47,6 +49,17 @@ private data class ApiOccurrence(
 object WidgetDataFetcher {
 
     private const val TAG = "WidgetDataFetcher"
+
+    // Calendar list + category colors barely change between one month nav
+    // and the next, while occurrences change on every one — caching these
+    // for a few minutes means most navigations only need the one occurrences
+    // call below instead of three (one for calendars, one per calendar for
+    // colors, one for occurrences). @Volatile: read/written from whichever
+    // background thread onReceive/onUpdate happen to run the fetch on.
+    private const val META_CACHE_TTL_MS = 5 * 60 * 1000L
+    private data class CalendarMeta(val calendarIds: List<String>, val categoryColors: Map<String, String>)
+    @Volatile private var cachedMeta: CalendarMeta? = null
+    @Volatile private var cachedMetaAtMs: Long = 0L
 
 
     /**
@@ -108,46 +121,60 @@ object WidgetDataFetcher {
         gridStart: Calendar,
         gridEnd: Calendar,
     ): Map<String, List<WidgetEvent>>? {
-        return run {
-            val calendarIds = fetchCalendarIds(baseUrl, token)
-            if (calendarIds.isEmpty()) return emptyMap()
+        val fromUnix = midnight(gridStart).timeInMillis / 1000
+        val toUnix = midnight(gridEnd).timeInMillis / 1000 + 86399 // include all of the last day
 
-            // One blocking HTTP call per calendar, each with its own
-            // HTTP_TIMEOUT_MS — sequentially that's a potential
-            // calendarIds.size * HTTP_TIMEOUT_MS widget refresh. Fetch them
-            // concurrently instead (already running on a background thread
-            // via goAsync(), so this doesn't touch the main thread).
-            val categoryColors = HashMap<String, String>()
-            if (calendarIds.isNotEmpty()) {
-                val executor = Executors.newFixedThreadPool(minOf(calendarIds.size, 6))
-                try {
-                    val futures = calendarIds.map { calId ->
-                        executor.submit<Map<String, String>> { fetchCategoryColors(baseUrl, token, calId) }
-                    }
-                    for (future in futures) {
-                        try {
-                            categoryColors.putAll(
-                                future.get(HTTP_TIMEOUT_MS.toLong() + 1000, TimeUnit.MILLISECONDS)
-                            )
-                        } catch (e: java.util.concurrent.ExecutionException) {
-                            // Futures wrap the original failure, so a 401 in
-                            // here arrives as ExecutionException and would
-                            // otherwise miss the refresh-and-retry path.
-                            val cause = e.cause
-                            if (cause is UnauthorizedException) throw cause
-                            throw e
-                        }
-                    }
-                } finally {
-                    executor.shutdown()
-                }
+        val warm = cachedMeta?.takeIf { System.currentTimeMillis() - cachedMetaAtMs < META_CACHE_TTL_MS }
+        if (warm != null) {
+            if (warm.calendarIds.isEmpty()) return emptyMap()
+            val occurrences = fetchOccurrences(baseUrl, token, warm.calendarIds, fromUnix, toUnix)
+            return buildEventsByDate(occurrences, warm.categoryColors, gridStart, gridEnd)
+        }
+
+        val calendarIds = fetchCalendarIds(baseUrl, token)
+        if (calendarIds.isEmpty()) {
+            cachedMeta = CalendarMeta(emptyList(), emptyMap())
+            cachedMetaAtMs = System.currentTimeMillis()
+            return emptyMap()
+        }
+
+        // Cold path (cache miss): category colors (one call per calendar)
+        // and occurrences don't depend on each other, only on calendarIds —
+        // fetch them concurrently instead of colors-then-occurrences, so a
+        // slow category fetch doesn't add its own latency on top of the
+        // occurrences call too. Already running on a background thread via
+        // goAsync(), so this doesn't touch the main thread.
+        val executor = Executors.newFixedThreadPool(minOf(calendarIds.size + 1, 7))
+        val (categoryColors, occurrences) = try {
+            val colorFutures = calendarIds.map { calId ->
+                executor.submit<Map<String, String>> { fetchCategoryColors(baseUrl, token, calId) }
+            }
+            val occFuture = executor.submit<List<ApiOccurrence>> {
+                fetchOccurrences(baseUrl, token, calendarIds, fromUnix, toUnix)
             }
 
-            val fromUnix = midnight(gridStart).timeInMillis / 1000
-            val toUnix = midnight(gridEnd).timeInMillis / 1000 + 86399 // include all of the last day
-            val occurrences = fetchOccurrences(baseUrl, token, calendarIds, fromUnix, toUnix)
+            val colors = HashMap<String, String>()
+            for (future in colorFutures) colors.putAll(await(future))
+            colors to await(occFuture)
+        } finally {
+            executor.shutdown()
+        }
 
-            buildEventsByDate(occurrences, categoryColors, gridStart, gridEnd)
+        cachedMeta = CalendarMeta(calendarIds, categoryColors)
+        cachedMetaAtMs = System.currentTimeMillis()
+        return buildEventsByDate(occurrences, categoryColors, gridStart, gridEnd)
+    }
+
+    /** future.get() with the shared HTTP timeout, unwrapping ExecutionException so a
+     * 401 raised inside the executor still reaches fetchWidgetData's refresh-and-retry
+     * path as an UnauthorizedException instead of a wrapped one. */
+    private fun <T> await(future: Future<T>): T {
+        return try {
+            future.get(HTTP_TIMEOUT_MS.toLong() + 1000, TimeUnit.MILLISECONDS)
+        } catch (e: ExecutionException) {
+            val cause = e.cause
+            if (cause is UnauthorizedException) throw cause
+            throw e
         }
     }
 
@@ -205,7 +232,11 @@ object WidgetDataFetcher {
                 if (dayCursor.timeInMillis in gridStartMs..gridEndMs) {
                     val dateStr = isoFmt.format(dayCursor.time)
                     map.getOrPut(dateStr) { mutableListOf() }
-                        .add(WidgetEvent(occ.title, color, allDay, startMinutes, slot))
+                        .add(WidgetEvent(
+                            occ.title, color, allDay, startMinutes, slot,
+                            spanStart = d == 0,
+                            spanEnd = d == spanDays,
+                        ))
                 }
                 dayCursor = (dayCursor.clone() as Calendar).apply {
                     add(Calendar.DAY_OF_MONTH, 1)

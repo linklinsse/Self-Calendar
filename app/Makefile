@@ -117,7 +117,9 @@ sync: build
 
 android: sync
 	@echo "$(GREEN)→ Compiling debug APK via Gradle…$(NC)"
-	cd android && $(GRADLEW) assembleDebug
+	cd android && $(GRADLEW) assembleDebug \
+	  -PscVersionCode=$$(date +%s) \
+	  -PscVersionName="dev-$$(date +%Y%m%d%H%M%S)"
 	@echo "$(GREEN)✅ APK: android/app/build/outputs/apk/debug/app-debug.apk$(NC)"
 
 android-studio: sync

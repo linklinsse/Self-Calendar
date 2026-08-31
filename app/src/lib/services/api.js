@@ -58,8 +58,14 @@ async function request(path, method, body, opts = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   let data = null;
-  if ((res.headers.get('content-type') || '').includes('application/json'))
-    data = await res.json();
+  // 204 (e.g. DELETE /category/{id}) carries no body but can still set a
+  // JSON content-type header, and res.json() throws SyntaxError on an
+  // empty string — reading as text first and parsing only if non-empty
+  // avoids the empty-body case regardless of what the header says.
+  if (res.status !== 204 && (res.headers.get('content-type') || '').includes('application/json')) {
+    const text = await res.text();
+    data = text ? JSON.parse(text) : null;
+  }
   if (!res.ok) {
     if (res.status === 401 && !opts.skip401Logout) handle401();
     throw new ApiError(res.status, data?.detail?.message || data?.detail || data?.message || res.statusText, data);

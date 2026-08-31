@@ -51,37 +51,51 @@
         android:layout_marginTop="1dp"
         android:orientation="vertical">
 
+        <!-- Each row is a *fixed* height rather than wrap_content: a
+             wrap_content FrameLayout with a match_parent child (event_bg_N,
+             used by all-day/spanning events) doesn't reliably wrap to the
+             other children's content size — it can measure event_bg_N
+             against whatever space is available further up the tree
+             instead, making an all-day/spanning row balloon taller than a
+             plain timed row right next to it. Fixing the height also keeps
+             every row in a given slot the same height across the whole
+             week regardless of what kind of event lands in it that day. -->
         <FrameLayout
             android:id="@+id/event_row_1"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="13dp"
             android:layout_marginBottom="1dp"
-            android:paddingStart="2dp" android:paddingEnd="2dp"
-            android:paddingTop="1dp" android:paddingBottom="1dp">
+            android:paddingStart="2dp" android:paddingEnd="2dp">
+            <!-- Multi-day (spanning) events only: a rounded-corner bitmap
+                 standing in for the row's background, tinted + shaped from
+                 MonthWidgetProvider.pillBitmap so consecutive days read as
+                 one continuous bar (see buildCell). Gone for single-day
+                 events, which keep the plain setBackgroundColor fill. -->
+            <ImageView android:id="@+id/event_bg_1" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:visibility="gone" />
             <ImageView android:id="@+id/event_accent_1" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
-            <TextView android:id="@+id/event_title_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+            <TextView android:id="@+id/event_title_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_vertical" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
         </FrameLayout>
 
         <FrameLayout
             android:id="@+id/event_row_2"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="13dp"
             android:layout_marginBottom="1dp"
-            android:paddingStart="2dp" android:paddingEnd="2dp"
-            android:paddingTop="1dp" android:paddingBottom="1dp">
+            android:paddingStart="2dp" android:paddingEnd="2dp">
+            <ImageView android:id="@+id/event_bg_2" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:visibility="gone" />
             <ImageView android:id="@+id/event_accent_2" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
-            <TextView android:id="@+id/event_title_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+            <TextView android:id="@+id/event_title_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_vertical" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
         </FrameLayout>
 
         <FrameLayout
             android:id="@+id/event_row_3"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="13dp"
             android:layout_marginBottom="1dp"
-            android:paddingStart="2dp" android:paddingEnd="2dp"
-            android:paddingTop="1dp" android:paddingBottom="1dp">
+            android:paddingStart="2dp" android:paddingEnd="2dp">
+            <ImageView android:id="@+id/event_bg_3" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:visibility="gone" />
             <ImageView android:id="@+id/event_accent_3" android:layout_width="2dp" android:layout_height="8dp" android:layout_gravity="start|center_vertical" android:src="@drawable/dot_shape" />
-            <TextView android:id="@+id/event_title_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
+            <TextView android:id="@+id/event_title_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_vertical" android:layout_marginStart="3dp" android:textSize="7sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="@color/widget_text" />
         </FrameLayout>
 
         <TextView

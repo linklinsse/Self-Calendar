@@ -75,6 +75,27 @@ def update_category(
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
     patch_data = payload.model_dump(exclude_unset=True)
+
+    new_calendar_id = patch_data.get("calendar_id")
+    if new_calendar_id is not None and new_calendar_id != category.calendar_id:
+        db_new_calendar = _get_calendar_or_404(new_calendar_id, session)
+        if not verify_user_right_calendar(
+            get_logged_user_context(), db_new_calendar, "W"
+        ):
+            raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
+
+        # An event's category must always belong to the event's own
+        # calendar (see obj_event_service._validate_category_in_calendar) —
+        # moving the category alone would silently break that invariant for
+        # every event still using it, so they move with it in the same
+        # transaction rather than being left pointing cross-calendar.
+        moved_events = session.exec(
+            select(ObjEventModel).where(ObjEventModel.category_id == category_id)
+        ).all()
+        for db_event in moved_events:
+            db_event.calendar_id = new_calendar_id
+            session.add(db_event)
+
     for key, value in patch_data.items():
         setattr(category, key, value)
 

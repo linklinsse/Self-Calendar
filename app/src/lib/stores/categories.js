@@ -80,8 +80,13 @@ export async function updateCategory(id, payload) {
       list.map(c => c.id === id ? { ...c, ...updated } : c)
     );
     showToast('Category updated', 'success');
+    return updated;
   } catch (e) {
     showToast('Error: ' + e.message, 'error');
+    // Matches createCategory/removeCalendar: a swallowed rejection here
+    // would let CategoryEditor's handleSave() call close() right after,
+    // closing the modal as if the edit had actually gone through.
+    throw e;
   }
 }
 
@@ -96,6 +101,10 @@ export async function removeCategory(id) {
     showToast(`Category "${cat?.label}" deleted`);
   } catch (e) {
     showToast('Error: ' + e.message, 'error');
+    // Matches removeCalendar: without this, CategoryEditor's handleDelete()
+    // calls close() right after regardless, closing the modal as if the
+    // delete had actually gone through.
+    throw e;
   }
 }
 

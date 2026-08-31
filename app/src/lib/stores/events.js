@@ -179,3 +179,36 @@ export async function excludeOccurrence(eventId, occurrenceDate) {
 export function removeEventsByCalendar(calendarId) {
   events.update(list => list.filter(e => e.calendar_id !== calendarId));
 }
+
+// ── Category cascade (delete / calendar move) ──────────────────
+
+/**
+ * Called after a category is deleted: mirrors delete_category's own
+ * server-side cascade (nulls category_id on every event that used it).
+ * Without this, an event still carrying the deleted category's id would
+ * fail visibleEvents' category filter (its id is no longer in the current
+ * categories list, so it never matches the "on" set) and silently
+ * disappear from every view instead of showing as uncategorised.
+ * @param {string} categoryId
+ */
+export function clearCategoryFromEvents(categoryId) {
+  events.update(list =>
+    list.map(e => e.category_id === categoryId ? { ...e, category_id: null } : e)
+  );
+}
+
+/**
+ * Called after a category's calendar_id changes: mirrors update_category's
+ * own server-side cascade (every event under that category moves calendar
+ * with it — an event's category must always belong to the event's own
+ * calendar, see obj_event_service._validate_category_in_calendar). Without
+ * this the local cache goes stale until the next reload, e.g. still hiding
+ * those events under the calendar's old on/off filter toggle.
+ * @param {string} categoryId
+ * @param {string} newCalendarId
+ */
+export function moveCategoryEvents(categoryId, newCalendarId) {
+  events.update(list =>
+    list.map(e => e.category_id === categoryId ? { ...e, calendar_id: newCalendarId } : e)
+  );
+}

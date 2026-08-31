@@ -4,6 +4,7 @@
   import { Capacitor } from '@capacitor/core';
   import {
     cursor, currentView, modalEventId, modalOccurrenceDate, showToast,
+    openAddPanel,
   } from '../lib/stores/index.js';
   import { fetchEvent } from '../lib/services/event.service.js';
   import { initWidgetSync } from '../lib/widgetSync.js';
@@ -52,7 +53,7 @@
     }
 
     // `host` is what the manifest's intent-filter matches on
-    // (selfcalendar://event / selfcalendar://day).
+    // (selfcalendar://event / selfcalendar://day / selfcalendar://new).
     if (url.host === 'event') {
       const id = url.searchParams.get('id');
       if (id) openEventById(id);
@@ -62,6 +63,15 @@
     if (url.host === 'day') {
       const date = url.searchParams.get('date');
       if (date) openDay(date);
+      return;
+    }
+
+    // The widget's own create-event button — opens straight to a blank
+    // event defaulted to today, without disturbing wherever the app's own
+    // cursor/view happened to be left (openAddPanel takes an explicit date
+    // instead of falling back to $cursor for exactly this).
+    if (url.host === 'new') {
+      openAddPanel(new Date());
     }
   }
 

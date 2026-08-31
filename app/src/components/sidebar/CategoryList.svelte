@@ -29,6 +29,18 @@
 
     return [...byCalendar.values()];
   })());
+
+  // Calendar ids whose category group is collapsed. Session-only (not
+  // persisted) — a lightweight per-visit preference, not app state worth
+  // syncing anywhere.
+  let collapsed = $state(new Set());
+
+  function toggleGroup(calendarId) {
+    const next = new Set(collapsed);
+    if (next.has(calendarId)) next.delete(calendarId);
+    else next.add(calendarId);
+    collapsed = next;
+  }
 </script>
 
 <section class="cat-list">
@@ -47,7 +59,20 @@
   <!-- Groups: one per active calendar -->
   {#each groups as group (group.calendar?.id ?? 'unknown')}
     <!-- Calendar group header -->
-    <div class="cal-group-hdr">
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div
+      class="cal-group-hdr"
+      onclick={() => toggleGroup(group.calendar?.id)}
+      role="button"
+      tabindex="0"
+      onkeydown={e => e.key === 'Enter' && toggleGroup(group.calendar?.id)}
+      aria-expanded={!collapsed.has(group.calendar?.id)}
+    >
+      <span
+        class="group-chevron"
+        class:collapsed={collapsed.has(group.calendar?.id)}
+        aria-hidden="true"
+      >▾</span>
       <span
         class="cal-dot"
         style="background: {group.calendar?.color ?? '#888'}"
@@ -57,33 +82,35 @@
     </div>
 
     <!-- Category rows for this calendar -->
-    {#each group.cats as cat (cat.id)}
-      <div class="cat-row-wrap">
-        <button
-          class="cat-row"
-          class:off={!cat.on}
-          onclick={() => toggleCategory(cat.id)}
-          aria-pressed={cat.on}
-          aria-label="{cat.label}, {cat.on ? 'visible' : 'hidden'}"
-        >
-          <span class="cat-icon" aria-hidden="true">{cat.icon}</span>
-          <span class="row-label">{cat.label}</span>
-          <span
-            class="cat-pip"
-            style="background:{cat.color}"
-            class:pip-off={!cat.on}
-            aria-hidden="true"
-          ></span>
-        </button>
+    {#if !collapsed.has(group.calendar?.id)}
+      {#each group.cats as cat (cat.id)}
+        <div class="cat-row-wrap">
+          <button
+            class="cat-row"
+            class:off={!cat.on}
+            onclick={() => toggleCategory(cat.id)}
+            aria-pressed={cat.on}
+            aria-label="{cat.label}, {cat.on ? 'visible' : 'hidden'}"
+          >
+            <span class="cat-icon" aria-hidden="true">{cat.icon}</span>
+            <span class="row-label">{cat.label}</span>
+            <span
+              class="cat-pip"
+              style="background:{cat.color}"
+              class:pip-off={!cat.on}
+              aria-hidden="true"
+            ></span>
+          </button>
 
-        <button
-          class="edit-btn"
-          onclick={() => $catEditorId = cat.id}
-          aria-label="Edit {cat.label}"
-          title="Edit category"
-        >✎</button>
-      </div>
-    {/each}
+          <button
+            class="edit-btn"
+            onclick={() => $catEditorId = cat.id}
+            aria-label="Edit {cat.label}"
+            title="Edit category"
+          >✎</button>
+        </div>
+      {/each}
+    {/if}
   {/each}
 
   {#if $visibleCategories.length === 0}
@@ -117,7 +144,16 @@
     display: flex; align-items: center; gap: 6px;
     padding: 8px 8px 3px;
     margin-top: 4px;
+    border-radius: var(--r-s, 6px);
+    cursor: pointer;
+    transition: background .13s;
   }
+  .cal-group-hdr:hover { background: var(--acc-bg); }
+  .group-chevron {
+    font-size: 9px; color: var(--t3); flex-shrink: 0;
+    transition: transform .16s;
+  }
+  .group-chevron.collapsed { transform: rotate(-90deg); }
   .cal-dot {
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
   }

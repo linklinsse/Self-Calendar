@@ -35,7 +35,11 @@
     const m = new Map();
     for (const d of grid) {
       const allDay = singleAllDayOccs.filter(o => sameDay(o.startDate, d));
-      const timed  = timedOccs.filter(o => sameDay(o.startDate, d));
+      // Sorted by start time — expandEventsForRange returns occurrences in
+      // whatever order the underlying events/recurrence expansion produced
+      // them, not chronological, so without this two events on the same day
+      // could render in an arbitrary (and inconsistent-across-renders) order.
+      const timed  = timedOccs.filter(o => sameDay(o.startDate, d)).sort((a, b) => a.startDate - b.startDate);
       const timedShown = Math.max(0, 3 - allDay.length);
       const totalShown = allDay.length + Math.min(timed.length, timedShown);
       m.set(d.toDateString(), { allDay, timed, all: [...allDay, ...timed], timedShown, totalShown });
