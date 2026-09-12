@@ -49,6 +49,7 @@ class AppErrorCode(str, Enum):
     # Membership (lnk_user_calendar)
     MEMBERSHIP_NOT_FOUND = "MEMBERSHIP_NOT_FOUND"
     MEMBERSHIP_ALREADY_EXISTS = "MEMBERSHIP_ALREADY_EXISTS"
+    INVALID_CALENDAR_ORDER = "INVALID_CALENDAR_ORDER"
 
     # Permissions
     INSUFFICIENT_RIGHTS = "INSUFFICIENT_RIGHTS"
@@ -97,6 +98,9 @@ _ERROR_MESSAGES: dict[AppErrorCode, str] = {
     AppErrorCode.MEMBERSHIP_ALREADY_EXISTS: (
         "This user is already a member of the calendar."
     ),
+    AppErrorCode.INVALID_CALENDAR_ORDER: (
+        "The provided calendar order must contain exactly your own calendars, each once."
+    ),
     AppErrorCode.INSUFFICIENT_RIGHTS: (
         "You do not have the required permission to perform this action."
     ),
@@ -122,6 +126,7 @@ _ERROR_STATUS: dict[AppErrorCode, int] = {
     AppErrorCode.CATEGORY_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     AppErrorCode.MEMBERSHIP_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     AppErrorCode.MEMBERSHIP_ALREADY_EXISTS: status.HTTP_409_CONFLICT,
+    AppErrorCode.INVALID_CALENDAR_ORDER: status.HTTP_422_UNPROCESSABLE_ENTITY,
     AppErrorCode.INSUFFICIENT_RIGHTS: status.HTTP_403_FORBIDDEN,
     AppErrorCode.RATE_LIMITED: status.HTTP_429_TOO_MANY_REQUESTS,
 }

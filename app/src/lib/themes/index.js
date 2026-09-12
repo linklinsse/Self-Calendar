@@ -16,7 +16,7 @@ import { blushNoir }        from './blushNoir.js';
 import { sageDusk }         from './sageDusk.js';
 import { midnightInk }      from './midnightInk.js';
 import { oceanBreeze }      from './oceanBreeze.js';
-import { electricYellow }   from './electricYellow.js';
+import { sunflower }        from './sunflower.js';
 import { unicorn }          from './unicorn.js';
 
 // ── Registry ──────────────────────────────────────────────────
@@ -30,7 +30,7 @@ import { unicorn }          from './unicorn.js';
 export const THEME_LIST = [
   // ── Dark ──────────────────────────
   blushNoir,
-  electricYellow,
+  sunflower,
   midnightInk,
   oceanBreeze,
   sageDusk,

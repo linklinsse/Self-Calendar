@@ -12,6 +12,7 @@ from app.models.lnk_user_calendar_model import LnkUserCalendarModel
 from app.models.obj_calendar_model import ObjCalendarModel
 from app.models.obj_user_model import ObjUserModel
 from app.schemas.lnk_user_calendar_schema import (
+    CalendarReorderSchema,
     LnkUserCalendarSchemaComplete,
     LnkUserCalendarSchemaCreate,
     LnkUserCalendarSchemaEdit,
@@ -57,6 +58,17 @@ def _count_owners(calendar_id: str, session: Session) -> int:
     return len(session.exec(statement).all())
 
 
+def _next_rank(user_id: str, session: Session) -> int:
+    """Return the rank to give a new membership so it lands at the end of
+    this user's calendar list, instead of colliding with an existing one
+    at the default 0."""
+    statement = select(LnkUserCalendarModel).where(
+        LnkUserCalendarModel.user_id == user_id
+    )
+    existing = session.exec(statement).all()
+    return max((link.rank for link in existing), default=-1) + 1
+
+
 def _create_link_unchecked(
     user_id: str, calendar_id: str, right: str, session: Session
 ) -> LnkUserCalendarModel:
@@ -67,7 +79,10 @@ def _create_link_unchecked(
     provenance (only create_calendar() may call this), not by inspecting
     database state — never expose this on a public endpoint.
     """
-    db_link = LnkUserCalendarModel(user_id=user_id, calendar_id=calendar_id, right=right)
+    db_link = LnkUserCalendarModel(
+        user_id=user_id, calendar_id=calendar_id, right=right,
+        rank=_next_rank(user_id, session),
+    )
     session.add(db_link)
     session.flush()
     return db_link
@@ -190,4 +205,38 @@ def delete_lnk_user_calendar(lnk_user_calendar_id: str, session: Session) -> Non
         raise_app_error(AppErrorCode.INSUFFICIENT_RIGHTS)
 
     session.delete(db_link)
+    session.commit()
+
+
+def reorder_calendars(reorder: CalendarReorderSchema, session: Session) -> None:
+    """Set the caller's calendar display order to the given list of ids.
+
+    Ranking is per-user (own membership rows only) — reordering never
+    touches another user's copy of a shared calendar's position.
+
+    The given list must be exactly the caller's current calendar ids, each
+    once: silently ignoring an id lets a stale client-side list re-add a
+    calendar the user just left/lost access to, and silently accepting a
+    partial list would leave the rest with an unspecified rank relative to
+    the reordered ones.
+    """
+    logged_user = get_logged_user_context()
+
+    links = session.exec(
+        select(LnkUserCalendarModel).where(
+            LnkUserCalendarModel.user_id == logged_user.id
+        )
+    ).all()
+    by_calendar_id = {link.calendar_id: link for link in links}
+
+    if (
+        len(reorder.calendar_ids) != len(links)
+        or set(reorder.calendar_ids) != set(by_calendar_id.keys())
+    ):
+        raise_app_error(AppErrorCode.INVALID_CALENDAR_ORDER)
+
+    for rank, calendar_id in enumerate(reorder.calendar_ids):
+        by_calendar_id[calendar_id].rank = rank
+        session.add(by_calendar_id[calendar_id])
+
     session.commit()

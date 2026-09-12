@@ -190,7 +190,7 @@ src/
         ├── sageDusk.js         ← Dark mint / forest
         ├── midnightInk.js      ← Deep indigo / lavender
         ├── oceanBreeze.js      ← Dark teal
-        └── electricYellow.js   ← Electric yellow
+        └── sunflower.js        ← Sunflower yellow
 ```
 
 ---
@@ -215,7 +215,7 @@ Available theme keys:
 | `sageDusk`        | 🌿 Mint      | Dark forest           |
 | `midnightInk`     | 💜 Lavender  | Deep indigo           |
 | `oceanBreeze`     | 🩵 Teal      | Dark ocean            |
-| `electricYellow`  | ⚡ Yellow    | Electric              |
+| `sunflower`       | 🌻 Yellow    | Sunflower             |
 
 ### Add a custom theme
 

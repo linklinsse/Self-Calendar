@@ -18,3 +18,14 @@ class LnkUserCalendarSchemaCreate(BaseModel):
 
 class LnkUserCalendarSchemaEdit(BaseModel):
     right: CalendarRight
+
+
+class CalendarReorderSchema(BaseModel):
+    """Body of PATCH /calendar/reorder.
+
+    The full, desired order of the caller's own calendars, listed by id.
+    Must contain exactly the calendars the caller already belongs to, each
+    once — see reorder_calendars in lnk_user_calendar_service.py.
+    """
+
+    calendar_ids: list[str]

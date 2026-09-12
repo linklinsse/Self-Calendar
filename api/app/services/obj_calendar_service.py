@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy.orm import selectinload
-from sqlmodel import Session, exists, select
+from sqlmodel import Session, select
 
 from app.common.contexts.logged_user_context import get_logged_user_context
 from app.common.errors import AppErrorCode, raise_app_error
@@ -87,17 +87,20 @@ def get_calendar(calendar_id: str, session: Session) -> ObjCalendarSchemaComplet
 
 
 def get_all_calendar(session: Session) -> List[ObjCalendarSchemaComplete]:
-    """Return all calendars the current user is linked to (any permission level)."""
+    """Return all calendars the current user is linked to (any permission
+    level), ordered by that user's own rank (see reorder_calendars) — a
+    per-user sidebar order, not a global property of the calendar."""
     logged_user = get_logged_user_context()
 
     db_calendars = session.exec(
         select(ObjCalendarModel)
-        .where(
-            exists(LnkUserCalendarModel.id)
-            .where(LnkUserCalendarModel.calendar_id == ObjCalendarModel.id)
-            .where(LnkUserCalendarModel.user_id == logged_user.id)
+        .join(
+            LnkUserCalendarModel,
+            LnkUserCalendarModel.calendar_id == ObjCalendarModel.id,
         )
+        .where(LnkUserCalendarModel.user_id == logged_user.id)
         .options(selectinload(ObjCalendarModel.lnk_users))
+        .order_by(LnkUserCalendarModel.rank)
     ).all()
 
     return [

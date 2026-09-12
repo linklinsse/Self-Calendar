@@ -2,10 +2,11 @@
  * calendar.service.js — Calendar HTTP service.
  *
  * Endpoints (OpenAPI):
- *   GET    /calendar/                            → Calendar[]
+ *   GET    /calendar/                            → Calendar[]  (ordered per-user, see reorder)
  *   POST   /calendar/              body          → Calendar
  *   GET    /calendar/{id}                        → Calendar
  *   PATCH  /calendar/{id}          body          → Calendar
+ *   PATCH  /calendar/reorder       body          → void
  *   DELETE /calendar/{id}                        → void
  *
  *   POST   /user_calendar/         body          → UserCalendar
@@ -92,6 +93,15 @@ export async function updateCalendar(id, payload) {
  */
 export async function deleteCalendar(id) {
   return api.delete(`/calendar/${id}`);
+}
+
+/**
+ * Set the current user's own calendar display order.
+ * @param {string[]} calendarIds — every calendar the user has, in the desired order
+ * @returns {Promise<void>}
+ */
+export async function reorderCalendars(calendarIds) {
+  return api.patch('/calendar/reorder', { calendar_ids: calendarIds });
 }
 
 // ─── User ↔ Calendar links ────────────────────────────────────────────────────

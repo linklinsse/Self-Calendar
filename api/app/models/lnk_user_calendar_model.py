@@ -35,4 +35,11 @@ class LnkUserCalendarModel(SQLModel, table=True):
     )
     right: str = Field(nullable=False, min_length=1, max_length=1)  # stored as CalendarRight value
 
+    # Per-user calendar ordering (sidebar display order), not a property of
+    # the calendar itself — two users sharing a calendar may want it in a
+    # different position in their own list. New links get the next rank for
+    # their user (see _next_rank in lnk_user_calendar_service.py) so they
+    # land at the end instead of colliding at 0.
+    rank: int = Field(nullable=False, default=0)
+
     obj_calendar: ObjCalendarModel = Relationship(back_populates="lnk_users")
