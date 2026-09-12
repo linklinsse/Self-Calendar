@@ -130,9 +130,10 @@ export function setApiBaseUrl(raw) {
   if (!normalised) throw new Error('Enter a valid http:// or https:// address.');
 
   localStorage.setItem(API_BASE_URL_KEY, normalised);
-  // The old server's token means nothing to the new one, and leaving it
+  // The old server's tokens mean nothing to the new one, and leaving them
   // behind produces a confusing 401 on first load instead of a login screen.
   localStorage.removeItem('sc_auth_token');
+  localStorage.removeItem('sc_refresh_token');
   window.location.reload();
 }
 
@@ -140,6 +141,7 @@ export function setApiBaseUrl(raw) {
 export function resetApiBaseUrl() {
   localStorage.removeItem(API_BASE_URL_KEY);
   localStorage.removeItem('sc_auth_token');
+  localStorage.removeItem('sc_refresh_token');
   window.location.reload();
 }
 

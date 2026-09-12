@@ -4,6 +4,8 @@
    *
    * Features:
    *  • Toggle calendar visibility (filter) via checkbox rows
+   *  • Reorder calendars via drag-and-drop, or the ▲▼ buttons (keyboard/
+   *    touch fallback) — persisted per-user via reorderCalendars()
    *  • Gear icon → CalendarSettings modal (admin only)
    *  • "＋ New calendar" button expands an inline create form
    *  • Inline form: name + colour picker → createCalendar()
@@ -12,8 +14,48 @@
   import { fly } from 'svelte/transition';
   import {
     calendars, calSettingsId,
-    toggleCalendar, createCalendar,
+    toggleCalendar, createCalendar, reorderCalendars,
   } from '../../lib/stores/index.js';
+
+  // ── Reordering ──────────────────────────────────────────────
+  let dragIndex = $state(null);
+
+  function onDragStart(e, index) {
+    dragIndex = index;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // Firefox needs this to allow the drag
+  }
+
+  // Reorders the list live as the drag passes over another row, so the UI
+  // previews the drop result; the actual save happens once, on drop.
+  function onDragOver(e, index) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+    const list = [...$calendars];
+    const [moved] = list.splice(dragIndex, 1);
+    list.splice(index, 0, moved);
+    dragIndex = index;
+    calendars.set(list);
+  }
+
+  function onDrop() {
+    dragIndex = null;
+    reorderCalendars($calendars.map(c => c.id));
+  }
+
+  function onDragEnd() {
+    dragIndex = null;
+  }
+
+  /** Swap a calendar with its neighbour and persist immediately — a
+   * keyboard/touch-friendly alternative to dragging. */
+  function moveCalendar(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= $calendars.length) return;
+    const list = [...$calendars];
+    [list[index], list[target]] = [list[target], list[index]];
+    reorderCalendars(list.map(c => c.id));
+  }
 
   // ── Colour palette for new calendars ──────────────────────
   const PALETTE = [
@@ -71,8 +113,20 @@
   </div>
 
   <!-- Calendar rows -->
-  {#each $calendars as cal (cal.id)}
-    <div class="cal-row">
+  <div class="cal-rows" role="list">
+  {#each $calendars as cal, i (cal.id)}
+    <div
+      class="cal-row"
+      class:dragging={dragIndex === i}
+      role="listitem"
+      draggable="true"
+      ondragstart={(e) => onDragStart(e, i)}
+      ondragover={(e) => onDragOver(e, i)}
+      ondrop={onDrop}
+      ondragend={onDragEnd}
+    >
+      <span class="drag-handle" aria-hidden="true" title="Drag to reorder">⠿</span>
+
       <button
         class="row-toggle"
         onclick={() => toggleCalendar(cal.id)}
@@ -86,16 +140,34 @@
         </span>
       </button>
 
-      {#if cal.right === 'O'}
+      <div class="row-actions">
         <button
-          class="gear-btn"
-          onclick={() => $calSettingsId = cal.id}
-          aria-label="Edit {cal.title}"
-          title="Edit calendar"
-        >✎</button>
-      {/if}
+          class="move-btn"
+          onclick={() => moveCalendar(i, -1)}
+          disabled={i === 0}
+          aria-label="Move {cal.title} up"
+          title="Move up"
+        >▲</button>
+        <button
+          class="move-btn"
+          onclick={() => moveCalendar(i, 1)}
+          disabled={i === $calendars.length - 1}
+          aria-label="Move {cal.title} down"
+          title="Move down"
+        >▼</button>
+
+        {#if cal.right === 'O'}
+          <button
+            class="gear-btn"
+            onclick={() => $calSettingsId = cal.id}
+            aria-label="Edit {cal.title}"
+            title="Edit calendar"
+          >✎</button>
+        {/if}
+      </div>
     </div>
   {/each}
+  </div>
 
   <!-- Inline create form -->
   {#if creating}
@@ -172,9 +244,17 @@
   .cal-row {
     display: flex; align-items: center;
     border-radius: var(--r-s);
-    transition: background .13s;
+    transition: background .13s, opacity .13s;
   }
   .cal-row:hover { background: var(--acc-bg); }
+  .cal-row.dragging { opacity: .4; }
+
+  .drag-handle {
+    flex-shrink: 0; width: 16px; text-align: center;
+    font-size: 13px; color: var(--t3);
+    cursor: grab; opacity: 0; transition: opacity .13s;
+  }
+  .cal-row:hover .drag-handle { opacity: 1; }
 
   .row-toggle {
     display: flex; align-items: center; gap: 10px;
@@ -203,14 +283,20 @@
   }
   .chk.on { background: var(--acc); border-color: var(--acc); color: #1a0812; }
 
-  .gear-btn {
-    width: 28px; height: 28px; border-radius: 6px;
-    font-size: 13px; color: var(--t3); flex-shrink: 0;
+  .row-actions {
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+
+  .move-btn, .gear-btn {
+    width: 24px; height: 24px; border-radius: 6px;
+    font-size: 10px; color: var(--t3); flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     opacity: 0; transition: opacity .13s, color .13s, background .13s;
   }
-  .cal-row:hover .gear-btn { opacity: 1; }
-  .gear-btn:hover { color: var(--acc); background: var(--acc-bg); }
+  .gear-btn { width: 28px; height: 28px; font-size: 13px; }
+  .cal-row:hover .move-btn, .cal-row:hover .gear-btn { opacity: 1; }
+  .move-btn:hover:not(:disabled), .gear-btn:hover { color: var(--acc); background: var(--acc-bg); }
+  .move-btn:disabled { opacity: .2 !important; cursor: default; }
 
   /* ── Inline create form ─────────────────────────────────── */
   .create-form {

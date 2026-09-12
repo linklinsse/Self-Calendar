@@ -2,12 +2,13 @@ from typing import List
 from fastapi import APIRouter
 
 from app.common.db_connection import SessionDep
-from app.services import obj_calendar_service
+from app.services import obj_calendar_service, lnk_user_calendar_service
 from app.schemas.obj_calendar_schema import (
     ObjCalendarSchemaComplete,
     ObjCalendarSchemaCreate,
     ObjCalendarSchemaEdit,
 )
+from app.schemas.lnk_user_calendar_schema import CalendarReorderSchema
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
@@ -24,6 +25,16 @@ def create(
 def get_all(session: SessionDep) -> List[ObjCalendarSchemaComplete]:
     """Return all calendars the authenticated user has access to."""
     return obj_calendar_service.get_all_calendar(session)
+
+
+@router.patch("/reorder")
+def reorder(reorder: CalendarReorderSchema, session: SessionDep) -> None:
+    """Set the authenticated user's own calendar display order.
+
+    Registered before /{calendar_id} so "reorder" isn't swallowed as a
+    calendar id by that route.
+    """
+    return lnk_user_calendar_service.reorder_calendars(reorder, session)
 
 
 @router.get("/{calendar_id}", response_model=ObjCalendarSchemaComplete)

@@ -7,7 +7,7 @@
  * Logout:   client-side only (clear token)
  */
 
-import { api, setToken } from './api.js';
+import { api, setToken, setRefreshToken } from './api.js';
 
 /** @typedef {{ id:string, login:string }} User */
 
@@ -21,6 +21,11 @@ export async function login(username, password) {
   const res = await api.post(`/auth/login`, { username, password })
 
   setToken(res);
+  // Mint a refresh token for this session so the api.js 401 handler can
+  // silently renew a 24h-old access token instead of logging the user out
+  // every day. Best-effort — fetchRefreshToken() already degrades to null
+  // on failure, which just means no silent refresh later.
+  setRefreshToken(await fetchRefreshToken());
   return getMe();
 }
 
@@ -37,11 +42,12 @@ export async function register(username, password) {
 }
 
 /**
- * Log out — clears local token only (no server-side logout endpoint).
+ * Log out — clears local tokens only (no server-side logout endpoint).
  * @returns {Promise<void>}
  */
 export async function logout() {
   setToken(null);
+  setRefreshToken(null);
 }
 
 /**
@@ -110,13 +116,16 @@ export async function changePasswordRequest(oldPassword, newPassword) {
 /**
  * Mint a long-lived refresh token for the signed-in user.
  *
- * Only the Android widget needs one: it renders for weeks without the user
- * necessarily opening the app, while an access token lasts a day, so without
- * this it silently froze on stale data once its token expired.
+ * Used by login() to let this session silently renew a 24h access token
+ * (see api.js's 401 handler), and by the Android widget bridge
+ * (widgetSync.js), which renders for weeks without the user necessarily
+ * opening the app and would otherwise freeze on stale data once its own
+ * copy of the access token expired.
  *
  * Returns null rather than throwing — a server too old to have the endpoint,
- * or a transient failure, should degrade to the previous behaviour (widget
- * works until the access token expires) instead of breaking login.
+ * or a transient failure, should degrade to the previous behaviour (session
+ * works until the access token expires, then requires a real login) instead
+ * of breaking login.
  *
  * @returns {Promise<string|null>}
  */

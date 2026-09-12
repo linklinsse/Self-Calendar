@@ -30,16 +30,16 @@
     return [...byCalendar.values()];
   })());
 
-  // Calendar ids whose category group is collapsed. Session-only (not
-  // persisted) — a lightweight per-visit preference, not app state worth
-  // syncing anywhere.
-  let collapsed = $state(new Set());
+  // Calendar ids whose category group is expanded. Starts empty so every
+  // group renders collapsed by default. Session-only (not persisted) — a
+  // lightweight per-visit preference, not app state worth syncing anywhere.
+  let expanded = $state(new Set());
 
   function toggleGroup(calendarId) {
-    const next = new Set(collapsed);
+    const next = new Set(expanded);
     if (next.has(calendarId)) next.delete(calendarId);
     else next.add(calendarId);
-    collapsed = next;
+    expanded = next;
   }
 </script>
 
@@ -66,11 +66,11 @@
       role="button"
       tabindex="0"
       onkeydown={e => e.key === 'Enter' && toggleGroup(group.calendar?.id)}
-      aria-expanded={!collapsed.has(group.calendar?.id)}
+      aria-expanded={expanded.has(group.calendar?.id)}
     >
       <span
         class="group-chevron"
-        class:collapsed={collapsed.has(group.calendar?.id)}
+        class:collapsed={!expanded.has(group.calendar?.id)}
         aria-hidden="true"
       >▾</span>
       <span
@@ -82,7 +82,7 @@
     </div>
 
     <!-- Category rows for this calendar -->
-    {#if !collapsed.has(group.calendar?.id)}
+    {#if expanded.has(group.calendar?.id)}
       {#each group.cats as cat (cat.id)}
         <div class="cat-row-wrap">
           <button
@@ -150,7 +150,9 @@
   }
   .cal-group-hdr:hover { background: var(--acc-bg); }
   .group-chevron {
-    font-size: 9px; color: var(--t3); flex-shrink: 0;
+    font-size: 18px; color: var(--t3); flex-shrink: 0;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
     transition: transform .16s;
   }
   .group-chevron.collapsed { transform: rotate(-90deg); }
