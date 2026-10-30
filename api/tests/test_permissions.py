@@ -662,3 +662,73 @@ def test_event_color_override_is_optional_and_round_trips(client):
         "setting color to null must clear the override, not be ignored — "
         "otherwise an event can never go back to following its category"
     )
+
+
+def test_event_can_be_moved_to_another_calendar(client):
+    """Changing an event's calendar from the edit form sends calendar_id plus
+    a category of the new calendar. calendar_id used to be absent from the
+    edit schema, so the category was checked against the old calendar and
+    the PATCH failed with CATEGORY_NOT_FOUND."""
+    token = register_and_login(client, "rowan")
+    h = auth_headers(token)
+    cal_a = _make_calendar(client, token, "A")
+    cal_b = _make_calendar(client, token, "B")
+    cat_a = client.post(
+        "/category/",
+        json={"calendar_id": cal_a["id"], "title": "A", "color": "#111111"},
+        headers=h,
+    ).json()["id"]
+    cat_b = client.post(
+        "/category/",
+        json={"calendar_id": cal_b["id"], "title": "B", "color": "#222222"},
+        headers=h,
+    ).json()["id"]
+    now = int(time.time())
+    event_id = client.post(
+        "/event/",
+        json={
+            "calendar_id": cal_a["id"], "title": "E",
+            "date_start": now, "date_end": now + 60, "category_id": cat_a,
+        },
+        headers=h,
+    ).json()["id"]
+
+    # Keeping the old calendar's category while moving is rejected.
+    r = client.patch(
+        f"/event/{event_id}", json={"calendar_id": cal_b["id"]}, headers=h
+    )
+    assert r.status_code == 404
+    assert r.json()["detail"]["error_code"] == "CATEGORY_NOT_FOUND"
+
+    r = client.patch(
+        f"/event/{event_id}",
+        json={"calendar_id": cal_b["id"], "category_id": cat_b},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["calendar_id"] == cal_b["id"]
+    assert r.json()["category_id"] == cat_b
+
+
+def test_event_cannot_be_moved_into_an_inaccessible_calendar(client):
+    alice = register_and_login(client, "sloane")
+    bob = register_and_login(client, "tobin")
+    cal_alice = _make_calendar(client, alice, "Alice")
+    cal_bob = _make_calendar(client, bob, "Bob")
+    now = int(time.time())
+    event_id = client.post(
+        "/event/",
+        json={
+            "calendar_id": cal_bob["id"], "title": "E",
+            "date_start": now, "date_end": now + 60,
+        },
+        headers=auth_headers(bob),
+    ).json()["id"]
+
+    r = client.patch(
+        f"/event/{event_id}",
+        json={"calendar_id": cal_alice["id"]},
+        headers=auth_headers(bob),
+    )
+    assert r.status_code == 404
+    assert r.json()["detail"]["error_code"] == "CALENDAR_NOT_FOUND"

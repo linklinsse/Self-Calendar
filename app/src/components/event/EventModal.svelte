@@ -345,6 +345,7 @@
     font-size: var(--fs-sm, 15px); color: var(--t3);
     line-height: 1.65; margin-top: 14px; padding-top: 14px;
     border-top: 1px solid var(--bdr-soft);
+    white-space: pre-wrap; overflow-wrap: anywhere;
   }
 
   /* ── Actions ────────────────────────────────────────────── */

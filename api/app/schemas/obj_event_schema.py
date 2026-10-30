@@ -49,6 +49,8 @@ class ObjEventSchemaEdit(BaseModel):
     As with ObjEventSchemaCreate, `recurence_id` is server-owned and absent
     on purpose — see that schema's docstring.
     """
+    # Moving an event to another calendar needs "W" on both calendars.
+    calendar_id: str | None = Field(default=None)
     title: CommonFieldTitle | None = Field(default=None)
     description: CommonFieldDescription
     date_start: int | None = Field(default=None)

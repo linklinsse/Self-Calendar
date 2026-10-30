@@ -190,9 +190,32 @@ def edit_event(
     ):
         raise_app_error(AppErrorCode.EVENT_NOT_FOUND)
 
-    if "category_id" in edited_event.model_fields_set:
+    target_calendar_id = db_event.calendar_id
+    if (
+        edited_event.calendar_id is not None
+        and edited_event.calendar_id != db_event.calendar_id
+    ):
+        db_target_calendar = session.get(ObjCalendarModel, edited_event.calendar_id)
+        if not db_target_calendar or not verify_user_right_calendar(
+            get_logged_user_context(), db_target_calendar, "W"
+        ):
+            raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
+        target_calendar_id = edited_event.calendar_id
+
+    # Validate against the calendar the event will end up in. When moving
+    # calendars without sending category_id, the existing category belongs
+    # to the old calendar and must be re-checked too.
+    if (
+        "category_id" in edited_event.model_fields_set
+        or target_calendar_id != db_event.calendar_id
+    ):
+        effective_category_id = (
+            edited_event.category_id
+            if "category_id" in edited_event.model_fields_set
+            else db_event.category_id
+        )
         _validate_category_in_calendar(
-            edited_event.category_id, db_event.calendar_id, session
+            effective_category_id, target_calendar_id, session
         )
 
     if "date_start" in edited_event.model_fields_set or "date_end" in edited_event.model_fields_set:
@@ -253,6 +276,9 @@ def edit_event(
                 )
 
     update_data = edited_event.model_dump(exclude_unset=True, exclude={"obj_recurence"})
+    # An explicit null calendar_id is not "move nowhere" — ignore it.
+    if update_data.get("calendar_id") is None:
+        update_data.pop("calendar_id", None)
     for key, value in update_data.items():
         setattr(db_event, key, value)
 
