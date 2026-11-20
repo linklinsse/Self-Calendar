@@ -8,6 +8,12 @@ on:
     branches: ["**"]
   pull_request:
 
+# Read-only token: CI only checks out and runs code — including, on pull
+# requests, code that has not been reviewed yet — so it gets no write access
+# whatever the repository's default token permissions are set to.
+permissions:
+  contents: read
+
 jobs:
   api:
     name: API — ruff + pytest

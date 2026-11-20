@@ -25,8 +25,11 @@ on:
   # Manual runs for re-cutting a failed release without touching VERSION.
   workflow_dispatch:
 
+# Read-only by default; only the `release` job below, which creates the tag
+# and the GitHub Release, is granted write access. The build jobs run npm,
+# Gradle and Docker builds and never need to write to the repository.
 permissions:
-  contents: write # required to create the tag and the release
+  contents: read
 
 jobs:
   check:
@@ -242,6 +245,8 @@ jobs:
     name: Publish release
     needs: [check, images, apk]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to create the tag and the release
     steps:
       - uses: actions/checkout@v4
 

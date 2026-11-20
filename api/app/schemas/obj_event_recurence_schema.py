@@ -3,6 +3,7 @@ from typing import Annotated
 
 from app.schemas.obj_event_recurence_exception_schema import ObjEventRecurenceExceptionSchema
 from app.common.enums import EventRecurenceEndType, EventRecurenceType
+from app.schemas.common_fields import CommonFieldTimestamp
 
 
 def _validate_end_type_fields(m: BaseModel) -> BaseModel:
@@ -41,7 +42,7 @@ class ObjEventRecurenceSchemaCreate(BaseModel):
     ] | None = Field(default=None)
     endType: EventRecurenceEndType
     count: int | None = Field(default=None, ge=1, le=1000)
-    until: int | None = Field(default=None)
+    until: CommonFieldTimestamp | None = Field(default=None)
     estimated_end_date: int | None = Field(default=None)
     obj_exceptions: list[ObjEventRecurenceExceptionSchema] = Field(default_factory=list)
 
@@ -57,7 +58,7 @@ class ObjEventRecurenceSchemaEdit(BaseModel):
     ] | None = Field(default=None)
     endType: EventRecurenceEndType
     count: int | None = Field(default=None, ge=1, le=1000)
-    until: int | None = Field(default=None)
+    until: CommonFieldTimestamp | None = Field(default=None)
     estimated_end_date: int | None = Field(default=None)
     obj_exceptions: list[ObjEventRecurenceExceptionSchema] = Field(default_factory=list)
 

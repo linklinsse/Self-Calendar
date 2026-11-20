@@ -34,8 +34,15 @@ async def lifespan(app: FastAPI):
     # Add shutdown logic here if needed (e.g. close connection pools)
 
 
+# Below this, an HS256 key is within reach of an offline brute force: anyone
+# with an account holds a signed token to test guesses against, and a
+# recovered key lets them mint a token for any userId. 32 characters is what
+# `openssl rand -hex 16` gives; the templates recommend `-hex 32` (64 chars).
+_MIN_SECRET_KEY_LENGTH = 32
+
+
 def _require_real_secret_key() -> None:
-    """Refuse to start with a placeholder SECRET_KEY.
+    """Refuse to start with a placeholder or too-short SECRET_KEY.
 
     Both the built-in default ("change-me") and the placeholder shipped in
     every .env template ("change-me-use-openssl-rand-hex-32") start with
@@ -48,6 +55,14 @@ def _require_real_secret_key() -> None:
             "SECRET_KEY is still set to a placeholder value. Generate a "
             "real secret (e.g. `openssl rand -hex 32`) and set it in "
             "conf/.env before starting the API."
+        )
+    if len(settings.SECRET_KEY) < _MIN_SECRET_KEY_LENGTH:
+        raise RuntimeError(
+            f"SECRET_KEY is too short ({len(settings.SECRET_KEY)} characters, "
+            f"minimum {_MIN_SECRET_KEY_LENGTH}): JWTs signed with it can be "
+            f"brute-forced offline and then forged for any account. Generate "
+            f"a new one with `openssl rand -hex 32` and set it in conf/.env "
+            f"(every user will have to sign in again)."
         )
 
 
@@ -148,10 +163,16 @@ app.add_middleware(RateLimitMiddleware)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # Empty by default — configure CORS_ORIGINS in .env to allow specific origins.
+#
+# allow_credentials is off: authentication is a bearer token the client puts
+# in the Authorization header itself, never a cookie, so there is nothing for
+# the browser to attach on its own. Leaving it on only mattered in the bad
+# case — an over-broad CORS_ORIGINS (e.g. "*") combined with credentials
+# makes Starlette reflect any requesting origin back as allowed.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

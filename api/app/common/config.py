@@ -13,6 +13,8 @@ Usage:
     token = jwt.encode(payload, settings.SECRET_KEY, settings.ALGORITHM)
 """
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +30,11 @@ class Settings(BaseSettings):
 
     # ── Authentication ──────────────────────────
     SECRET_KEY: str = "change-me"
-    ALGORITHM: str = "HS256"
+    # Tokens are signed and verified with the shared SECRET_KEY, so only the
+    # HMAC family makes sense. A free-form string let a typo or an
+    # asymmetric/"none" algorithm through to PyJWT at runtime; restricting
+    # it here turns that into a clear error at startup instead.
+    ALGORITHM: Literal["HS256", "HS384", "HS512"] = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     # 30 days. Long-lived on purpose: it exists so the Android home-screen
     # widget can keep working without the user opening the app, which they
@@ -48,8 +54,12 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = []
 
     # ── Rate limiting ────────────────────────────
-    # Number of consecutive failed requests from an IP before it is blocked.
+    # Number of failed requests from an IP, within RATE_LIMIT_WINDOW_SECONDS,
+    # before it is blocked.
     RATE_LIMIT_MAX_FAILURES: int = 5
+    # How far back (seconds) failures are counted. A success does not clear
+    # them — see rate_limit_middleware.py for why.
+    RATE_LIMIT_WINDOW_SECONDS: int = 900
     # How long (seconds) a blocked IP must wait before trying again.
     RATE_LIMIT_TIMEOUT_SECONDS: int = 180
 

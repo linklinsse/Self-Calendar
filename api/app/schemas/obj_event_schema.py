@@ -1,6 +1,12 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.common_fields import CommonFieldDescription, CommonFieldTitle
+from app.schemas.common_fields import (
+    CommonFieldColor,
+    CommonFieldDescription,
+    CommonFieldShortText,
+    CommonFieldTimestamp,
+    CommonFieldTitle,
+)
 from app.schemas.obj_event_recurence_schema import ObjEventRecurenceSchemaComplete, ObjEventRecurenceSchemaEdit, ObjEventRecurenceSchemaCreate
 
 
@@ -33,13 +39,15 @@ class ObjEventSchemaCreate(BaseModel):
     calendar_id: str
     title: CommonFieldTitle
     description: CommonFieldDescription
-    date_start: int
-    date_end: int
+    date_start: CommonFieldTimestamp
+    date_end: CommonFieldTimestamp
     category_id: str | None = Field(default=None)
     # Null = inherit the category's colour. See ObjEventModel.color.
-    color: str | None = Field(default=None, max_length=7)
-    address: str | None = Field(default=None)
-    reminder: str | None = Field(default=None)
+    # Hex only, like calendar and category colours: the clients interpolate
+    # it straight into inline `style` attributes.
+    color: CommonFieldColor
+    address: CommonFieldShortText
+    reminder: CommonFieldShortText
     obj_recurence: ObjEventRecurenceSchemaCreate | None = Field(default=None)
 
 
@@ -53,12 +61,12 @@ class ObjEventSchemaEdit(BaseModel):
     calendar_id: str | None = Field(default=None)
     title: CommonFieldTitle | None = Field(default=None)
     description: CommonFieldDescription
-    date_start: int | None = Field(default=None)
-    date_end: int | None = Field(default=None)
+    date_start: CommonFieldTimestamp | None = Field(default=None)
+    date_end: CommonFieldTimestamp | None = Field(default=None)
     category_id: str | None = Field(default=None)
-    color: str | None = Field(default=None, max_length=7)
-    address: str | None = Field(default=None)
-    reminder: str | None = Field(default=None)
+    color: CommonFieldColor
+    address: CommonFieldShortText
+    reminder: CommonFieldShortText
     obj_recurence: ObjEventRecurenceSchemaCreate | ObjEventRecurenceSchemaEdit | None = Field(default=None)
 
 

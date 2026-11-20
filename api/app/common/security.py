@@ -15,7 +15,10 @@ from datetime import datetime, timedelta, timezone
 from pwdlib import PasswordHash
 from pwdlib.hashers.bcrypt import BcryptHasher
 
-from app.schemas.obj_user_schema import ObjUserSchemaComplete
+from app.schemas.obj_user_schema import (
+    BCRYPT_MAX_PASSWORD_BYTES,
+    ObjUserSchemaComplete,
+)
 from app.common.config import settings
 from app.common.errors import AppErrorCode, raise_app_error
 
@@ -42,8 +45,26 @@ def hash_password(password: str) -> str:
     return _pwd_hash.hash(password)
 
 
+# bcrypt only ever looks at the first 72 bytes, and the `bcrypt` package
+# *raises* on anything longer instead of truncating. Registration rejects
+# such passwords at the schema (see CommonFieldPassword), but login and
+# change-password take whatever the client sends as the *candidate*, so
+# without this a long or multi-byte password was an unhandled ValueError —
+# an HTTP 500 instead of a plain "wrong password".
+# (BCRYPT_MAX_PASSWORD_BYTES itself lives in obj_user_schema.)
+
+
 def verify_password(plain: str, hashed: str) -> bool:
-    """Return True when *plain* matches *hashed*."""
+    """Return True when *plain* matches *hashed*.
+
+    A candidate longer than bcrypt can hash cannot match any stored hash
+    (every stored one was created from a password within the limit), so it
+    is simply a mismatch. Returning early does not leak whether a username
+    exists: the not-found path in auth_service.login goes through this same
+    function and short-circuits identically.
+    """
+    if len(plain.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+        return False
     return _pwd_hash.verify(plain, hashed)
 
 
@@ -103,7 +124,13 @@ def decode_token(token: str) -> dict[str, object]:
     """
     try:
         payload: dict[str, object] = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            # PyJWT only checks `exp` when it is present. Every token this
+            # API mints carries one, so a token without it was not issued
+            # here as-is — refuse it rather than treat it as never-expiring.
+            options={"require": ["exp"]},
         )
     except jwt.PyJWTError:
         raise_app_error(AppErrorCode.INVALID_TOKEN)
