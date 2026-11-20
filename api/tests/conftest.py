@@ -34,6 +34,7 @@ _security._DUMMY_HASH = _security._pwd_hash.hash("timing-equalisation-dummy")
 
 from app.app import app
 from app.common.db_connection import create_db_and_tables, db_engine
+from app.common.middleware import rate_limit_middleware
 
 
 @pytest.fixture(scope="session")
@@ -73,6 +74,20 @@ def _clean_db(_migrated_schema):
         for table in reversed(SQLModel.metadata.sorted_tables):
             conn.execute(table.delete())
     yield
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Give every test a fresh rate-limit window.
+
+    Every TestClient request comes from the same address, and a success no
+    longer clears earlier failures (see rate_limit_middleware.py) — so
+    without this, expected 4xx responses on login/register in one test would
+    add up across the suite and start returning 429 in unrelated tests.
+    """
+    rate_limit_middleware._store.clear()
+    yield
+    rate_limit_middleware._store.clear()
 
 
 def register_and_login(client: TestClient, username: str, password: str = "supersecret123") -> str:

@@ -4,23 +4,33 @@ app/common/middleware/rate_limit_middleware.py
 IP-based rate limiter for sensitive routes.
 
 How it works:
-    - A per-IP failure counter is maintained in memory.
-    - When the counter reaches RATE_LIMIT_MAX_FAILURES consecutive failures
-      (any 4xx response) on a protected route, the IP is blocked for
-      RATE_LIMIT_TIMEOUT_SECONDS seconds.
-    - A successful response (2xx) resets the failure counter for that IP.
+    - Each failed request (any 4xx/5xx response) on a protected route records
+      a timestamp for the client IP.
+    - When an IP accumulates RATE_LIMIT_MAX_FAILURES failures within the last
+      RATE_LIMIT_WINDOW_SECONDS, it is blocked for RATE_LIMIT_TIMEOUT_SECONDS.
     - Blocked IPs receive HTTP 429 immediately, before the route handler runs.
+    - A successful response does NOT clear the failures. It used to, and that
+      made the limiter trivially bypassable: an attacker with any account of
+      their own (or open registration) could log in successfully every few
+      guesses to reset the counter, and brute-force another user's password
+      from one IP at full speed. Failures now simply age out of the window.
 
 Protected routes are defined in PROTECTED_ROUTES below as (method, path) pairs.
 Add or remove entries there — no other file needs to change.
 
 Configuration (via .env / environment):
-    RATE_LIMIT_MAX_FAILURES    int  default 5    consecutive failures before block
+    RATE_LIMIT_MAX_FAILURES    int  default 5    failures in the window before block
+    RATE_LIMIT_WINDOW_SECONDS  int  default 900  how far back failures are counted
     RATE_LIMIT_TIMEOUT_SECONDS int  default 180  seconds the block lasts
 
 Note: The counter is in-process memory. It resets on server restart and is not
 shared across multiple workers. For multi-worker production deployments, replace
 `_store` with a Redis-backed store.
+
+Note: the key is the TCP peer address. Behind a reverse proxy every client
+shares the proxy's address unless uvicorn is told to trust its
+X-Forwarded-For (`--forwarded-allow-ips`), so one client's failures would
+then block everyone.
 """
 
 import time
@@ -39,10 +49,17 @@ PROTECTED_ROUTES: set[tuple[str, str]] = {
     ("POST", "/auth/login"),
     ("POST", "/auth/register"),
     ("POST", "/user_calendar/"),
+    # Checks the caller's current password: without a limit, someone holding
+    # a stolen (or borrowed-device) access token could guess it at full speed
+    # and walk away with a password that is likely reused elsewhere.
+    ("PATCH", "/user/password"),
 }
 
 # ── In-memory store ───────────────────────────────────────────────────────────
-# { ip: { "failures": int, "locked_until": float | None, "last_update": float } }
+# { ip: { "failures": list[float], "locked_until": float | None,
+#         "last_update": float } }
+# `failures` holds the timestamps of recent failures, oldest first. It never
+# grows past RATE_LIMIT_MAX_FAILURES: reaching that locks the IP and clears it.
 # CPython's GIL protects individual dict operations, which is sufficient here.
 # Replace with a Redis client for multi-worker / distributed setups.
 
@@ -57,17 +74,48 @@ _STALE_AFTER_SECONDS = 3600
 _last_sweep = 0.0
 
 
+def _stale_after() -> float:
+    """An entry may only be dropped once nothing in it can matter any more:
+    neither a failure still inside the window nor a lock still running."""
+    return max(
+        _STALE_AFTER_SECONDS,
+        settings.RATE_LIMIT_WINDOW_SECONDS,
+        settings.RATE_LIMIT_TIMEOUT_SECONDS,
+    )
+
+
 def _sweep_stale_entries(now: float) -> None:
     global _last_sweep
     if now - _last_sweep < _SWEEP_INTERVAL_SECONDS:
         return
     _last_sweep = now
+    stale_after = _stale_after()
     stale_ips = [
         ip for ip, rec in _store.items()
-        if now - rec["last_update"] > _STALE_AFTER_SECONDS
+        if now - rec["last_update"] > stale_after
     ]
     for ip in stale_ips:
         _store.pop(ip, None)
+
+
+def _record_failure(ip: str, now: float) -> bool:
+    """Record one failure for *ip*. Returns True if it is now blocked."""
+    rec = _store.setdefault(
+        ip, {"failures": [], "locked_until": None, "last_update": now}
+    )
+    window_start = now - settings.RATE_LIMIT_WINDOW_SECONDS
+    rec["failures"] = [t for t in rec["failures"] if t > window_start]
+    rec["failures"].append(now)
+    rec["last_update"] = now
+
+    if len(rec["failures"]) < settings.RATE_LIMIT_MAX_FAILURES:
+        return False
+
+    rec["locked_until"] = now + settings.RATE_LIMIT_TIMEOUT_SECONDS
+    # Start clean once the block expires, rather than re-locking on the very
+    # next failure because the same old timestamps are still in the window.
+    rec["failures"] = []
+    return True
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -105,24 +153,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # ── Update the failure counter based on the response ──────────────
-        if response.status_code >= 400:
-            rec = _store.setdefault(
-                ip, {"failures": 0, "locked_until": None, "last_update": now}
+        # Successes are deliberately not recorded — see the module docstring.
+        if response.status_code >= 400 and _record_failure(ip, time.time()):
+            print(
+                f"[RateLimit] IP {ip} blocked for "
+                f"{settings.RATE_LIMIT_TIMEOUT_SECONDS}s after "
+                f"{settings.RATE_LIMIT_MAX_FAILURES} failures within "
+                f"{settings.RATE_LIMIT_WINDOW_SECONDS}s "
+                f"on {request.method} {request.url.path}"
             )
-            rec["failures"] += 1
-            rec["last_update"] = now
-
-            if rec["failures"] >= settings.RATE_LIMIT_MAX_FAILURES:
-                rec["locked_until"] = time.time() + settings.RATE_LIMIT_TIMEOUT_SECONDS
-                rec["failures"] = 0  # reset so counter is clean after the block expires
-                print(
-                    f"[RateLimit] IP {ip} blocked for "
-                    f"{settings.RATE_LIMIT_TIMEOUT_SECONDS}s after "
-                    f"{settings.RATE_LIMIT_MAX_FAILURES} consecutive failures "
-                    f"on {request.method} {request.url.path}"
-                )
-        else:
-            # Successful response — clear the slate for this IP.
-            _store.pop(ip, None)
 
         return response

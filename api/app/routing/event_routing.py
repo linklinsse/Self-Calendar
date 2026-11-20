@@ -1,10 +1,11 @@
 from typing import List
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query
 from typing import Annotated
 from sys import maxsize
 
 from app.common.db_connection import SessionDep
 from app.common.utils.recurrence_expansion import expand_events
+from app.schemas.common_fields import TIMESTAMP_MAX, TIMESTAMP_MIN
 from app.schemas.obj_event_schema import (
     ObjEventOccurrenceSchema,
     ObjEventSchemaComplete,
@@ -63,12 +64,23 @@ def get_all(
     Requires at least "R" (read) permission.
     """
 
+    # Explicitly-empty query values arrive as None; treat them as absent.
+    from_date = 0 if from_date is None else from_date
+    to_date = maxsize if to_date is None else to_date
+
     events = obj_event_service.get_all_event_between(
         calendar_ids, from_date, to_date, category_ids, limit, session
     )
 
     if not expand:
         return events
+
+    # Expansion works in datetimes, which cannot represent the default
+    # to_date (sys.maxsize) — a bare `?expand=true` was an HTTP 500. Clamp
+    # to the range event timestamps are validated against anyway; nothing
+    # can recur outside it.
+    from_date = min(max(from_date, TIMESTAMP_MIN), TIMESTAMP_MAX)
+    to_date = min(max(to_date, TIMESTAMP_MIN), TIMESTAMP_MAX)
 
     # The service returns ORM rows; validate each once into the response
     # schema and reuse it, rather than re-validating per occurrence — a
@@ -111,6 +123,12 @@ def delete(event_id: str, session: SessionDep):
     return obj_event_service.delete_event(event_id, session)
 
 @router.delete("/{event_id}/{date}")
-def add_exception_event_recurence(event_id: str, date: int, session: SessionDep):
+def add_exception_event_recurence(
+    event_id: str,
+    # Bounded like every other stored timestamp: an out-of-range exception
+    # date would break expansion of the whole calendar for every member.
+    date: Annotated[int, Path(ge=TIMESTAMP_MIN, le=TIMESTAMP_MAX)],
+    session: SessionDep,
+):
     """Delete an event recurence. Requires at least "W" (Write) permission."""
     return obj_event_service.add_exception_event_recurence(event_id, date, session)

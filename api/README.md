@@ -71,7 +71,7 @@ api/
 │   │   ├── dependencies/
 │   │   │   └── verify_logged_user_dependency.py  # Decodes token, populates user context
 │   │   ├── middleware/
-│   │   │   └── rate_limit_middleware.py    # Per-IP failure counter for /auth/login, /auth/register
+│   │   │   └── rate_limit_middleware.py    # Per-IP failure window for login, register, sharing, change-password
 │   │   └── utils/
 │   │       └── verify_user_right_calendar.py     # Permission level check helper
 │   ├── models/                             # SQLModel table definitions (DB layer)
@@ -304,8 +304,10 @@ USER_CREATION=true
 # Generate a strong random secret for production — never use the default.
 # The app refuses to start if SECRET_KEY still starts with "change-me"
 # (covers both the bare default below and the "...-use-openssl-rand-hex-32"
-# placeholder shipped in conf/.env.template).
+# placeholder shipped in conf/.env.template), or is shorter than 32
+# characters. `openssl rand -hex 32` gives 64.
 SECRET_KEY=change-me
+# HS256, HS384 or HS512 only (tokens are signed with SECRET_KEY).
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
@@ -319,8 +321,12 @@ DB_URL=sqlite:///./dev.db
 # CORS_ORIGINS=http://localhost:5173,https://app.example.com
 
 # ── Rate limiting ────────────────────────────────────────────────────────
-# Consecutive failures from one IP before it is blocked (default: 5)
+# Applies to login, register, adding a calendar member and change-password.
+# Failures from one IP within the window before it is blocked (default: 5).
+# A success does not reset the count — failures age out of the window.
 RATE_LIMIT_MAX_FAILURES=5
+# How far back failures are counted, in seconds (default: 900 = 15 minutes)
+RATE_LIMIT_WINDOW_SECONDS=900
 # How long the block lasts in seconds (default: 180 = 3 minutes)
 RATE_LIMIT_TIMEOUT_SECONDS=180
 ```

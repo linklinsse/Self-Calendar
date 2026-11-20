@@ -126,6 +126,9 @@ def edit_calendar(
     require_calendar_right(get_logged_user_context(), db_calendar, "O")
 
     update_data = edited_calendar.model_dump(exclude_unset=True)
+    # title is NOT NULL: an explicit null would be an IntegrityError (500).
+    if update_data.get("title", "") is None:
+        del update_data["title"]
     for key, value in update_data.items():
         setattr(db_calendar, key, value)
 

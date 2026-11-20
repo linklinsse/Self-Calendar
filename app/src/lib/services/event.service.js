@@ -242,7 +242,11 @@ export async function fetchEvents(filters = {}) {
  * @returns {Promise<CalEvent>}
  */
 export async function fetchEvent(id) {
-  const data = await api.get(`/event/${id}`);
+  // `id` can come straight from a selfcalendar://event?id=… deep link (see
+  // routes/+layout.svelte), i.e. from any app or web page that can fire an
+  // intent. Unencoded, "../calendar/x" or "x?y" would rewrite the request
+  // into a different API call made with the user's own token.
+  const data = await api.get(`/event/${encodeURIComponent(id)}`);
   return deserialise(data);
 }
 
@@ -263,7 +267,7 @@ export async function createEvent(payload) {
  * @returns {Promise<CalEvent>}
  */
 export async function updateEvent(id, payload) {
-  const data = await api.patch(`/event/${id}`, serialise(payload));
+  const data = await api.patch(`/event/${encodeURIComponent(id)}`, serialise(payload));
   return deserialise(data);
 }
 
@@ -273,7 +277,7 @@ export async function updateEvent(id, payload) {
  * @returns {Promise<void>}
  */
 export async function deleteEvent(id) {
-  return api.delete(`/event/${id}`);
+  return api.delete(`/event/${encodeURIComponent(id)}`);
 }
 
 /**
@@ -284,5 +288,5 @@ export async function deleteEvent(id) {
  */
 export async function excludeOccurrence(eventId, occurrenceDate) {
   const unixDate = Math.floor(occurrenceDate.getTime() / 1000);
-  return api.delete(`/event/${eventId}/${unixDate}`);
+  return api.delete(`/event/${encodeURIComponent(eventId)}/${unixDate}`);
 }

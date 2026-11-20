@@ -75,6 +75,11 @@ def update_category(
         raise_app_error(AppErrorCode.CALENDAR_NOT_FOUND)
 
     patch_data = payload.model_dump(exclude_unset=True)
+    # Both columns are NOT NULL. An explicit null is not "move nowhere" or
+    # "erase the title" — writing it through was an IntegrityError (500).
+    for key in ("calendar_id", "title"):
+        if key in patch_data and patch_data[key] is None:
+            del patch_data[key]
 
     new_calendar_id = patch_data.get("calendar_id")
     if new_calendar_id is not None and new_calendar_id != category.calendar_id:

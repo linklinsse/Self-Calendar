@@ -14,7 +14,20 @@ def create_event_recurence(
     date_start: int,
     session: Session,
 ) -> ObjEventRecurenceModel:
-    db_recurence = ObjEventRecurenceModel.model_validate(new_recurence)
+    # Only the rule itself comes from the client. The request schemas also
+    # carry `id`, `obj_exceptions` and `estimated_end_date` (the Edit shape
+    # mirrors what GET returns), and validating the whole object let the
+    # client pick the new row's primary key and attach exception rows of its
+    # own choosing. All three are server-owned: the id is generated, the
+    # estimated end is computed below, and exceptions are only ever created
+    # through DELETE /event/{id}/{date} or carried over by copy_exceptions.
+    db_recurence = ObjEventRecurenceModel.model_validate(
+        {
+            **new_recurence.model_dump(mode="json", include=set(_RULE_FIELDS)),
+            # Required by the model (no default); computed just below.
+            "estimated_end_date": None,
+        }
+    )
     db_recurence.estimated_end_date = compute_estimated_end(db_recurence, date_start)
     session.add(db_recurence)
     session.commit()
@@ -153,17 +166,25 @@ def compute_estimated_end(
         return recurrence.until
 
     # endType == 'C'
-    dt = datetime.fromtimestamp(date_start, tz=timezone.utc)
     n = recurrence.count * recurrence.interval  # total units to advance
 
-    match recurrence.type:
-        case 'D':
-            dt += timedelta(days=n)
-        case 'W':
-            dt += timedelta(weeks=n)
-        case 'M':
-            dt += relativedelta(months=n)
-        case 'Y':
-            dt += relativedelta(years=n)
+    # count and interval are each capped at 1000, but their product is not:
+    # a yearly rule can ask for a million years, past datetime's year 9999.
+    # An end that far out is, for every practical purpose, "never" — which
+    # is exactly what None means to get_all_event_between's range filter.
+    # Expansion still honours the count itself, so nothing extra is shown.
+    try:
+        dt = datetime.fromtimestamp(date_start, tz=timezone.utc)
+        match recurrence.type:
+            case 'D':
+                dt += timedelta(days=n)
+            case 'W':
+                dt += timedelta(weeks=n)
+            case 'M':
+                dt += relativedelta(months=n)
+            case 'Y':
+                dt += relativedelta(years=n)
+    except (OverflowError, ValueError):
+        return None
 
     return int(dt.timestamp())

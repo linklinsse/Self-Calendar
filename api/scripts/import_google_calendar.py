@@ -45,6 +45,7 @@ Notes / deliberate simplifications:
 """
 
 import argparse
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -113,6 +114,20 @@ EXPANSION_WINDOW_YEARS_FORWARD = 5
 # ── Google OAuth ──────────────────────────────────────────────────────────────
 
 
+def _write_private(path: Path, content: str) -> None:
+    """Write *content* readable by the current user only (0600).
+
+    The cached token holds a long-lived Google refresh token for the
+    account's calendars. write_text() created it with the default umask —
+    typically world-readable — so any other local user could lift it.
+    The chmod also tightens a token file left behind by an older run.
+    """
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(content)
+    os.chmod(path, 0o600)
+
+
 def get_credentials(credentials_path: Path, token_path: Path) -> Credentials:
     creds = None
     if token_path.exists():
@@ -134,7 +149,7 @@ def get_credentials(credentials_path: Path, token_path: Path) -> Credentials:
                 str(credentials_path), SCOPES
             )
             creds = flow.run_local_server(port=0, prompt="select_account")
-        token_path.write_text(creds.to_json())
+        _write_private(token_path, creds.to_json())
 
     return creds
 

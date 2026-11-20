@@ -289,51 +289,79 @@ def expand_events(
     local_range_end = _midnight(_to_local(range_end, tz))
 
     for event in events:
-        span_seconds = event.date_end - event.date_start
-        recurrence = getattr(event, "obj_recurence", None)
-
-        if recurrence is None:
-            starts_before_end = (
-                _midnight(_to_local(event.date_start, tz)) <= local_range_end
-            )
-            ends_after_start = (
-                _midnight(_to_local(event.date_end, tz)) >= local_range_start
-            )
-            if starts_before_end and ends_after_start:
-                out.append(
-                    {
-                        "event_id": event.id,
-                        "date_start": event.date_start,
-                        "date_end": event.date_end,
-                    }
+        # One event whose timestamps datetime cannot represent (stored before
+        # the API validated them, or written by a direct DB import) must not
+        # take the whole response down with it: that turned a single bad row
+        # into an HTTP 500 for every member of the calendar, the Android
+        # widget included. There is nothing displayable in such an event, so
+        # it is skipped. Valid events are unaffected.
+        try:
+            out.extend(
+                _expand_one(
+                    event, range_start, range_end,
+                    local_range_start, local_range_end, tz,
                 )
+            )
+        except (OverflowError, ValueError, OSError):
             continue
 
-        rule = {
-            "type": recurrence.type,
-            "interval": recurrence.interval,
-            "days": recurrence.days,
-            "endType": recurrence.endType,
-            "count": recurrence.count,
-            "until": recurrence.until,
-        }
+    return out
 
-        excluded = {
-            _midnight(_to_local(exception.date, tz)).date()
-            for exception in (recurrence.obj_exceptions or [])
-        }
 
-        for occurrence_start in occurrences_in_range(
-            event.date_start, event.date_end, rule, range_start, range_end, tz
-        ):
-            if _midnight(_to_local(occurrence_start, tz)).date() in excluded:
-                continue
-            out.append(
+def _expand_one(
+    event,
+    range_start: int,
+    range_end: int,
+    local_range_start: datetime,
+    local_range_end: datetime,
+    tz: tzinfo,
+) -> list[dict]:
+    """Occurrences of a single event within the range (see expand_events)."""
+    span_seconds = event.date_end - event.date_start
+    recurrence = getattr(event, "obj_recurence", None)
+
+    if recurrence is None:
+        starts_before_end = (
+            _midnight(_to_local(event.date_start, tz)) <= local_range_end
+        )
+        ends_after_start = (
+            _midnight(_to_local(event.date_end, tz)) >= local_range_start
+        )
+        if starts_before_end and ends_after_start:
+            return [
                 {
                     "event_id": event.id,
-                    "date_start": occurrence_start,
-                    "date_end": occurrence_start + span_seconds,
+                    "date_start": event.date_start,
+                    "date_end": event.date_end,
                 }
-            )
+            ]
+        return []
 
+    rule = {
+        "type": recurrence.type,
+        "interval": recurrence.interval,
+        "days": recurrence.days,
+        "endType": recurrence.endType,
+        "count": recurrence.count,
+        "until": recurrence.until,
+    }
+
+    excluded = {
+        _midnight(_to_local(exception.date, tz)).date()
+        for exception in (recurrence.obj_exceptions or [])
+    }
+
+    out: list[dict] = []
+    for occurrence_start in occurrences_in_range(
+        event.date_start, event.date_end, rule, range_start, range_end, tz
+    ):
+        if _midnight(_to_local(occurrence_start, tz)).date() in excluded:
+            continue
+        out.append(
+            {
+                "event_id": event.id,
+                "date_start": occurrence_start,
+                "date_end": occurrence_start + span_seconds,
+            }
+        )
     return out
