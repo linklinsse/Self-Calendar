@@ -13,6 +13,9 @@ CommonFieldDescription = Annotated[str | None, Field(default=None, max_length=20
 # Free-text event fields (address, reminder). The model already declared 255,
 # but SQLite does not enforce VARCHAR lengths and PATCH bypassed it entirely.
 CommonFieldShortText = Annotated[str | None, Field(default=None, max_length=255)]
+# A category icon is a single emoji, but one emoji can be several code points
+# (skin tone, ZWJ sequences, flags) — 16 leaves room for those.
+CommonFieldIcon = Annotated[str | None, Field(default=None, max_length=16)]
 
 # Unix timestamps are stored as bare integers, but every consumer turns them
 # into datetimes (recurrence expansion, compute_estimated_end, the clients),

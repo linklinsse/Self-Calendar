@@ -177,8 +177,7 @@ src/
     │   ├── api.js              ← Base fetch client + JWT bearer token handling
     │   ├── auth.service.js     ← login / logout / getMe
     │   ├── calendar.service.js ← Calendar CRUD + user-calendar membership
-    │   ├── category.service.js ← Category CRUD via /category (title/color/calendar_id);
-    │   │                          icon is a client-only overlay in localStorage (no server column)
+    │   ├── category.service.js ← Category CRUD via /category (title/color/icon/calendar_id)
     │   └── event.service.js    ← Event CRUD with unix-timestamp serialisation
     │
     ├── widgetSync.js           ← Pushes theme + auth (not events) to the native Android home-screen widget (Capacitor)
@@ -282,9 +281,11 @@ Internally, `event.service.js` deserialises unix timestamps into `startDate`/`en
 
 These are the API's `CalendarRight` codes (Read/Write/Owner) — used both on `UserCalendar` objects from `/user_calendar/` and as `right` on `Calendar` objects from `/calendar/` (mapped client-side from the API's `user_right` field), representing the current user's own permission on that calendar. UI that gates owner-only actions (e.g. the calendar-settings gear in `CalendarList.svelte`, edit/delete in `EventModal.svelte`) checks against `'O'`/`'W'` directly.
 
-### Categories: what's synced vs. local-only
+### Categories: everything is synced
 
-`category.service.js` persists `label` (→ API `title`), `color`, and `calendar_id` through `/category/` so categories are consistent across devices/logins, same as calendars. The `icon` field has no server-side column — it's kept in a small `localStorage` overlay (keyed by category id) and merged back in on read. A category created on one device will show up elsewhere with its label/color intact but the default icon until re-picked.
+`category.service.js` persists `label` (→ API `title`), `color`, `icon` and `calendar_id` through `/category/` so categories are consistent across devices/logins, same as calendars.
+
+`icon` used to be a client-only `localStorage` overlay (`sc_category_icons`, keyed by category id), so any other browser/device showed every category with the default icon. Since the API gained the column (migration `8e567ccbd178`), that overlay is only read to recover legacy icons: when the server returns `icon: null` for a category this device still has a local icon for, the local one is uploaded once and the entry dropped. If two devices had different local icons for the same category, the first one to load after the upgrade wins.
 
 ---
 

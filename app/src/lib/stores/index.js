@@ -167,10 +167,8 @@ export function openAddPanel(date, startTime) {
   });
 }
 
-/** Open edit panel pre-filled with an existing event. */
-export function openEditPanel(id) {
-  const ev = get(events).find(e => e.id === id);
-  if (!ev) return;
+/** Panel state pre-filled from an existing event (shared by edit + duplicate). */
+function _panelFromEvent(ev) {
   // The picker needs a colour it can paint, but `ev.color` is the raw
   // override and is null whenever the event inherits. Resolve it here to
   // the same precedence the calendar views use (override -> category ->
@@ -180,29 +178,32 @@ export function openEditPanel(id) {
     ? get(categories).find(c => c.id === ev.category_id)
     : null;
 
-  panelEvent.set({
+  return {
     ...ev,
     calendar_id: ev.calendar_id,
     category_id: ev.category_id ?? null,
     color: ev.color ?? cat?.color ?? '#b8c9f4',
     startDate: ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate),
     endDate:   ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate ?? ev.startDate),
-  });
+  };
 }
 
-/** Open add panel pre-filled with a copy of an existing event. */
+/** Open edit panel pre-filled with an existing event. */
+export function openEditPanel(id) {
+  const ev = get(events).find(e => e.id === id);
+  if (!ev) return;
+  panelEvent.set(_panelFromEvent(ev));
+}
+
+/**
+ * Open add panel pre-filled with an identical copy of an existing event.
+ * Nothing is altered (no "Copy of" prefix on the title): only the id is
+ * reset so saving creates a new event.
+ */
 export function openDuplicatePanel(id) {
   const ev = get(events).find(e => e.id === id);
   if (!ev) return;
-  panelEvent.set({
-    ...ev,
-    id:          -1,
-    title:       `Copy of ${ev.title}`,
-    calendar_id: ev.calendar_id,
-    category_id: ev.category_id ?? null,
-    startDate: ev.startDate instanceof Date ? ev.startDate : new Date(ev.startDate),
-    endDate:   ev.endDate   instanceof Date ? ev.endDate   : new Date(ev.endDate ?? ev.startDate),
-  });
+  panelEvent.set({ ..._panelFromEvent(ev), id: -1 });
 }
 
 // ── User-Calendar member management ──────────────────────────

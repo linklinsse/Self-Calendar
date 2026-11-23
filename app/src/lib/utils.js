@@ -606,3 +606,26 @@ export function computeColumns(occs) {
 
   return items;
 }
+
+// ── Swipe gesture ────────────────────────────────────────────
+
+/** Minimum horizontal travel (px) for a touch to count as a swipe. */
+export const SWIPE_MIN_DISTANCE = 50;
+
+/**
+ * Classify a finished touch as a horizontal swipe.
+ *
+ * The horizontal travel must be long enough AND clearly dominate the
+ * vertical one (at least twice as large), so a slightly diagonal tap or a
+ * vertical drag never flips the period by accident.
+ *
+ * @param {number} dx — end.x - start.x (px)
+ * @param {number} dy — end.y - start.y (px)
+ * @returns {1|-1|0} 1 = go to next period (finger moved left),
+ *                   -1 = previous period (finger moved right), 0 = no swipe.
+ */
+export function swipeDirection(dx, dy) {
+  if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return 0;
+  if (Math.abs(dx) < 2 * Math.abs(dy))   return 0;
+  return dx < 0 ? 1 : -1;
+}

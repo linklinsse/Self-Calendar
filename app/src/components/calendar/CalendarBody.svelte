@@ -7,8 +7,8 @@
    * so navigating to a new week / month / day always loads the right data.
    */
 
-  import { currentView, cursor, calendars, loadEvents } from '../../lib/stores/index.js';
-  import { weekDays } from '../../lib/utils.js';
+  import { currentView, cursor, calendars, loadEvents, navigatePeriod } from '../../lib/stores/index.js';
+  import { weekDays, swipeDirection } from '../../lib/utils.js';
 
   import MonthView from './MonthView.svelte';
   import WeekView  from './WeekView.svelte';
@@ -53,9 +53,47 @@
     void $calendars;
     loadEvents(range);
   });
+
+  // ── Swipe navigation (touch devices) ────────────────────────
+  // Swipe left → next month/week/day, swipe right → previous, following the
+  // active view — same steps as the Topbar ‹ › buttons. Touch events only,
+  // so a desktop mouse drag never navigates. A second finger cancels the
+  // gesture so a pinch can't be read as a swipe.
+  let touchStart = null;
+
+  function onTouchStart(e) {
+    touchStart = e.touches.length === 1
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : null;
+  }
+
+  function onTouchMove(e) {
+    if (e.touches.length > 1) touchStart = null;
+  }
+
+  function onTouchEnd(e) {
+    if (!touchStart) return;
+    const t   = e.changedTouches[0];
+    const dir = swipeDirection(t.clientX - touchStart.x, t.clientY - touchStart.y);
+    touchStart = null;
+    if (!dir) return;
+    // Swallow the synthetic click some WebViews still emit at the end of
+    // a drag, so the swipe doesn't also open the day/event under the finger.
+    if (e.cancelable) e.preventDefault();
+    navigatePeriod(dir);
+  }
+
+  function onTouchCancel() { touchStart = null; }
 </script>
 
-<main class="cal-body" aria-label="Calendar">
+<main
+  class="cal-body"
+  aria-label="Calendar"
+  ontouchstart={onTouchStart}
+  ontouchmove={onTouchMove}
+  ontouchend={onTouchEnd}
+  ontouchcancel={onTouchCancel}
+>
   {#if $currentView === 'month'}
     <MonthView />
   {:else if $currentView === 'week'}
@@ -71,5 +109,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    /* Horizontal drags belong to the swipe handler, not the browser —
+       vertical panning and pinch-zoom keep their native behaviour. */
+    touch-action: pan-y pinch-zoom;
   }
 </style>
