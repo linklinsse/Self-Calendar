@@ -9,7 +9,7 @@
 
   import ViewSwitcher from './ui/ViewSwitcher.svelte';
   import {
-    currentView, cursor, sidebarOpen, openAddPanel,
+    currentView, cursor, sidebarOpen, openAddPanel, navigatePeriod,
   } from '../lib/stores/index.js';
   import { MONTH_NAMES, MONTH_ABBR, DAY_NAMES, formatWeekRange } from '../lib/utils.js';
 
@@ -22,20 +22,8 @@
     return `${DAY_NAMES[d.getDay()]}, ${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
   }
 
-  function navPrev() {
-    cursor.update(d => {
-      if ($currentView === 'month') return new Date(d.getFullYear(), d.getMonth() - 1, 1);
-      if ($currentView === 'week')  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7);
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
-    });
-  }
-  function navNext() {
-    cursor.update(d => {
-      if ($currentView === 'month') return new Date(d.getFullYear(), d.getMonth() + 1, 1);
-      if ($currentView === 'week')  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7);
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-    });
-  }
+  function navPrev() { navigatePeriod(-1); }
+  function navNext() { navigatePeriod(1); }
   function goToday() { cursor.set(new Date()); }
 </script>
 

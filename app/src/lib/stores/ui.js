@@ -8,7 +8,7 @@
  *   • Toast notification queue
  */
 
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 // ── Calendar navigation ───────────────────────────────────────
 
@@ -23,6 +23,31 @@ export const currentView = writable('month');
  * Always starts on today so the app opens at the right week/month.
  */
 export const cursor = writable(new Date());
+
+/**
+ * The cursor moved by one period of `view` (month / week / day).
+ * Month steps land on the 1st so e.g. Jan 31 + 1 month is February,
+ * not March 3.
+ * @param {'month'|'week'|'day'} view
+ * @param {Date} d
+ * @param {1|-1} dir
+ * @returns {Date}
+ */
+export function shiftCursorDate(view, d, dir) {
+  if (view === 'month') return new Date(d.getFullYear(), d.getMonth() + dir, 1);
+  if (view === 'week')  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7 * dir);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + dir);
+}
+
+/**
+ * Step the cursor one period forward (1) or back (-1) in the active view.
+ * Shared by the Topbar ‹ › buttons and the mobile swipe gesture.
+ * @param {1|-1} dir
+ */
+export function navigatePeriod(dir) {
+  const view = get(currentView);
+  cursor.update(d => shiftCursorDate(view, d, dir));
+}
 
 // ── Drawer / overlay visibility ───────────────────────────────
 

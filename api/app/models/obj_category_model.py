@@ -13,3 +13,6 @@ class ObjCategoryModel(SQLModel, table=True):
     calendar_id: str = Field(foreign_key="obj_calendar.id")
     title: str = Field(max_length=255)
     color: str | None = Field(default=None, max_length=7)
+    # Emoji shown next to the category label. NULL = the client's default
+    # icon (categories created before this column existed).
+    icon: str | None = Field(default=None, max_length=16)
